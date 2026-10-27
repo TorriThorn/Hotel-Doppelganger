@@ -25,6 +25,9 @@ public class NPCFacePlayer : MonoBehaviour
     private float startYaw;
     private float currentYaw;
 
+    public float NoticeRange { get => noticeRange; set => noticeRange = Mathf.Max(0f, value); }
+    public float TurnSpeed { get => turnSpeed; set => turnSpeed = Mathf.Max(0f, value); }
+
     private void Start()
     {
         TryGetComponent(out patrol);

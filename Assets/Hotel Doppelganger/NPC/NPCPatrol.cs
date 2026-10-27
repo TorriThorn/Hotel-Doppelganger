@@ -141,6 +141,8 @@ public class NPCPatrol : MonoBehaviour
     public float WaitTime { get => defaultWaitTime; set => defaultWaitTime = Mathf.Max(0f, value); }
     public float ShortestWait { get => minRandomWait; set => minRandomWait = Mathf.Max(0f, value); }
     public float LongestWait { get => maxRandomWait; set => maxRandomWait = Mathf.Max(0f, value); }
+    public bool StopForPlayer { get => stopForPlayer; set => stopForPlayer = value; }
+    public float StopRange { get => stopRange; set => stopRange = Mathf.Max(0f, value); }
 
     private bool UsingAgent => agent != null && agent.enabled && agent.isOnNavMesh;
 

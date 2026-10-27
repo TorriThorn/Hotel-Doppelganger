@@ -190,6 +190,20 @@ public class PlayerDialogue : MonoBehaviour
 
     public float TalkRange { get => talkRange; set => talkRange = Mathf.Max(0f, value); }
     public float LettersPerSecond { get => lettersPerSecond; set => lettersPerSecond = Mathf.Max(1f, value); }
+    public float TalkAimForgiveness { get => talkRadius; set => talkRadius = Mathf.Max(0f, value); }
+    public float SentencePause { get => sentencePause; set => sentencePause = Mathf.Max(0f, value); }
+
+    public bool ShowTalkPrompt
+    {
+        get => showTalkPrompt;
+        set
+        {
+            showTalkPrompt = value;
+            NPCDialogue target = lookingAt;
+            lookingAt = null;
+            if (promptText != null) SetLookingAt(target);
+        }
+    }
 
     private bool IsTyping => node != null && visibleLetters < node.npcText.Length;
 

@@ -21,7 +21,8 @@ public sealed class MenuStyle
     public Color Shadow = Color.black;
 }
 
-// A value a menu row can change: a slider that snaps to its step, or an on/off switch.
+// A value a menu row can change: a slider that snaps to its step, an on/off switch,
+// or a choice that cycles through a list of named options.
 public sealed class MenuSetting
 {
     public readonly string Label;
@@ -31,11 +32,13 @@ public sealed class MenuSetting
 
     private readonly float step;
     private readonly string format;
+    private readonly string[] choices;
     private readonly Func<float> get;
     private readonly Action<float> set;
     private readonly float defaultValue;
 
-    private MenuSetting(string label, float min, float max, float step, string format, bool isToggle, Func<float> get, Action<float> set)
+    private MenuSetting(string label, float min, float max, float step, string format, bool isToggle, string[] choices,
+                        Func<float> get, Action<float> set)
     {
         Label = label;
         Min = min;
@@ -43,20 +46,38 @@ public sealed class MenuSetting
         IsToggle = isToggle;
         this.step = step;
         this.format = format;
+        this.choices = choices;
         this.get = get;
         this.set = set;
         defaultValue = get();
     }
 
     public static MenuSetting Slider(string label, float min, float max, float step, string format, Func<float> get, Action<float> set) =>
-        new MenuSetting(label, min, max, step, format, false, get, set);
+        new MenuSetting(label, min, max, step, format, false, null, get, set);
 
     public static MenuSetting Toggle(string label, Func<bool> get, Action<bool> set) =>
-        new MenuSetting(label, 0f, 1f, 1f, null, true, () => get() ? 1f : 0f, v => set(v > 0.5f));
+        new MenuSetting(label, 0f, 1f, 1f, null, true, null, () => get() ? 1f : 0f, v => set(v > 0.5f));
+
+    public static MenuSetting Choice(string label, string[] choices, Func<int> get, Action<int> set) =>
+        new MenuSetting(label, 0f, Mathf.Max(0, choices.Length - 1), 1f, null, false, choices, () => get(), v => set(Mathf.RoundToInt(v)));
+
+    public bool IsChoice => choices != null;
+
+    // Toggles and choices change in fixed steps, so they get no slider track
+    public bool HasTrack => !IsToggle && !IsChoice;
 
     public float Value => get();
     public float Fraction => Mathf.InverseLerp(Min, Max, get());
-    public string ValueText => IsToggle ? (get() > 0.5f ? "On" : "Off") : get().ToString(format);
+
+    public string ValueText
+    {
+        get
+        {
+            if (IsToggle) return get() > 0.5f ? "On" : "Off";
+            if (IsChoice) return choices.Length > 0 ? choices[Mathf.Clamp(Mathf.RoundToInt(get()), 0, choices.Length - 1)] : "-";
+            return get().ToString(format);
+        }
+    }
 
     public void SetValue(float value)
     {
@@ -64,9 +85,11 @@ public sealed class MenuSetting
         set(Mathf.Clamp(value, Min, Max));
     }
 
+    // Choices wrap around at either end, sliders stop at their limits
     public void Nudge(int direction)
     {
         if (IsToggle) Flip();
+        else if (IsChoice) set(((int)Mathf.Round(get()) + direction + choices.Length) % Mathf.Max(1, choices.Length));
         else SetValue(get() + direction * step);
     }
 
@@ -93,7 +116,7 @@ public sealed class MenuItem
     public Shadow ValueShadow;
 
     public RectTransform Rect => Back.rectTransform;
-    public bool IsSlider => Setting != null && !Setting.IsToggle;
+    public bool IsSlider => Setting != null && Setting.HasTrack;
 }
 
 // A column of rows driven by mouse and keyboard: W/S or arrows to move, A/D to change a value,
@@ -105,6 +128,7 @@ public sealed class MenuList
     private const float TrackWidth = 280f;
     private const float TrackHeight = 10f;
     private const float ValueWidth = 110f;
+    private const float WideValueExtra = 140f;
 
     private static RectOffset ButtonPadding => new RectOffset(12, 12, 8, 8);
     private static RectOffset SettingPadding => new RectOffset(12, 12, 6, 6);
@@ -142,9 +166,12 @@ public sealed class MenuList
         item.Label.text = setting.Label;
         RuntimeUI.FillWidth(item.Label);
 
-        if (setting.IsToggle)
+        // Rows without a track hand some of its space to the value, so names like "1920 x 1080" fit on one line
+        float valueWidth = setting.HasTrack ? ValueWidth : ValueWidth + WideValueExtra;
+
+        if (!setting.HasTrack)
         {
-            RuntimeUI.FixedWidth(RuntimeUI.CreateRect("Spacer", back.transform), TrackWidth);
+            RuntimeUI.FixedWidth(RuntimeUI.CreateRect("Spacer", back.transform), TrackWidth - WideValueExtra);
         }
         else
         {
@@ -163,7 +190,7 @@ public sealed class MenuList
         }
 
         item.Value = RuntimeUI.CreateText("Value", back.transform, style.Font, size, style.Text, TextAnchor.MiddleRight, style.Shadow, out item.ValueShadow);
-        RuntimeUI.FixedWidth(item.Value, ValueWidth);
+        RuntimeUI.FixedWidth(item.Value, valueWidth);
 
         return Add(item);
     }
@@ -267,7 +294,7 @@ public sealed class MenuList
     {
         dirty = true;
         if (item.Setting == null) item.OnPress?.Invoke();
-        else if (item.Setting.IsToggle) item.Setting.Flip();
+        else if (!item.Setting.HasTrack) item.Setting.Nudge(1);
     }
 
     private void Select(int index)

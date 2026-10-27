@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Hold left mouse to carry, right mouse to rotate, scroll to push or pull.
+// SOMA-style physical carrying: hold left mouse to carry, right mouse to rotate, scroll to push or pull.
 // Works on any non-kinematic Rigidbody. A Grabbable on the object adds per-object settings.
 [AddComponentMenu("Game/Player/Object Grabber")]
 public class ObjectGrabber : MonoBehaviour
@@ -147,6 +147,12 @@ public class ObjectGrabber : MonoBehaviour
     public float Reach { get => reach; set => reach = Mathf.Max(0f, value); }
     public float AimForgiveness { get => grabRadius; set => grabRadius = Mathf.Max(0f, value); }
     public float MaxMass { get => maxMass; set => maxMass = Mathf.Max(0f, value); }
+    public float ClosestHold { get => minHoldDistance; set => minHoldDistance = Mathf.Clamp(value, 0.1f, maxHoldDistance); }
+    public float FarthestHold { get => maxHoldDistance; set => maxHoldDistance = Mathf.Max(value, minHoldDistance); }
+    public float ScrollStep { get => scrollStep; set => scrollStep = Mathf.Max(0f, value); }
+    public float RotateSpeed { get => rotateSpeed; set => rotateSpeed = Mathf.Max(0f, value); }
+    public float FollowStrength { get => followStrength; set => followStrength = Mathf.Max(0f, value); }
+    public bool ShowGlow { get => highlightTarget; set => highlightTarget = value; }
 
     private void Awake()
     {

@@ -59,6 +59,7 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float handSize = 32f;
 
     private CharacterController controller;
+    private Camera playerCamera;
     private float verticalVelocity;
     private float cameraPitch;
 
@@ -88,6 +89,17 @@ public class FirstPersonController : MonoBehaviour
     public float SprintSpeed { get => sprintSpeed; set => sprintSpeed = Mathf.Max(0f, value); }
     public float MouseSensitivity { get => mouseSensitivity; set => mouseSensitivity = Mathf.Max(0f, value); }
     public bool InvertY { get => invertY; set => invertY = value; }
+    public float LookLimit { get => maxLookAngle; set => maxLookAngle = Mathf.Clamp(value, 0f, 90f); }
+    public float Gravity { get => gravity; set => gravity = value; }
+    public float DotSize { get => crosshairSize; set { crosshairSize = Mathf.Max(0f, value); shownTexture = null; } }
+    public float IconSize { get => handSize; set { handSize = Mathf.Max(0f, value); shownTexture = null; } }
+
+    // Reads 60 when there's no camera, so the Playtest slider still has something to show
+    public float FieldOfView
+    {
+        get => playerCamera != null ? playerCamera.fieldOfView : 60f;
+        set { if (playerCamera != null) playerCamera.fieldOfView = Mathf.Clamp(value, 1f, 179f); }
+    }
 
     // Only touches the cursor when it actually needs to change, since menus call this every frame
     public static void SetCursorLocked(bool locked)
@@ -107,6 +119,7 @@ public class FirstPersonController : MonoBehaviour
             if (cam != null) cameraTransform = cam.transform;
         }
 
+        if (cameraTransform != null) cameraTransform.TryGetComponent(out playerCamera);
         BuildCrosshair();
     }
 

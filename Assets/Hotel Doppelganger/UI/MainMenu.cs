@@ -8,12 +8,25 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Title screen with Start, How To Play, and a Playtest page for tuning values while testing.
-// The Playtest page can also be opened mid-game with F1. Builds its own UI at runtime.
+// Title screen with Start, How To Play, and a Playtest page for changing settings while testing.
+// Playtest settings are grouped into sections, each on its own page. It can also be opened mid-game with F1.
+// Builds its own UI at runtime.
 [AddComponentMenu("Game/UI/Main Menu")]
 public class MainMenu : MonoBehaviour
 {
-    private enum Page { Main, Tutorial, Playtest }
+    private enum Page { Main, Tutorial, Playtest, Section }
+
+    private sealed class SettingsSection
+    {
+        public string Title;
+        public readonly List<MenuSetting> Settings = new List<MenuSetting>();
+        public GameObject Root;
+        public MenuList List;
+        public Text TitleText;
+    }
+
+    private static readonly int[] FrameRates = { 30, 60, 120, 144, -1 };
+    private static readonly string[] FrameRateNames = { "30", "60", "120", "144", "Unlimited" };
 
     private const int SortingOrder = 200;   // above the dialogue box
 
@@ -72,8 +85,11 @@ public class MainMenu : MonoBehaviour
     [DisplayAs("Playtest Page Title")]
     [SerializeField] private string playtestTitle = "Playtest";
 
-    [DisplayAs("Reset Button Text")]
+    [DisplayAs("Reset Page Button Text")]
     [SerializeField] private string resetText = "Reset To Defaults";
+
+    [DisplayAs("Reset Everything Button Text")]
+    [SerializeField] private string resetAllText = "Reset Everything";
 
     [Foldout("Look")]
     [DisplayAs("Font (optional)")]
@@ -148,7 +164,7 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameComplete gameComplete;
 
     private readonly MenuStyle style = new MenuStyle();
-    private readonly List<MenuSetting> settings = new List<MenuSetting>();
+    private readonly List<SettingsSection> sections = new List<SettingsSection>();
     private readonly List<Image> boxes = new List<Image>();
     private readonly List<Image> borders = new List<Image>();
     private readonly List<Shadow> textShadows = new List<Shadow>();
@@ -168,12 +184,26 @@ public class MainMenu : MonoBehaviour
     private Text playtestTitleText;
 
     private Page page;
+    private SettingsSection currentSection;
+    private int resolutionIndex;
     private bool openedInGame;
     private float gameSpeed = 1f;
 
     public bool IsOpen { get; private set; }
 
-    private MenuList CurrentList => page == Page.Tutorial ? tutorialList : page == Page.Playtest ? playtestList : mainList;
+    private MenuList CurrentList
+    {
+        get
+        {
+            switch (page)
+            {
+                case Page.Tutorial: return tutorialList;
+                case Page.Playtest: return playtestList;
+                case Page.Section: return currentSection.List;
+                default: return mainList;
+            }
+        }
+    }
 
     private void Awake()
     {
@@ -261,10 +291,16 @@ public class MainMenu : MonoBehaviour
         else OpenPlaytestInGame();
     }
 
+    // Puts every Playtest setting back to how it was when the game started
     public void ResetSettings()
     {
-        foreach (MenuSetting setting in settings) setting.ResetToDefault();
-        playtestList.MarkDirty();
+        foreach (SettingsSection section in sections) ResetSection(section);
+    }
+
+    private static void ResetSection(SettingsSection section)
+    {
+        foreach (MenuSetting setting in section.Settings) setting.ResetToDefault();
+        section.List.MarkDirty();
     }
 
     private void Open(bool inGame)
@@ -301,11 +337,18 @@ public class MainMenu : MonoBehaviour
         return dialogue == null || !dialogue.IsTalking;
     }
 
-    // From a Playtest page opened with F1, Back returns to the game instead of the title screen
+    // Sections go back to the Playtest page. From a Playtest page opened with F1, Back returns to the game.
     private void GoBack()
     {
-        if (page == Page.Playtest && openedInGame) Close();
+        if (page == Page.Section) ShowPage(Page.Playtest);
+        else if (page == Page.Playtest && openedInGame) Close();
         else ShowPage(Page.Main);
+    }
+
+    private void OpenSection(SettingsSection section)
+    {
+        currentSection = section;
+        ShowPage(Page.Section);
     }
 
     private void ShowPage(Page newPage)
@@ -314,6 +357,7 @@ public class MainMenu : MonoBehaviour
         mainPage.SetActive(page == Page.Main);
         tutorialPage.SetActive(page == Page.Tutorial);
         playtestPage.SetActive(page == Page.Playtest);
+        foreach (SettingsSection section in sections) section.Root.SetActive(page == Page.Section && section == currentSection);
 
         Mouse mouse = Mouse.current;
         CurrentList.Reset(mouse != null ? mouse.position.ReadValue() : Vector2.zero);
@@ -335,42 +379,131 @@ public class MainMenu : MonoBehaviour
 
     private void BuildSettings()
     {
-        if (player != null)
+        FirstPersonController p = player;
+        ObjectGrabber g = grabber;
+        PlayerDialogue d = dialogue;
+
+        SettingsSection section = AddSection("Controls");
+        if (p != null)
         {
-            FirstPersonController p = player;
-            settings.Add(MenuSetting.Slider("Walk Speed", 0.5f, 15f, 0.5f, "0.0", () => p.WalkSpeed, v => p.WalkSpeed = v));
-            settings.Add(MenuSetting.Slider("Sprint Speed", 0.5f, 25f, 0.5f, "0.0", () => p.SprintSpeed, v => p.SprintSpeed = v));
-            settings.Add(MenuSetting.Slider("Mouse Sensitivity", 0.01f, 0.5f, 0.01f, "0.00", () => p.MouseSensitivity, v => p.MouseSensitivity = v));
-            settings.Add(MenuSetting.Toggle("Invert Mouse Up/Down", () => p.InvertY, v => p.InvertY = v));
+            section.Settings.Add(MenuSetting.Slider("Mouse Sensitivity", 0.01f, 0.5f, 0.01f, "0.00", () => p.MouseSensitivity, v => p.MouseSensitivity = v));
+            section.Settings.Add(MenuSetting.Toggle("Invert Mouse Up/Down", () => p.InvertY, v => p.InvertY = v));
+        }
+        if (g != null)
+        {
+            section.Settings.Add(MenuSetting.Slider("Held Object Turn Speed", 0.05f, 1f, 0.05f, "0.00", () => g.RotateSpeed, v => g.RotateSpeed = v));
+            section.Settings.Add(MenuSetting.Slider("Scroll Push/Pull Step", 0.05f, 1f, 0.05f, "0.00", () => g.ScrollStep, v => g.ScrollStep = v));
         }
 
-        if (grabber != null)
+        section = AddSection("Display & Sound");
+        section.Settings.Add(MenuSetting.Slider("Master Volume", 0f, 100f, 5f, "0", () => AudioListener.volume * 100f, v => AudioListener.volume = v / 100f));
+        AddResolution(section);
+        section.Settings.Add(MenuSetting.Toggle("Fullscreen", () => Screen.fullScreen, v => Screen.fullScreen = v));
+        if (QualitySettings.names.Length > 1)
+            section.Settings.Add(MenuSetting.Choice("Graphics Quality", QualitySettings.names, QualitySettings.GetQualityLevel, i => QualitySettings.SetQualityLevel(i, true)));
+        section.Settings.Add(MenuSetting.Toggle("VSync", () => QualitySettings.vSyncCount > 0, v => QualitySettings.vSyncCount = v ? 1 : 0));
+        section.Settings.Add(MenuSetting.Choice("Frame Rate Limit (VSync off)", FrameRateNames, CurrentFrameRateIndex, i => Application.targetFrameRate = FrameRates[i]));
+        if (p != null)
         {
-            ObjectGrabber g = grabber;
-            settings.Add(MenuSetting.Slider("Grab Reach", 1f, 8f, 0.25f, "0.00", () => g.Reach, v => g.Reach = v));
-            settings.Add(MenuSetting.Slider("Grab Aim Forgiveness", 0f, 1f, 0.05f, "0.00", () => g.AimForgiveness, v => g.AimForgiveness = v));
-            settings.Add(MenuSetting.Slider("Heaviest Liftable Mass", 1f, 100f, 1f, "0", () => g.MaxMass, v => g.MaxMass = v));
+            section.Settings.Add(MenuSetting.Slider("Field Of View", 50f, 110f, 1f, "0", () => p.FieldOfView, v => p.FieldOfView = v));
+            section.Settings.Add(MenuSetting.Slider("Crosshair Dot Size", 0f, 20f, 1f, "0", () => p.DotSize, v => p.DotSize = v));
+            section.Settings.Add(MenuSetting.Slider("Crosshair Icon Size", 8f, 96f, 2f, "0", () => p.IconSize, v => p.IconSize = v));
         }
 
-        if (dialogue != null)
+        if (p != null)
         {
-            PlayerDialogue d = dialogue;
-            settings.Add(MenuSetting.Slider("Talk Distance", 1f, 10f, 0.25f, "0.00", () => d.TalkRange, v => d.TalkRange = v));
-            settings.Add(MenuSetting.Slider("Text Speed (letters/sec)", 5f, 150f, 5f, "0", () => d.LettersPerSecond, v => d.LettersPerSecond = v));
+            section = AddSection("Player");
+            section.Settings.Add(MenuSetting.Slider("Walk Speed", 0.5f, 15f, 0.5f, "0.0", () => p.WalkSpeed, v => p.WalkSpeed = v));
+            section.Settings.Add(MenuSetting.Slider("Sprint Speed", 0.5f, 25f, 0.5f, "0.0", () => p.SprintSpeed, v => p.SprintSpeed = v));
+            section.Settings.Add(MenuSetting.Slider("Gravity", -40f, -1f, 0.5f, "0.0", () => p.Gravity, v => p.Gravity = v));
+            section.Settings.Add(MenuSetting.Slider("Look Up/Down Limit", 30f, 90f, 1f, "0", () => p.LookLimit, v => p.LookLimit = v));
+        }
+
+        if (g != null)
+        {
+            section = AddSection("Grabbing");
+            section.Settings.Add(MenuSetting.Slider("Grab Reach", 1f, 8f, 0.25f, "0.00", () => g.Reach, v => g.Reach = v));
+            section.Settings.Add(MenuSetting.Slider("Grab Aim Forgiveness", 0f, 1f, 0.05f, "0.00", () => g.AimForgiveness, v => g.AimForgiveness = v));
+            section.Settings.Add(MenuSetting.Slider("Heaviest Liftable Mass", 1f, 100f, 1f, "0", () => g.MaxMass, v => g.MaxMass = v));
+            section.Settings.Add(MenuSetting.Slider("Closest Hold Distance", 0.25f, 5f, 0.25f, "0.00", () => g.ClosestHold, v => g.ClosestHold = v));
+            section.Settings.Add(MenuSetting.Slider("Farthest Hold Distance", 0.5f, 8f, 0.25f, "0.00", () => g.FarthestHold, v => g.FarthestHold = v));
+            section.Settings.Add(MenuSetting.Slider("Carry Strength", 1f, 40f, 1f, "0", () => g.FollowStrength, v => g.FollowStrength = v));
+            section.Settings.Add(MenuSetting.Toggle("Glow On Grabbable Objects", () => g.ShowGlow, v => g.ShowGlow = v));
+        }
+
+        if (d != null)
+        {
+            section = AddSection("Talking");
+            section.Settings.Add(MenuSetting.Slider("Talk Distance", 1f, 10f, 0.25f, "0.00", () => d.TalkRange, v => d.TalkRange = v));
+            section.Settings.Add(MenuSetting.Slider("Talk Aim Forgiveness", 0f, 1f, 0.05f, "0.00", () => d.TalkAimForgiveness, v => d.TalkAimForgiveness = v));
+            section.Settings.Add(MenuSetting.Toggle("Show Name At Crosshair", () => d.ShowTalkPrompt, v => d.ShowTalkPrompt = v));
+            section.Settings.Add(MenuSetting.Slider("Text Speed (letters/sec)", 5f, 150f, 5f, "0", () => d.LettersPerSecond, v => d.LettersPerSecond = v));
+            section.Settings.Add(MenuSetting.Slider("Pause After Sentences", 0f, 1f, 0.05f, "0.00", () => d.SentencePause, v => d.SentencePause = v));
         }
 
         // NPC rows show the first NPC's value and change every NPC at once
+        section = AddSection("NPCs & World");
         if (NPCPatrol.Active.Count > 0)
         {
-            settings.Add(MenuSetting.Slider("NPC Walk Speed", 0.25f, 6f, 0.25f, "0.00", () => ReadNPC(n => n.WalkSpeed), v => ForEachNPC(n => n.WalkSpeed = v)));
-            settings.Add(MenuSetting.Toggle("NPC Random Wait", () => ReadNPC(n => n.UseRandomWait), v => ForEachNPC(n => n.UseRandomWait = v)));
-            settings.Add(MenuSetting.Slider("NPC Wait (not random)", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.WaitTime), v => ForEachNPC(n => n.WaitTime = v)));
-            settings.Add(MenuSetting.Slider("NPC Shortest Random Wait", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.ShortestWait), v => ForEachNPC(n => n.ShortestWait = v)));
-            settings.Add(MenuSetting.Slider("NPC Longest Random Wait", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.LongestWait), v => ForEachNPC(n => n.LongestWait = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Walk Speed", 0.25f, 6f, 0.25f, "0.00", () => ReadNPC(n => n.WalkSpeed), v => ForEachNPC(n => n.WalkSpeed = v)));
+            section.Settings.Add(MenuSetting.Toggle("NPC Random Wait", () => ReadNPC(n => n.UseRandomWait), v => ForEachNPC(n => n.UseRandomWait = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Wait (not random)", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.WaitTime), v => ForEachNPC(n => n.WaitTime = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Shortest Random Wait", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.ShortestWait), v => ForEachNPC(n => n.ShortestWait = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Longest Random Wait", 0f, 30f, 0.5f, "0.0", () => ReadNPC(n => n.LongestWait), v => ForEachNPC(n => n.LongestWait = v)));
+            section.Settings.Add(MenuSetting.Toggle("NPCs Stop For Player", () => ReadNPC(n => n.StopForPlayer), v => ForEachNPC(n => n.StopForPlayer = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Stop Distance", 0f, 6f, 0.25f, "0.00", () => ReadNPC(n => n.StopRange), v => ForEachNPC(n => n.StopRange = v)));
+        }
+
+        NPCFacePlayer[] facers = FindObjectsByType<NPCFacePlayer>(FindObjectsSortMode.None);
+        if (facers.Length > 0)
+        {
+            section.Settings.Add(MenuSetting.Slider("NPC Notice Distance", 0f, 20f, 0.5f, "0.0", () => facers[0].NoticeRange, v => SetAll(facers, f => f.NoticeRange = v)));
+            section.Settings.Add(MenuSetting.Slider("NPC Turn Speed", 0.5f, 15f, 0.5f, "0.0", () => facers[0].TurnSpeed, v => SetAll(facers, f => f.TurnSpeed = v)));
         }
 
         // The game is paused while the menu is up, so this takes effect when it closes
-        settings.Add(MenuSetting.Slider("Game Speed", 0.25f, 3f, 0.25f, "0.00x", () => gameSpeed, v => gameSpeed = v));
+        section.Settings.Add(MenuSetting.Slider("Game Speed", 0.25f, 3f, 0.25f, "0.00x", () => gameSpeed, v => gameSpeed = v));
+
+        sections.RemoveAll(s => s.Settings.Count == 0);
+    }
+
+    private SettingsSection AddSection(string title)
+    {
+        var section = new SettingsSection { Title = title };
+        sections.Add(section);
+        return section;
+    }
+
+    // Lists each screen size once (Unity reports every refresh rate separately). Skipped where only one size exists, e.g. in the editor.
+    private void AddResolution(SettingsSection section)
+    {
+        var sizes = new List<Vector2Int>();
+        foreach (Resolution resolution in Screen.resolutions)
+        {
+            var size = new Vector2Int(resolution.width, resolution.height);
+            if (!sizes.Contains(size)) sizes.Add(size);
+        }
+
+        var current = new Vector2Int(Screen.width, Screen.height);
+        if (!sizes.Contains(current)) sizes.Add(current);
+        if (sizes.Count < 2) return;
+
+        var names = new string[sizes.Count];
+        for (int i = 0; i < sizes.Count; i++) names[i] = sizes[i].x + " x " + sizes[i].y;
+
+        // Screen.width only updates a frame after a change, so the chosen index is tracked here instead
+        resolutionIndex = sizes.IndexOf(current);
+        section.Settings.Add(MenuSetting.Choice("Resolution", names, () => resolutionIndex, i =>
+        {
+            resolutionIndex = i;
+            Screen.SetResolution(sizes[i].x, sizes[i].y, Screen.fullScreenMode);
+        }));
+    }
+
+    private static int CurrentFrameRateIndex()
+    {
+        int index = Array.IndexOf(FrameRates, Application.targetFrameRate);
+        return index >= 0 ? index : FrameRates.Length - 1;
     }
 
     // Falls back to the type's default if every NPC has been removed since the menu was built
@@ -386,6 +519,14 @@ public class MainMenu : MonoBehaviour
         for (int i = 0; i < npcs.Count; i++)
         {
             if (npcs[i] != null) apply(npcs[i]);
+        }
+    }
+
+    private static void SetAll<T>(T[] targets, Action<T> apply) where T : UnityEngine.Object
+    {
+        foreach (T target in targets)
+        {
+            if (target != null) apply(target);
         }
     }
 
@@ -416,6 +557,7 @@ public class MainMenu : MonoBehaviour
         BuildMainPage();
         BuildTutorialPage();
         BuildPlaytestPage();
+        foreach (SettingsSection section in sections) BuildSectionPage(section);
 
         ApplyLook();
         canvas.gameObject.SetActive(false);
@@ -456,10 +598,25 @@ public class MainMenu : MonoBehaviour
         Transform box = CreateBox("Playtest", pageRect, playtestWidth, PlaytestBoxPadding, 2f);
         playtestTitleText = CreateText("Page Title", box, pageTitleSize, TextAnchor.UpperLeft);
 
-        foreach (MenuSetting setting in settings) playtestList.AddSetting(box, setting);
+        foreach (SettingsSection section in sections) playtestList.AddButton(box, () => section.Title, () => OpenSection(section));
 
-        playtestList.AddButton(box, () => resetText, ResetSettings);
+        playtestList.AddButton(box, () => resetAllText, ResetSettings);
         playtestList.AddButton(box, () => backText, GoBack);
+    }
+
+    private void BuildSectionPage(SettingsSection section)
+    {
+        RectTransform pageRect = RuntimeUI.CreateCenteredColumn(section.Title + " Page", canvas.transform, 0f);
+        section.Root = pageRect.gameObject;
+        section.List = new MenuList(style);
+
+        Transform box = CreateBox(section.Title, pageRect, playtestWidth, PlaytestBoxPadding, 2f);
+        section.TitleText = CreateText("Page Title", box, pageTitleSize, TextAnchor.UpperLeft);
+
+        foreach (MenuSetting setting in section.Settings) section.List.AddSetting(box, setting);
+
+        section.List.AddButton(box, () => resetText, () => ResetSection(section));
+        section.List.AddButton(box, () => backText, GoBack);
     }
 
     private Text CreateText(string name, Transform parent, int size, TextAnchor alignment)
@@ -490,10 +647,12 @@ public class MainMenu : MonoBehaviour
         SetText(tutorialTitleText, tutorialTitle, titleColor);
         SetText(tutorialBodyText, tutorialText, textColor);
         SetText(playtestTitleText, playtestTitle, titleColor);
+        foreach (SettingsSection section in sections) SetText(section.TitleText, section.Title, titleColor);
 
         mainList.MarkDirty();
         tutorialList.MarkDirty();
         playtestList.MarkDirty();
+        foreach (SettingsSection section in sections) section.List.MarkDirty();
     }
 
     private static void SetText(Text target, string value, Color color)
