@@ -1,36 +1,45 @@
-using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
-using Shadow = UnityEngine.UI.Shadow;
 using Text = UnityEngine.UI.Text;
 
-// Player side of conversations. Click an NPC to talk; choose with the mouse, number keys, or W/S + E; Tab leaves.
-// Builds its own screen-space UI at runtime.
+// The player's side of conversations. Click an NPC to talk, pick replies with the mouse, number keys or W/S + E,
+// and press Tab to leave. Builds its own UI at runtime and only redraws what changes.
 [AddComponentMenu("Game/Player/Player Dialogue")]
 public class PlayerDialogue : MonoBehaviour
 {
     private enum OptionKind { Choice, Event, Goodbye }
 
-    // One row in the choices box: a node choice, an unlocked event dialogue entry, or Goodbye.
+    // One row in the choices box. Picked is worked out when the screen is shown, not every frame.
     private readonly struct Option
     {
         public readonly OptionKind Kind;
         public readonly int Index;
+        public readonly bool Picked;
 
-        public Option(OptionKind kind, int index)
+        public Option(OptionKind kind, int index, bool picked)
         {
             Kind = kind;
             Index = index;
+            Picked = picked;
         }
+    }
+
+    private sealed class ChoiceRow
+    {
+        public Image Back;
+        public Text Label;
+        public Shadow Shadow;
     }
 
     private const string GoodbyeText = "Goodbye.";
     private const string FallbackBackText = "Back.";
     private const string EventReplyIdPrefix = "event:";
-    private const string InvisibleTextTag = "<color=#00000000>";
+    private const string HiddenTextOpen = "<color=#00000000>";
+    private const string HiddenTextClose = "</color>";
 
     private const float ReopenDelay = 0.2f;
     private const float TypingSkipDelay = 0.25f;
@@ -39,6 +48,11 @@ public class PlayerDialogue : MonoBehaviour
     private const float MouseMoveThresholdSqr = 1f;
     private const float LineOfSightPadding = 0.02f;
     private const int MaxNumberKeys = 9;
+    private const int SortingOrder = 100;
+
+    private static RectOffset NpcBoxPadding => new RectOffset(30, 30, 22, 26);
+    private static RectOffset ChoicesBoxPadding => new RectOffset(16, 16, 14, 14);
+    private static RectOffset RowPadding => new RectOffset(12, 12, 6, 6);
 
     [Foldout("References (filled in automatically)")]
     [DisplayAs("Camera (optional)")]
@@ -136,58 +150,55 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Crosshair Name Text Size", Min = 1f)]
     [SerializeField] private int promptSize = 22;
 
-    // Conversation state
+    private readonly RaycastHit[] rayHits = new RaycastHit[32];
+    private readonly RaycastHit[] sphereHits = new RaycastHit[32];
+    private readonly List<Option> options = new List<Option>();
+    private readonly List<ChoiceRow> rows = new List<ChoiceRow>();
+    private readonly List<Image> npcBoxBorders = new List<Image>();
+    private readonly List<Image> choicesBoxBorders = new List<Image>();
+    private readonly StringBuilder lineBuilder = new StringBuilder();
+
     private NPCDialogue lookingAt;
     private NPCDialogue npc;
     private NPCDialogue.Node node;
     private bool nodeIsEventReply;
-    private readonly List<Option> options = new List<Option>();
     private int selected;
     private float openTime;
     private float closeTime = -1f;
     private Vector2 lastMousePosition;
 
-    // Typewriter
     private int visibleLetters;
+    private int renderedLetters = -1;
     private float letterTimer;
     private float choicesShownTime;
+    private bool rowsDirty;
 
-    // Targeting buffers
-    private readonly RaycastHit[] rayHits = new RaycastHit[32];
-    private readonly RaycastHit[] sphereHits = new RaycastHit[32];
-
-    // UI
-    private GameObject canvasObject;
+    private Canvas canvas;
     private GameObject dialogueRoot;
     private Image dimImage;
-    private Image boxImage;
-    private Image[] boxBorder;
-    private Image choicesBoxImage;
-    private Image[] choicesBorder;
-    private Text promptText;
-    private Text nameText;
-    private Text lineText;
-    private RectTransform choicesParent;
+    private Image npcBox;
+    private Image choicesBox;
     private CanvasGroup choicesGroup;
-    private readonly List<RectTransform> rows = new List<RectTransform>();
-    private readonly List<Image> rowBacks = new List<Image>();
-    private readonly List<Text> rowTexts = new List<Text>();
-    private readonly List<Shadow> rowShadows = new List<Shadow>();
+    private Text promptText;
+    private Shadow promptShadow;
+    private Text nameText;
+    private Shadow nameShadow;
+    private Text lineText;
+    private Shadow lineShadow;
 
     public bool IsTalking => npc != null;
 
-    // Tunable values, e.g. for the Playtest menu
     public float TalkRange { get => talkRange; set => talkRange = Mathf.Max(0f, value); }
     public float LettersPerSecond { get => lettersPerSecond; set => lettersPerSecond = Mathf.Max(1f, value); }
-    private bool IsTyping => node != null && visibleLetters < node.npcText.Length;
 
-    // ---------- Lifecycle ----------
+    private bool IsTyping => node != null && visibleLetters < node.npcText.Length;
 
     private void Awake()
     {
-        if (player == null) player = GetComponent<FirstPersonController>();
-        if (grabber == null) grabber = GetComponent<ObjectGrabber>();
+        if (player == null) TryGetComponent(out player);
+        if (grabber == null) TryGetComponent(out grabber);
 
+        if (cameraTransform == null && player != null) cameraTransform = player.CameraTransform;
         if (cameraTransform == null)
         {
             Camera cam = GetComponentInChildren<Camera>();
@@ -197,43 +208,56 @@ public class PlayerDialogue : MonoBehaviour
         BuildUI();
     }
 
+    // Lets color tweaks in the Inspector show up during play without restyling every frame
+    private void OnValidate()
+    {
+        if (canvas == null) return;
+
+        ApplyLook();
+        rowsDirty = true;
+    }
+
     private void OnDestroy()
     {
-        if (canvasObject != null) Destroy(canvasObject);
+        if (canvas != null) Destroy(canvas.gameObject);
     }
 
     private void Update()
     {
-        if (Mouse.current == null || Keyboard.current == null || cameraTransform == null) return;
+        Keyboard keyboard = Keyboard.current;
+        Mouse mouse = Mouse.current;
+        if (keyboard == null || mouse == null || cameraTransform == null) return;
 
-        if (IsTalking) UpdateTalking();
-        else UpdateNotTalking();
+        if (IsTalking) UpdateTalking(keyboard, mouse);
+        else UpdateNotTalking(mouse);
 
-        RefreshUI();
+        if (IsTalking) RefreshConversation();
     }
 
-    // ---------- Input ----------
+    // Closes the current conversation, if there is one (e.g. when the game ends)
+    public void EndConversation()
+    {
+        if (IsTalking) Close();
+    }
 
-    private void UpdateNotTalking()
+    private void UpdateNotTalking(Mouse mouse)
     {
         bool canTalk = Cursor.lockState == CursorLockMode.Locked && (grabber == null || !grabber.IsHolding);
-        lookingAt = canTalk ? FindNPC() : null;
+        SetLookingAt(canTalk ? FindNPC() : null);
 
-        if (lookingAt != null && Mouse.current.leftButton.wasPressedThisFrame && Time.time > closeTime + ReopenDelay)
-            Open(lookingAt);
+        if (lookingAt != null && mouse.leftButton.wasPressedThisFrame && Time.time > closeTime + ReopenDelay) Open(lookingAt);
     }
 
-    private void UpdateTalking()
+    private void UpdateTalking(Keyboard keyboard, Mouse mouse)
     {
-        Keyboard keyboard = Keyboard.current;
-        bool confirm = keyboard.eKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame;
-        bool click = Mouse.current.leftButton.wasPressedThisFrame;
-
         if (keyboard.tabKey.wasPressedThisFrame)
         {
             Close();
             return;
         }
+
+        bool confirm = keyboard.eKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame;
+        bool click = mouse.leftButton.wasPressedThisFrame;
 
         if (IsTyping)
         {
@@ -245,10 +269,11 @@ public class PlayerDialogue : MonoBehaviour
 
         if (options.Count == 0) return;
 
-        // Stops the click that skipped typing from also picking a choice
+        // A short delay so the click that skipped the typing doesn't also pick a choice
         bool ready = Time.time > choicesShownTime + ChoiceInputDelay;
 
-        for (int i = 0; i < options.Count && i < MaxNumberKeys; i++)
+        int numbered = Mathf.Min(options.Count, MaxNumberKeys);
+        for (int i = 0; i < numbered; i++)
         {
             if (keyboard[Key.Digit1 + i].wasPressedThisFrame || keyboard[Key.Numpad1 + i].wasPressedThisFrame)
             {
@@ -257,24 +282,21 @@ public class PlayerDialogue : MonoBehaviour
             }
         }
 
-        if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame)
-            selected = (selected - 1 + options.Count) % options.Count;
-        if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame)
-            selected = (selected + 1) % options.Count;
+        if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame) Select((selected - 1 + options.Count) % options.Count);
+        if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame) Select((selected + 1) % options.Count);
 
-        // Hover only changes the selection when the mouse moves, so it doesn't fight the keyboard
-        Vector2 mousePosition = Mouse.current.position.ReadValue();
+        // Hover only moves the selection when the mouse actually moves, so it doesn't fight the keyboard
+        Vector2 mousePosition = mouse.position.ReadValue();
         bool mouseMoved = (mousePosition - lastMousePosition).sqrMagnitude > MouseMoveThresholdSqr;
         if (mouseMoved) lastMousePosition = mousePosition;
 
-        for (int i = 0; i < rows.Count; i++)
+        int hovered = RowAt(mousePosition);
+        if (hovered >= 0)
         {
-            if (!RectTransformUtility.RectangleContainsScreenPoint(rows[i], mousePosition, null)) continue;
-
-            if (mouseMoved) selected = i;
+            if (mouseMoved) Select(hovered);
             if (click && ready)
             {
-                Choose(options[i]);
+                Choose(options[hovered]);
                 return;
             }
         }
@@ -282,17 +304,17 @@ public class PlayerDialogue : MonoBehaviour
         if (confirm && ready) Choose(options[selected]);
     }
 
-    // ---------- Typewriter ----------
-
     private void TypeLetters()
     {
         letterTimer -= Time.deltaTime;
 
-        while (letterTimer <= 0f && IsTyping)
+        string text = node.npcText;
+        float letterDelay = 1f / Mathf.Max(1f, lettersPerSecond);
+
+        while (letterTimer <= 0f && visibleLetters < text.Length)
         {
-            char letter = node.npcText[visibleLetters];
+            letterTimer += letterDelay + PauseAfter(text[visibleLetters]);
             visibleLetters++;
-            letterTimer += 1f / Mathf.Max(1f, lettersPerSecond) + PauseAfter(letter);
         }
 
         if (!IsTyping) choicesShownTime = Time.time;
@@ -314,8 +336,6 @@ public class PlayerDialogue : MonoBehaviour
         choicesShownTime = Time.time;
     }
 
-    // ---------- Targeting ----------
-
     private NPCDialogue FindNPC()
     {
         Vector3 origin = cameraTransform.position;
@@ -330,11 +350,11 @@ public class PlayerDialogue : MonoBehaviour
 
         if (talkRadius <= 0f) return null;
 
-        // Otherwise sweep a wider ray and pick the NPC closest to the crosshair
-        int count = Physics.SphereCastNonAlloc(origin, talkRadius, direction, sphereHits, talkRange,
-                                               talkLayers, QueryTriggerInteraction.Ignore);
+        // Otherwise sweep a fatter ray and take the NPC closest to the crosshair
+        int count = Physics.SphereCastNonAlloc(origin, talkRadius, direction, sphereHits, talkRange, talkLayers, QueryTriggerInteraction.Ignore);
         NPCDialogue best = null;
         float bestScore = float.MaxValue;
+        float rangeSqr = talkRange * talkRange;
 
         for (int i = 0; i < count; i++)
         {
@@ -344,18 +364,16 @@ public class PlayerDialogue : MonoBehaviour
             NPCDialogue candidate = hit.collider.GetComponentInParent<NPCDialogue>();
             if (candidate == null || candidate == best) continue;
 
-            // Colliders already inside the sphere at the start report no hit point
+            // Colliders already inside the sphere when the cast starts report no hit point
             Vector3 point = hit.distance > 0f ? hit.point : ClosestPointOn(hit.collider, origin);
             Vector3 toPoint = point - origin;
-            if (toPoint.magnitude > talkRange) continue;
-            if (!HasLineOfSight(origin, toPoint, candidate)) continue;
+            if (toPoint.sqrMagnitude > rangeSqr) continue;
 
-            float distanceFromCrosshair = Vector3.Cross(direction, toPoint).magnitude;
-            if (distanceFromCrosshair < bestScore)
-            {
-                bestScore = distanceFromCrosshair;
-                best = candidate;
-            }
+            float score = Vector3.Cross(direction, toPoint).sqrMagnitude;
+            if (score >= bestScore || !HasLineOfSight(origin, toPoint, candidate)) continue;
+
+            bestScore = score;
+            best = candidate;
         }
 
         return best;
@@ -370,53 +388,59 @@ public class PlayerDialogue : MonoBehaviour
                || blocker.collider.GetComponentInParent<NPCDialogue>() == target;
     }
 
-    // Skips every collider on the player rig, which would otherwise block the ray
+    // Skips the player's own colliders, which would otherwise block the ray from inside the head
     private bool RaycastIgnoringPlayer(Vector3 origin, Vector3 direction, float distance, out RaycastHit closest)
     {
         int count = Physics.RaycastNonAlloc(origin, direction, rayHits, distance, talkLayers, QueryTriggerInteraction.Ignore);
 
         closest = default;
-        float closestDistance = float.MaxValue;
         bool found = false;
 
         for (int i = 0; i < count; i++)
         {
             RaycastHit hit = rayHits[i];
-            if (hit.collider.transform.IsChildOf(transform) || hit.distance >= closestDistance) continue;
+            if ((found && hit.distance >= closest.distance) || hit.collider.transform.IsChildOf(transform)) continue;
 
             closest = hit;
-            closestDistance = hit.distance;
             found = true;
         }
 
         return found;
     }
 
-    // Collider.ClosestPoint doesn't support concave mesh colliders, so fall back to their bounds
-    private static Vector3 ClosestPointOn(Collider hitCollider, Vector3 position)
+    // Collider.ClosestPoint doesn't work on concave mesh colliders, so use their bounds instead
+    private static Vector3 ClosestPointOn(Collider hitCollider, Vector3 position) =>
+        hitCollider is MeshCollider mesh && !mesh.convex
+            ? hitCollider.bounds.ClosestPoint(position)
+            : hitCollider.ClosestPoint(position);
+
+    private void SetLookingAt(NPCDialogue target)
     {
-        if (hitCollider is MeshCollider meshCollider && !meshCollider.convex)
-            return hitCollider.bounds.ClosestPoint(position);
+        if (target == lookingAt) return;
 
-        return hitCollider.ClosestPoint(position);
+        lookingAt = target;
+        bool canTalk = target != null;
+        if (player != null) player.CanTalk = canTalk;
+
+        bool showPrompt = canTalk && showTalkPrompt;
+        promptText.gameObject.SetActive(showPrompt);
+        if (showPrompt) promptText.text = target.npcName.ToLower() + "\n[click] talk";
     }
-
-    // ---------- Conversation flow ----------
 
     private void Open(NPCDialogue target)
     {
+        SetLookingAt(null);
         npc = target;
         openTime = Time.time;
-        lookingAt = null;
 
         if (player != null) player.InputLocked = true;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        FirstPersonController.SetCursorLocked(false);
         lastMousePosition = Mouse.current.position.ReadValue();
 
         SetPatrolPaused(true);
 
         nameText.text = npc.npcName.ToUpper();
+        dialogueRoot.SetActive(true);
         GoTo(npc.startNode);
     }
 
@@ -428,18 +452,11 @@ public class PlayerDialogue : MonoBehaviour
         node = null;
         nodeIsEventReply = false;
         options.Clear();
-        ClearRows();
+        dialogueRoot.SetActive(false);
         closeTime = Time.time;
 
         if (player != null) player.InputLocked = false;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
-    // Closes the current conversation, if there is one (e.g. when the game ends).
-    public void EndConversation()
-    {
-        if (IsTalking) Close();
+        FirstPersonController.SetCursorLocked(true);
     }
 
     // Walking NPCs hold still for the length of the conversation
@@ -451,18 +468,14 @@ public class PlayerDialogue : MonoBehaviour
         if (patrol != null) patrol.Paused = paused;
     }
 
+    // A Go To Node that doesn't match any node keeps the player on the current screen.
+    // Only an unknown First Node ends the conversation, since there's nothing to show.
     private void GoTo(string nodeId)
     {
         NPCDialogue.Node target = npc.GetNode(nodeId);
-        if (target != null)
-        {
-            ShowNode(target, false);
-            return;
-        }
 
-        // A Go To Node that doesn't match any node keeps the player on the current screen
-        // instead of ending the conversation. Only an unknown First Node closes it.
-        if (node != null) ShowNode(node, nodeIsEventReply, true);
+        if (target != null) ShowNode(target, false);
+        else if (node != null) ShowNode(node, nodeIsEventReply, true);
         else Close();
     }
 
@@ -472,79 +485,73 @@ public class PlayerDialogue : MonoBehaviour
         if (node.npcText == null) node.npcText = string.Empty;
         nodeIsEventReply = isEventReply;
 
-        // Nothing to type out: the choices appear straight away
+        // Nothing to type out means the choices can appear straight away
         bool showAtOnce = skipTyping || node.npcText.Length == 0;
         visibleLetters = showAtOnce ? node.npcText.Length : 0;
+        renderedLetters = -1;
         letterTimer = FirstLetterDelay;
         if (showAtOnce) choicesShownTime = Time.time;
 
         BuildOptions();
         selected = 0;
-
-        ClearRows();
-        for (int i = 0; i < options.Count; i++)
-            MakeRow($"{i + 1}.  {GetOptionText(options[i])}");
+        BindRows();
     }
 
     private void BuildOptions()
     {
         options.Clear();
 
-        for (int i = 0; i < node.choices.Count; i++)
+        List<NPCDialogue.Choice> choices = node.choices;
+        for (int i = 0; i < choices.Count; i++)
         {
-            NPCDialogue.Choice choice = node.choices[i];
+            NPCDialogue.Choice choice = choices[i];
 
-            // Hidden until its event happens, or blank: never takes up a row
-            if (!npc.IsAvailable(choice) || string.IsNullOrWhiteSpace(choice.text)) continue;
-
-            options.Add(new Option(OptionKind.Choice, i));
+            // Locked or blank choices never take up a row
+            if (npc.IsAvailable(choice) && !string.IsNullOrWhiteSpace(choice.text))
+                options.Add(new Option(OptionKind.Choice, i, npc.WasChosen(choice)));
         }
 
-        // Event dialogue shows on the screen it's assigned to (the first node by default), once unlocked
+        // Unlocked event dialogue sits on its own screen, never on an event's reply screen
         if (!nodeIsEventReply)
         {
-            for (int i = 0; i < npc.eventDialogue.Count; i++)
+            List<NPCDialogue.EventDialogue> events = npc.eventDialogue;
+            for (int i = 0; i < events.Count; i++)
             {
-                NPCDialogue.EventDialogue entry = npc.eventDialogue[i];
-                string screen = string.IsNullOrWhiteSpace(entry.showInNode) ? npc.startNode : entry.showInNode.Trim();
-
-                bool onThisScreen = string.Equals(node.id, screen, StringComparison.OrdinalIgnoreCase);
-                if (onThisScreen && npc.IsAvailable(entry) && !string.IsNullOrWhiteSpace(entry.text))
-                    options.Add(new Option(OptionKind.Event, i));
+                NPCDialogue.EventDialogue entry = events[i];
+                if (npc.IsShownOn(entry, node) && !string.IsNullOrWhiteSpace(entry.text))
+                    options.Add(new Option(OptionKind.Event, i, npc.WasChosen(entry)));
             }
         }
 
-        if (npc.addGoodbye) options.Add(new Option(OptionKind.Goodbye, -1));
+        if (npc.addGoodbye) options.Add(new Option(OptionKind.Goodbye, -1, false));
     }
 
     private void Choose(Option option)
     {
-        if (npc == null) return;
-
         switch (option.Kind)
         {
             case OptionKind.Goodbye: Close(); break;
-            case OptionKind.Event: ChooseEvent(option.Index); break;
-            default: ChooseNodeChoice(option.Index); break;
+            case OptionKind.Event: ChooseEvent(npc.eventDialogue[option.Index], option.Index); break;
+            default: ChooseNodeChoice(node.choices[option.Index]); break;
         }
     }
 
-    private void ChooseNodeChoice(int index)
+    private void ChooseNodeChoice(NPCDialogue.Choice choice)
     {
-        NPCDialogue.Choice choice = node.choices[index];
-        if (choice.greyAfterChosen) npc.MarkSaid(node, index);
+        if (choice.greyAfterChosen) npc.MarkChosen(choice);
         choice.onChosen?.Invoke();
+
+        // The choice's own events may have ended the conversation (e.g. the game ending)
         if (!IsTalking) return;
 
         if (choice.endConversation) Close();
-        else if (string.IsNullOrWhiteSpace(choice.nextNode)) ShowNode(node, nodeIsEventReply, true);   // Stay on this screen
+        else if (string.IsNullOrWhiteSpace(choice.nextNode)) ShowNode(node, nodeIsEventReply, true);
         else GoTo(choice.nextNode);
     }
 
-    private void ChooseEvent(int index)
+    private void ChooseEvent(NPCDialogue.EventDialogue entry, int index)
     {
-        NPCDialogue.EventDialogue entry = npc.eventDialogue[index];
-        if (entry.greyAfterChosen) npc.MarkEventSaid(index);
+        if (entry.greyAfterChosen) npc.MarkChosen(entry);
         entry.onChosen?.Invoke();
         if (!IsTalking) return;
 
@@ -554,18 +561,12 @@ public class PlayerDialogue : MonoBehaviour
             return;
         }
 
-        // Go To Node is used only if it names a real node; otherwise the entry's own NPC Says reply is shown
-        NPCDialogue.Node target = string.IsNullOrWhiteSpace(entry.nextNode) ? null : npc.GetNode(entry.nextNode);
-        if (target != null)
-        {
-            ShowNode(target, false);
-            return;
-        }
-
-        ShowNode(BuildEventReply(entry, index), true);
+        // Go To Node only counts if it names a real node; otherwise the entry's own reply is used
+        NPCDialogue.Node target = npc.GetNode(entry.nextNode);
+        ShowNode(target ?? BuildEventReply(entry, index), target == null);
     }
 
-    // The reply screen: the entry's own choices, plus a way back to the screen it was picked from
+    // The entry's reply screen: its own choices, plus a way back to the screen it was picked from
     private NPCDialogue.Node BuildEventReply(NPCDialogue.EventDialogue entry, int index)
     {
         var reply = new NPCDialogue.Node
@@ -575,8 +576,9 @@ public class PlayerDialogue : MonoBehaviour
             choices = new List<NPCDialogue.Choice>(entry.choices)
         };
 
+        // Always leave the player at least one way out
         bool hasBackText = !string.IsNullOrWhiteSpace(entry.backText);
-        if (hasBackText || !npc.addGoodbye)   // Never leave the player without an option
+        if (hasBackText || !npc.addGoodbye)
         {
             reply.choices.Add(new NPCDialogue.Choice
             {
@@ -589,7 +591,7 @@ public class PlayerDialogue : MonoBehaviour
         return reply;
     }
 
-    private string GetOptionText(Option option)
+    private string OptionText(Option option)
     {
         switch (option.Kind)
         {
@@ -599,85 +601,90 @@ public class PlayerDialogue : MonoBehaviour
         }
     }
 
-    private bool WasChosen(Option option)
+    private void Select(int index)
     {
-        switch (option.Kind)
-        {
-            case OptionKind.Choice: return npc.WasSaid(node, option.Index);
-            case OptionKind.Event: return npc.WasEventSaid(option.Index);
-            default: return false;
-        }
+        if (index == selected) return;
+        selected = index;
+        rowsDirty = true;
     }
 
-    // ---------- UI refresh ----------
-
-    private void RefreshUI()
+    private int RowAt(Vector2 screenPoint)
     {
-        bool canTalk = !IsTalking && lookingAt != null;
-        if (player != null) player.CanTalk = canTalk;
-
-        promptText.gameObject.SetActive(canTalk && showTalkPrompt);
-        if (canTalk && showTalkPrompt) promptText.text = lookingAt.npcName.ToLower() + "\n[click] talk";
-        promptText.color = choiceColor;
-        promptText.GetComponent<Shadow>().effectColor = shadowColor;
-
-        dialogueRoot.SetActive(IsTalking);
-        if (!IsTalking || node == null) return;
-
-        ApplyColors();
-
-        // Untyped letters are drawn invisible so the box size and line breaks never shift while typing
-        string fullText = node.npcText;
-        string typed = fullText.Substring(0, visibleLetters);
-        string remaining = fullText.Substring(visibleLetters);
-        lineText.text = remaining.Length > 0 ? typed + InvisibleTextTag + remaining + "</color>" : typed;
-
-        choicesGroup.alpha = IsTyping ? 0f : 1f;
-
-        for (int i = 0; i < rows.Count; i++)
+        for (int i = 0; i < options.Count; i++)
         {
+            if (RuntimeUI.Contains(rows[i].Back.rectTransform, screenPoint)) return i;
+        }
+
+        return -1;
+    }
+
+    private void RefreshConversation()
+    {
+        if (renderedLetters != visibleLetters) RenderLine();
+
+        float choicesAlpha = IsTyping ? 0f : 1f;
+        if (choicesGroup.alpha != choicesAlpha) choicesGroup.alpha = choicesAlpha;
+
+        if (rowsDirty) DrawRows();
+    }
+
+    // Letters not typed yet are drawn invisible, so line breaks and box size never shift while typing
+    private void RenderLine()
+    {
+        renderedLetters = visibleLetters;
+        string text = node.npcText;
+
+        if (visibleLetters >= text.Length)
+        {
+            lineText.text = text;
+            return;
+        }
+
+        lineBuilder.Clear();
+        lineBuilder.Append(text, 0, visibleLetters)
+                   .Append(HiddenTextOpen)
+                   .Append(text, visibleLetters, text.Length - visibleLetters)
+                   .Append(HiddenTextClose);
+        lineText.text = lineBuilder.ToString();
+    }
+
+    // Rows are pooled and reused between screens instead of being destroyed and rebuilt
+    private void BindRows()
+    {
+        for (int i = 0; i < options.Count; i++)
+        {
+            ChoiceRow row = i < rows.Count ? rows[i] : CreateRow();
+            row.Back.gameObject.SetActive(true);
+            row.Label.text = $"{i + 1}.  {OptionText(options[i])}";
+        }
+
+        for (int i = options.Count; i < rows.Count; i++) rows[i].Back.gameObject.SetActive(false);
+
+        rowsDirty = true;
+    }
+
+    private void DrawRows()
+    {
+        rowsDirty = false;
+
+        for (int i = 0; i < options.Count; i++)
+        {
+            ChoiceRow row = rows[i];
             bool isSelected = i == selected;
-            bool wasChosen = WasChosen(options[i]);
 
-            rowBacks[i].color = isSelected ? selectedBackColor : Color.clear;
-            rowTexts[i].color = isSelected ? selectedTextColor : (wasChosen ? saidChoiceColor : choiceColor);
-            rowShadows[i].enabled = !isSelected;
-            rowShadows[i].effectColor = shadowColor;
+            row.Back.color = isSelected ? selectedBackColor : Color.clear;
+            row.Label.color = isSelected ? selectedTextColor : options[i].Picked ? saidChoiceColor : choiceColor;
+            row.Shadow.enabled = !isSelected;
+            row.Shadow.effectColor = shadowColor;
         }
     }
-
-    // Applied every frame so Inspector tweaks show up live
-    private void ApplyColors()
-    {
-        dimImage.color = screenDimColor;
-        boxImage.color = boxColor;
-        choicesBoxImage.color = choicesBoxColor;
-        foreach (Image edge in boxBorder) edge.color = borderColor;
-        foreach (Image edge in choicesBorder) edge.color = choicesBorderColor;
-
-        nameText.color = nameColor;
-        lineText.color = lineColor;
-        nameText.GetComponent<Shadow>().effectColor = shadowColor;
-        lineText.GetComponent<Shadow>().effectColor = shadowColor;
-    }
-
-    // ---------- UI construction ----------
 
     private void BuildUI()
     {
-        if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        canvas = RuntimeUI.CreateCanvas("Dialogue UI", SortingOrder);
+        Transform root = canvas.transform;
 
-        canvasObject = new GameObject("Dialogue UI", typeof(Canvas), typeof(CanvasScaler));
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
-
-        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 1f;
-
-        promptText = MakeText(canvasObject.transform, "Prompt", promptSize, choiceColor, TextAnchor.UpperCenter);
+        promptText = RuntimeUI.CreateText("Prompt", root, font, promptSize, choiceColor, TextAnchor.UpperCenter, shadowColor, out promptShadow);
         RectTransform promptRect = promptText.rectTransform;
         promptRect.anchorMin = promptRect.anchorMax = new Vector2(0.5f, 0.5f);
         promptRect.pivot = new Vector2(0.5f, 1f);
@@ -685,41 +692,37 @@ public class PlayerDialogue : MonoBehaviour
         promptRect.sizeDelta = new Vector2(600f, 100f);
         promptText.gameObject.SetActive(false);
 
-        dialogueRoot = new GameObject("Dialogue", typeof(RectTransform));
-        dialogueRoot.transform.SetParent(canvasObject.transform, false);
-        Stretch((RectTransform)dialogueRoot.transform);
+        RectTransform dialogueRect = RuntimeUI.CreateRect("Dialogue", root);
+        RuntimeUI.Stretch(dialogueRect);
+        dialogueRoot = dialogueRect.gameObject;
 
-        dimImage = MakeImage(dialogueRoot.transform, "Dim", screenDimColor);
-        Stretch(dimImage.rectTransform);
+        dimImage = RuntimeUI.CreateImage("Dim", dialogueRect, screenDimColor);
+        RuntimeUI.Stretch(dimImage.rectTransform);
 
-        Transform stack = BuildBoxStack(dialogueRoot.transform);
+        Transform stack = BuildBoxStack(dialogueRect);
 
-        boxImage = MakeBox(stack, "NPC Box", boxWidth, boxColor, borderColor, new RectOffset(30, 30, 22, 26), 8f, out boxBorder);
-        nameText = MakeText(boxImage.transform, "Name", nameSize, nameColor, TextAnchor.UpperLeft);
-        lineText = MakeText(boxImage.transform, "Line", lineSize, lineColor, TextAnchor.UpperLeft);
+        npcBox = RuntimeUI.CreateBox("NPC Box", stack, boxWidth, boxColor, borderColor, NpcBoxPadding, 8f, npcBoxBorders);
+        nameText = RuntimeUI.CreateText("Name", npcBox.transform, font, nameSize, nameColor, TextAnchor.UpperLeft, shadowColor, out nameShadow);
+        lineText = RuntimeUI.CreateText("Line", npcBox.transform, font, lineSize, lineColor, TextAnchor.UpperLeft, shadowColor, out lineShadow);
         lineText.supportRichText = true;
 
-        choicesBoxImage = MakeBox(stack, "Choices Box", choicesBoxWidth, choicesBoxColor, choicesBorderColor, new RectOffset(16, 16, 14, 14), 2f, out choicesBorder);
-        choicesParent = choicesBoxImage.rectTransform;
-        choicesGroup = choicesBoxImage.gameObject.AddComponent<CanvasGroup>();
+        choicesBox = RuntimeUI.CreateBox("Choices Box", stack, choicesBoxWidth, choicesBoxColor, choicesBorderColor, ChoicesBoxPadding, 2f, choicesBoxBorders);
+        choicesGroup = choicesBox.gameObject.AddComponent<CanvasGroup>();
         choicesGroup.blocksRaycasts = false;
 
         dialogueRoot.SetActive(false);
     }
 
-    // Bottom-centred column holding the NPC box above the choices box
+    // Bottom-centered column with the NPC box above the choices box
     private Transform BuildBoxStack(Transform parent)
     {
-        var stack = new GameObject("Boxes", typeof(RectTransform), typeof(VerticalLayoutGroup), typeof(ContentSizeFitter));
-        stack.transform.SetParent(parent, false);
-
-        RectTransform rect = (RectTransform)stack.transform;
+        RectTransform rect = RuntimeUI.CreateRect("Boxes", parent);
         rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
         rect.pivot = new Vector2(0.5f, 0f);
         rect.anchoredPosition = new Vector2(0f, 40f);
         rect.sizeDelta = new Vector2(Mathf.Max(boxWidth, choicesBoxWidth), 0f);
 
-        VerticalLayoutGroup layout = stack.GetComponent<VerticalLayoutGroup>();
+        var layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
         layout.spacing = boxGap;
         layout.childAlignment = TextAnchor.LowerCenter;
         layout.childControlWidth = false;
@@ -727,129 +730,33 @@ public class PlayerDialogue : MonoBehaviour
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
 
-        stack.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-        return stack.transform;
+        rect.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        return rect;
     }
 
-    private Image MakeBox(Transform parent, string objectName, float width, Color color, Color border,
-                          RectOffset padding, float spacing, out Image[] edges)
+    private ChoiceRow CreateRow()
     {
-        Image box = MakeImage(parent, objectName, color);
-        box.rectTransform.sizeDelta = new Vector2(width, 0f);
+        var row = new ChoiceRow { Back = RuntimeUI.CreateRow("Choice", choicesBox.transform, choiceSize + 16f, RowPadding, 0f) };
+        row.Label = RuntimeUI.CreateText("Text", row.Back.transform, font, choiceSize, choiceColor, TextAnchor.MiddleLeft, shadowColor, out row.Shadow);
+        RuntimeUI.FillWidth(row.Label);
 
-        const float thickness = 2f;
-        edges = new[]
-        {
-            MakeEdge(box.transform, "Border Top",    new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, thickness), border),
-            MakeEdge(box.transform, "Border Bottom", new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, thickness), border),
-            MakeEdge(box.transform, "Border Left",   new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(thickness, 0f), border),
-            MakeEdge(box.transform, "Border Right",  new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(thickness, 0f), border),
-        };
-
-        VerticalLayoutGroup layout = box.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = padding;
-        layout.spacing = spacing;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        return box;
+        rows.Add(row);
+        return row;
     }
 
-    private static Image MakeEdge(Transform box, string objectName, Vector2 anchorMin, Vector2 anchorMax,
-                                  Vector2 pivot, Vector2 size, Color color)
+    private void ApplyLook()
     {
-        Image edge = MakeImage(box, objectName, color);
-        edge.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+        dimImage.color = screenDimColor;
+        npcBox.color = boxColor;
+        choicesBox.color = choicesBoxColor;
+        foreach (Image edge in npcBoxBorders) edge.color = borderColor;
+        foreach (Image edge in choicesBoxBorders) edge.color = choicesBorderColor;
 
-        RectTransform rect = edge.rectTransform;
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.pivot = pivot;
-        rect.sizeDelta = size;
-        rect.anchoredPosition = Vector2.zero;
-        return edge;
-    }
-
-    private void MakeRow(string label)
-    {
-        var row = new GameObject("Choice", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        row.transform.SetParent(choicesParent, false);
-
-        Image back = row.GetComponent<Image>();
-        back.color = Color.clear;
-        back.raycastTarget = false;
-
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(12, 12, 6, 6);
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        row.GetComponent<LayoutElement>().minHeight = choiceSize + 16f;
-
-        Text text = MakeText(row.transform, "Text", choiceSize, choiceColor, TextAnchor.MiddleLeft);
-        text.text = label;
-
-        rows.Add((RectTransform)row.transform);
-        rowBacks.Add(back);
-        rowTexts.Add(text);
-        rowShadows.Add(text.GetComponent<Shadow>());
-    }
-
-    private void ClearRows()
-    {
-        foreach (RectTransform row in rows)
-        {
-            if (row != null) Destroy(row.gameObject);
-        }
-
-        rows.Clear();
-        rowBacks.Clear();
-        rowTexts.Clear();
-        rowShadows.Clear();
-    }
-
-    private Text MakeText(Transform parent, string objectName, int size, Color color, TextAnchor alignment)
-    {
-        var textObject = new GameObject(objectName, typeof(RectTransform), typeof(Text), typeof(Shadow));
-        textObject.transform.SetParent(parent, false);
-
-        Text text = textObject.GetComponent<Text>();
-        text.font = font;
-        text.fontSize = size;
-        text.color = color;
-        text.alignment = alignment;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.supportRichText = false;
-        text.raycastTarget = false;
-
-        Shadow shadow = textObject.GetComponent<Shadow>();
-        shadow.effectColor = shadowColor;
-        shadow.effectDistance = new Vector2(2f, -2f);
-
-        return text;
-    }
-
-    private static Image MakeImage(Transform parent, string objectName, Color color)
-    {
-        var imageObject = new GameObject(objectName, typeof(RectTransform), typeof(Image));
-        imageObject.transform.SetParent(parent, false);
-
-        Image image = imageObject.GetComponent<Image>();
-        image.color = color;
-        image.raycastTarget = false;
-        return image;
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        nameText.color = nameColor;
+        lineText.color = lineColor;
+        promptText.color = choiceColor;
+        nameShadow.effectColor = shadowColor;
+        lineShadow.effectColor = shadowColor;
+        promptShadow.effectColor = shadowColor;
     }
 }

@@ -1,17 +1,19 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
-// First-person movement and mouse look.
-// WASD moves, Shift sprints, Esc releases the cursor and a click recaptures it.
-// Interaction systems drive the crosshair and can lock movement or look through the public properties.
+// First-person movement and mouse look. WASD moves, Shift sprints, Esc frees the cursor and a click captures it again.
+// Other systems drive the crosshair and can freeze the player through the public properties.
 [AddComponentMenu("Game/Player/First Person Controller")]
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : MonoBehaviour
 {
     public enum CrosshairState { Dot, OpenHand, ClosedHand }
 
+    // A small constant push down keeps CharacterController.isGrounded from flickering
     private const float GroundedStickVelocity = -2f;
     private const int DotTextureSize = 32;
+    private const int CrosshairSortingOrder = 50;
 
     [Foldout("References (filled in automatically)")]
     [DisplayAs("Camera (optional)")]
@@ -56,31 +58,44 @@ public class FirstPersonController : MonoBehaviour
     [DisplayAs("Icon Size", Min = 0f)]
     [SerializeField] private float handSize = 32f;
 
-    // Icon requested by the interaction systems. Falls back to the dot if its texture is unset.
+    private CharacterController controller;
+    private float verticalVelocity;
+    private float cameraPitch;
+
+    private Canvas crosshairCanvas;
+    private RawImage crosshairImage;
+    private Texture2D dotTexture;
+    private Texture shownTexture;
+
+    // Requested by the interaction systems. Falls back to the dot when that icon isn't assigned.
     public CrosshairState Crosshair { get; set; }
 
-    // Shows the talk icon when no hand icon is active.
+    // Shows the talk icon when no hand icon is active
     public bool CanTalk { get; set; }
 
-    // Stops the camera turning, e.g. while rotating a held object.
+    // Stops the camera turning, e.g. while rotating a held object
     public bool LookLocked { get; set; }
 
-    // Freezes movement, look and cursor handling, e.g. during dialogue.
+    // Freezes movement, look and cursor handling, e.g. during dialogue or menus
     public bool InputLocked { get; set; }
 
     public float SpeedMultiplier { get; set; } = 1f;
     public float LookMultiplier { get; set; } = 1f;
 
-    // Tunable values, e.g. for the Playtest menu
+    public Transform CameraTransform => cameraTransform;
+
     public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
     public float SprintSpeed { get => sprintSpeed; set => sprintSpeed = Mathf.Max(0f, value); }
     public float MouseSensitivity { get => mouseSensitivity; set => mouseSensitivity = Mathf.Max(0f, value); }
     public bool InvertY { get => invertY; set => invertY = value; }
 
-    private CharacterController controller;
-    private Texture2D dotTexture;
-    private float verticalVelocity;
-    private float cameraPitch;
+    // Only touches the cursor when it actually needs to change, since menus call this every frame
+    public static void SetCursorLocked(bool locked)
+    {
+        CursorLockMode mode = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        if (Cursor.lockState != mode) Cursor.lockState = mode;
+        if (Cursor.visible == locked) Cursor.visible = !locked;
+    }
 
     private void Awake()
     {
@@ -91,41 +106,48 @@ public class FirstPersonController : MonoBehaviour
             Camera cam = GetComponentInChildren<Camera>();
             if (cam != null) cameraTransform = cam.transform;
         }
+
+        BuildCrosshair();
     }
 
     private void Start() => SetCursorLocked(true);
 
+    private void OnValidate() => shownTexture = null;
+
     private void OnDestroy()
     {
         if (dotTexture != null) Destroy(dotTexture);
+        if (crosshairCanvas != null) Destroy(crosshairCanvas.gameObject);
     }
 
     private void Update()
     {
-        if (Keyboard.current == null || Mouse.current == null) return;
+        Keyboard keyboard = Keyboard.current;
+        Mouse mouse = Mouse.current;
+        if (keyboard == null || mouse == null) return;
 
         if (!InputLocked)
         {
-            HandleCursor();
-            HandleLook();
+            HandleCursor(keyboard, mouse);
+            HandleLook(mouse);
         }
 
-        HandleMovement();
+        HandleMovement(keyboard);
     }
 
-    private void HandleCursor()
+    private void LateUpdate() => UpdateCrosshair();
+
+    private static void HandleCursor(Keyboard keyboard, Mouse mouse)
     {
-        if (Keyboard.current.escapeKey.wasPressedThisFrame)
-            SetCursorLocked(false);
-        else if (Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
-            SetCursorLocked(true);
+        if (keyboard.escapeKey.wasPressedThisFrame) SetCursorLocked(false);
+        else if (mouse.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked) SetCursorLocked(true);
     }
 
-    private void HandleLook()
+    private void HandleLook(Mouse mouse)
     {
         if (LookLocked || cameraTransform == null || Cursor.lockState != CursorLockMode.Locked) return;
 
-        Vector2 delta = Mouse.current.delta.ReadValue() * (mouseSensitivity * LookMultiplier);
+        Vector2 delta = mouse.delta.ReadValue() * (mouseSensitivity * LookMultiplier);
         float pitchDelta = invertY ? delta.y : -delta.y;
 
         transform.Rotate(Vector3.up, delta.x);
@@ -133,14 +155,12 @@ public class FirstPersonController : MonoBehaviour
         cameraTransform.localRotation = Quaternion.Euler(cameraPitch, 0f, 0f);
     }
 
-    private void HandleMovement()
+    private void HandleMovement(Keyboard keyboard)
     {
-        // A small constant downward push keeps CharacterController.isGrounded reliable
-        if (controller.isGrounded && verticalVelocity < 0f)
-            verticalVelocity = GroundedStickVelocity;
+        if (controller.isGrounded && verticalVelocity < 0f) verticalVelocity = GroundedStickVelocity;
 
-        Vector3 input = InputLocked ? Vector3.zero : ReadMoveInput();
-        float speed = (Keyboard.current.leftShiftKey.isPressed ? sprintSpeed : walkSpeed) * SpeedMultiplier;
+        Vector3 input = InputLocked ? Vector3.zero : ReadMoveInput(keyboard);
+        float speed = (keyboard.leftShiftKey.isPressed ? sprintSpeed : walkSpeed) * SpeedMultiplier;
 
         Vector3 velocity = transform.TransformDirection(input) * speed;
         verticalVelocity += gravity * Time.deltaTime;
@@ -149,32 +169,43 @@ public class FirstPersonController : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
-    private static Vector3 ReadMoveInput()
+    private static Vector3 ReadMoveInput(Keyboard keyboard)
     {
-        Keyboard kb = Keyboard.current;
-        float x = (kb.dKey.isPressed ? 1f : 0f) - (kb.aKey.isPressed ? 1f : 0f);
-        float z = (kb.wKey.isPressed ? 1f : 0f) - (kb.sKey.isPressed ? 1f : 0f);
+        float x = (keyboard.dKey.isPressed ? 1f : 0f) - (keyboard.aKey.isPressed ? 1f : 0f);
+        float z = (keyboard.wKey.isPressed ? 1f : 0f) - (keyboard.sKey.isPressed ? 1f : 0f);
         return Vector3.ClampMagnitude(new Vector3(x, 0f, z), 1f);
     }
 
-    private void OnGUI()
+    // Unscaled canvas, so the dot and icons stay at their pixel sizes on any resolution
+    private void BuildCrosshair()
     {
-        if (InputLocked) return;
+        dotTexture = CreateDotTexture(DotTextureSize);
+        crosshairCanvas = RuntimeUI.CreateCanvas("Crosshair UI", CrosshairSortingOrder, false);
 
-        if (dotTexture == null) dotTexture = CreateDotTexture(DotTextureSize);
-
-        Texture2D icon = GetCrosshairIcon();
-        bool useDot = icon == null;
-        float size = useDot ? crosshairSize : handSize;
-        Rect rect = new Rect((Screen.width - size) * 0.5f, (Screen.height - size) * 0.5f, size, size);
-
-        GUI.color = useDot ? crosshairColor : Color.white;
-        GUI.DrawTexture(rect, useDot ? dotTexture : icon);
-        GUI.color = Color.white;
+        RectTransform rect = RuntimeUI.CreateCentered("Crosshair", crosshairCanvas.transform, Vector2.zero);
+        crosshairImage = rect.gameObject.AddComponent<RawImage>();
+        crosshairImage.raycastTarget = false;
     }
 
-    // Returns the icon for the current state, or null to fall back to the dot.
-    private Texture2D GetCrosshairIcon()
+    private void UpdateCrosshair()
+    {
+        bool visible = !InputLocked;
+        if (crosshairCanvas.enabled != visible) crosshairCanvas.enabled = visible;
+        if (!visible) return;
+
+        Texture icon = CurrentIcon();
+        bool isDot = icon == null;
+        Texture texture = isDot ? dotTexture : icon;
+        if (texture == shownTexture) return;
+
+        shownTexture = texture;
+        float size = isDot ? crosshairSize : handSize;
+        crosshairImage.texture = texture;
+        crosshairImage.color = isDot ? crosshairColor : Color.white;
+        crosshairImage.rectTransform.sizeDelta = new Vector2(size, size);
+    }
+
+    private Texture CurrentIcon()
     {
         if (Crosshair == CrosshairState.OpenHand && openHandTexture != null) return openHandTexture;
         if (Crosshair == CrosshairState.ClosedHand && closedHandTexture != null) return closedHandTexture;
@@ -182,28 +213,26 @@ public class FirstPersonController : MonoBehaviour
         return null;
     }
 
+    // Soft-edged white circle, tinted by Dot Color
     private static Texture2D CreateDotTexture(int size)
     {
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        var pixels = new Color32[size * size];
         float radius = size * 0.5f;
-        var center = new Vector2(radius, radius);
 
         for (int y = 0; y < size; y++)
         {
             for (int x = 0; x < size; x++)
             {
-                float distance = Vector2.Distance(new Vector2(x + 0.5f, y + 0.5f), center);
-                texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(radius - distance)));
+                float dx = x + 0.5f - radius;
+                float dy = y + 0.5f - radius;
+                float alpha = Mathf.Clamp01(radius - Mathf.Sqrt(dx * dx + dy * dy));
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(alpha * 255f));
             }
         }
 
+        texture.SetPixels32(pixels);
         texture.Apply();
         return texture;
-    }
-
-    private static void SetCursorLocked(bool locked)
-    {
-        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !locked;
     }
 }

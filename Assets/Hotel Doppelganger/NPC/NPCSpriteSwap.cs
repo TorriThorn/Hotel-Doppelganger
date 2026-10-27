@@ -1,10 +1,11 @@
 using System.Collections;
 using UnityEngine;
 
-// Changes an NPC's sprite from any UnityEvent, e.g. a dialogue choice's On Chosen, with an optional squash-and-stretch pop.
+// Lets UnityEvents change an NPC's sprite (e.g. a dialogue choice's On Chosen), with an optional squash-and-stretch pop.
 [AddComponentMenu("Game/NPC/NPC Sprite Swap")]
 public class NPCSpriteSwap : MonoBehaviour
 {
+    // How much narrower the sprite gets relative to how much taller, so the pop roughly keeps its volume
     private const float PopWidthRatio = 0.5f;
 
     [Header("Setup")]
@@ -40,7 +41,7 @@ public class NPCSpriteSwap : MonoBehaviour
         baseScale = spriteRenderer.transform.localScale;
     }
 
-    // Switches to a new sprite.
+    // An Animator would overwrite the new sprite every frame, so it's switched off while a swapped sprite is shown
     public void SetSprite(Sprite sprite)
     {
         if (spriteRenderer == null || sprite == null) return;
@@ -50,7 +51,6 @@ public class NPCSpriteSwap : MonoBehaviour
         Pop();
     }
 
-    // Returns to the sprite the NPC started with.
     public void ResetSprite()
     {
         if (spriteRenderer == null) return;
@@ -72,13 +72,10 @@ public class NPCSpriteSwap : MonoBehaviour
     {
         Transform target = spriteRenderer.transform;
 
-        for (float time = 0f; time < popDuration;)
+        for (float time = 0f; time < popDuration; time += Time.deltaTime)
         {
-            time += Time.deltaTime;
-            float stretch = Mathf.Sin(Mathf.Clamp01(time / popDuration) * Mathf.PI) * popAmount;
-            target.localScale = new Vector3(baseScale.x * (1f - stretch * PopWidthRatio),
-                                            baseScale.y * (1f + stretch),
-                                            baseScale.z);
+            float stretch = Mathf.Sin(time / popDuration * Mathf.PI) * popAmount;
+            target.localScale = new Vector3(baseScale.x * (1f - stretch * PopWidthRatio), baseScale.y * (1f + stretch), baseScale.z);
             yield return null;
         }
 

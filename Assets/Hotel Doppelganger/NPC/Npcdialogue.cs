@@ -4,9 +4,9 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
 
-// An NPC's dialogue: a tree of nodes, each one NPC line plus the player's replies,
-// and a separate list of event dialogue that only appears once an event has happened
-// (e.g. a PlacementZone's On Placed calling UnlockChoice with the entry's Event Id).
+// Everything one NPC can say. Nodes are screens (an NPC line plus the player's replies) linked by Go To Node.
+// Event Dialogue entries stay hidden until something calls UnlockChoice with their Event Id,
+// e.g. a PlacementZone's On Placed or another dialogue choice's On Chosen.
 [AddComponentMenu("Game/NPC/NPC Dialogue")]
 public class NPCDialogue : MonoBehaviour
 {
@@ -27,7 +27,7 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Grey Out Once Picked")]
         public bool greyAfterChosen = true;
 
-        // Older setups put event choices inside nodes; those are moved to Event Dialogue automatically
+        // Older setups gated choices inside nodes with this; they get moved to Event Dialogue on load
         [HideInInspector]
         public string unlockId = "";
 
@@ -47,8 +47,7 @@ public class NPCDialogue : MonoBehaviour
         public List<Choice> choices = new List<Choice>();
     }
 
-    // An option that only appears once its event has happened. Laid out like a Node:
-    // the line the player picks, what the NPC says back, and the choices under that.
+    // Laid out like a Node: the line the player picks, the NPC's answer, and the replies under that
     [Serializable]
     public class EventDialogue
     {
@@ -87,7 +86,6 @@ public class NPCDialogue : MonoBehaviour
         public UnityEvent onChosen;
     }
 
-    private const string EventKeyPrefix = "event/";
     private const string DefaultBackText = "I had other questions.";
 
     [Header("Basics")]
@@ -107,72 +105,83 @@ public class NPCDialogue : MonoBehaviour
     [FormerlySerializedAs("topics")]
     public List<EventDialogue> eventDialogue = new List<EventDialogue>();
 
-    private readonly HashSet<string> chosenKeys = new HashSet<string>();
-    private readonly HashSet<string> unlockedIds = new HashSet<string>();
-
-    // ---------- Lifecycle ----------
+    // Ids and node names ignore capitals, and stray spaces are trimmed off
+    private readonly HashSet<string> unlockedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    private readonly HashSet<Choice> pickedChoices = new HashSet<Choice>();
+    private readonly HashSet<EventDialogue> pickedEvents = new HashSet<EventDialogue>();
+    private Dictionary<string, Node> nodeLookup;
 
     private void Awake() => MoveEventChoicesOutOfNodes();
 
 #if UNITY_EDITOR
     private void OnValidate()
     {
+        nodeLookup = null;
         if (MoveEventChoicesOutOfNodes()) UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif
 
-    // ---------- Queries ----------
-
-    // Ignores capitals and stray spaces, so "BottleThanks " finds "bottleThanks"
     public Node GetNode(string id)
     {
-        string wanted = id?.Trim() ?? string.Empty;
-        return nodes.Find(n => n != null && string.Equals(n.id?.Trim(), wanted, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(id)) return null;
+        if (nodeLookup == null) BuildNodeLookup();
+
+        nodeLookup.TryGetValue(id.Trim(), out Node node);
+        return node;
     }
 
-    public bool WasSaid(Node node, int index) => chosenKeys.Contains(ChoiceKey(node, index));
-    public void MarkSaid(Node node, int index) => chosenKeys.Add(ChoiceKey(node, index));
-
-    public bool WasEventSaid(int index) => chosenKeys.Contains(EventKeyPrefix + index);
-    public void MarkEventSaid(int index) => chosenKeys.Add(EventKeyPrefix + index);
-
-    public bool IsAvailable(Choice choice)
-    {
-        if (choice == null) return false;
-
-        string id = NormalizeId(choice.unlockId);
-        return id.Length == 0 || unlockedIds.Contains(id);
-    }
+    public bool IsAvailable(Choice choice) =>
+        choice != null && (string.IsNullOrWhiteSpace(choice.unlockId) || unlockedIds.Contains(choice.unlockId.Trim()));
 
     // Event dialogue only ever shows once its event has happened
     public bool IsAvailable(EventDialogue entry) =>
-        entry != null && unlockedIds.Contains(NormalizeId(entry.unlockId));
+        entry != null && !string.IsNullOrWhiteSpace(entry.unlockId) && unlockedIds.Contains(entry.unlockId.Trim());
 
-    // ---------- UnityEvent actions ----------
+    // Whether an unlocked entry belongs on this screen. A blank Show On Node means the first node.
+    public bool IsShownOn(EventDialogue entry, Node screen)
+    {
+        if (screen == null || !IsAvailable(entry)) return false;
 
-    // Shows every event dialogue entry with this Event Id.
+        string target = string.IsNullOrWhiteSpace(entry.showInNode) ? startNode : entry.showInNode;
+        return string.Equals(screen.id?.Trim(), target?.Trim(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    public bool WasChosen(Choice choice) => pickedChoices.Contains(choice);
+    public void MarkChosen(Choice choice) => pickedChoices.Add(choice);
+
+    public bool WasChosen(EventDialogue entry) => pickedEvents.Contains(entry);
+    public void MarkChosen(EventDialogue entry) => pickedEvents.Add(entry);
+
+    // Shows every Event Dialogue entry with this id
     public void UnlockChoice(string unlockId)
     {
-        string id = NormalizeId(unlockId);
-        if (id.Length > 0) unlockedIds.Add(id);
+        if (!string.IsNullOrWhiteSpace(unlockId)) unlockedIds.Add(unlockId.Trim());
     }
 
-    // Hides every event dialogue entry with this Event Id again.
+    // Hides them again
     public void LockChoice(string unlockId)
     {
-        unlockedIds.Remove(NormalizeId(unlockId));
+        if (!string.IsNullOrWhiteSpace(unlockId)) unlockedIds.Remove(unlockId.Trim());
     }
 
-    // Changes which node conversations open on.
+    // Changes which node conversations open on
     public void SetStartNode(string nodeId)
     {
         if (!string.IsNullOrEmpty(nodeId)) startNode = nodeId;
     }
 
-    // ---------- Upgrading older setups ----------
+    private void BuildNodeLookup()
+    {
+        nodeLookup = new Dictionary<string, Node>(nodes.Count, StringComparer.OrdinalIgnoreCase);
 
-    // Choices with an event id inside a node become Event Dialogue entries on that node's screen.
-    // Returns true if anything was moved.
+        foreach (Node node in nodes)
+        {
+            string key = node?.id?.Trim();
+            if (!string.IsNullOrEmpty(key) && !nodeLookup.ContainsKey(key)) nodeLookup.Add(key, node);
+        }
+    }
+
+    // Upgrade path: choices that still carry an event id are moved out of their node into Event Dialogue
     private bool MoveEventChoicesOutOfNodes()
     {
         bool moved = false;
@@ -194,7 +203,6 @@ public class NPCDialogue : MonoBehaviour
                     showInNode = node.id,
                     text = choice.text,
                     npcReply = "",
-                    choices = new List<Choice>(),
                     backText = staysOnScreen ? DefaultBackText : "",
                     greyAfterChosen = choice.greyAfterChosen,
                     nextNode = choice.nextNode,
@@ -202,19 +210,12 @@ public class NPCDialogue : MonoBehaviour
                     onChosen = choice.onChosen
                 });
 
-                node.choices.RemoveAt(i);
-                i--;
+                node.choices.RemoveAt(i--);
                 moved = true;
             }
         }
 
+        if (moved) nodeLookup = null;
         return moved;
     }
-
-    // ---------- Helpers ----------
-
-    private static string ChoiceKey(Node node, int index) => node.id + "/" + index;
-
-    // Case- and whitespace-insensitive, so "BottlePlaced " matches "bottleplaced"
-    private static string NormalizeId(string id) => string.IsNullOrWhiteSpace(id) ? string.Empty : id.Trim().ToLowerInvariant();
 }

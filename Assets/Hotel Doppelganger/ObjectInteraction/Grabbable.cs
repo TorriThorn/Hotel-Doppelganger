@@ -5,12 +5,14 @@ using UnityEngine.Events;
 using Application = UnityEngine.Application;
 
 // Marks an object as carryable by ObjectGrabber and holds its per-object carry settings.
-// Also owns the object's "glide" movement, used for returning home and for snapping into a PlacementZone.
+// Also owns the object's glide, used both for returning home and for snapping into a PlacementZone.
 [AddComponentMenu("Game/Interaction/Grabbable")]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 public class Grabbable : MonoBehaviour
 {
+    private static readonly WaitForFixedUpdate WaitForPhysics = new WaitForFixedUpdate();
+
     [Header("Basics")]
     [DisplayAs("Can Be Picked Up")]
     public bool canGrab = true;
@@ -58,11 +60,6 @@ public class Grabbable : MonoBehaviour
 
     public UnityEvent onReturned;
 
-    public bool IsHeld { get; private set; }
-
-    // True while the object is gliding somewhere (home, or into a placement zone).
-    public bool IsGliding => glideRoutine != null;
-
     private Rigidbody body;
     private Vector3 homePosition;
     private Quaternion homeRotation;
@@ -76,7 +73,12 @@ public class Grabbable : MonoBehaviour
     private bool kinematicSetByGlide;
     private bool kinematicBeforeGlide;
 
-    // Lazily resolved so glides requested before Awake (e.g. on a disabled object) still work
+    public bool IsHeld { get; private set; }
+
+    // True while the object is gliding somewhere, home or into a placement zone
+    public bool IsGliding => glideRoutine != null;
+
+    // Resolved lazily so a glide requested before Awake (e.g. on an inactive object) still works
     private Rigidbody Body
     {
         get
@@ -90,16 +92,14 @@ public class Grabbable : MonoBehaviour
 
     private void Start() => SetHomeHere();
 
+    // Finish a glide instantly if the object is switched off, so it's never left stuck kinematic
     private void OnDisable()
     {
-        // Finish any glide instantly so the object is never left stuck kinematic
         if (glideRoutine == null) return;
 
         StopCoroutine(glideRoutine);
         CompleteGlide();
     }
-
-    // ---------- Public API ----------
 
     public void SetHomeHere() => SetHome(transform.position, transform.rotation);
 
@@ -109,12 +109,10 @@ public class Grabbable : MonoBehaviour
         homeRotation = rotation;
     }
 
-    public void ReturnHome()
-    {
+    public void ReturnHome() =>
         GlideTo(homePosition, homeRotation, returnDuration, false, () => onReturned?.Invoke(), returnDelay);
-    }
 
-    // Smoothly moves the object to a pose, optionally staying kinematic once it arrives.
+    // Moves the object smoothly to a pose. With stayKinematic it stays frozen there afterwards.
     public void GlideTo(Vector3 position, Quaternion rotation, float duration,
                         bool stayKinematic = false, Action onArrived = null, float delay = 0f)
     {
@@ -136,7 +134,7 @@ public class Grabbable : MonoBehaviour
         CompleteGlide();
     }
 
-    // Stops a glide in progress and restores the Rigidbody, e.g. when the player catches the object.
+    // Stops a glide part way and gives the Rigidbody back, e.g. when the player catches the object
     public void CancelGlide()
     {
         if (glideRoutine == null) return;
@@ -146,8 +144,6 @@ public class Grabbable : MonoBehaviour
         glideCompleted = null;
         RestoreKinematic();
     }
-
-    // ---------- Called by ObjectGrabber ----------
 
     internal void NotifyGrabbed()
     {
@@ -160,14 +156,12 @@ public class Grabbable : MonoBehaviour
     {
         IsHeld = false;
 
-        int glidesBeforeEvent = glideCount;
+        int glidesBefore = glideCount;
         onDropped?.Invoke();
 
-        // A listener such as a PlacementZone may already have moved the object; don't override it
-        if (returnOnDrop && glideCount == glidesBeforeEvent) ReturnHome();
+        // A listener such as a PlacementZone may have moved the object already, so don't send it home over the top
+        if (returnOnDrop && glideCount == glidesBefore) ReturnHome();
     }
-
-    // ---------- Glide ----------
 
     private IEnumerator GlideRoutine(float duration, float delay)
     {
@@ -177,33 +171,34 @@ public class Grabbable : MonoBehaviour
 
         if (duration > 0f)
         {
-            Vector3 startPosition = Body.position;
-            Quaternion startRotation = Body.rotation;
-            var waitForPhysics = new WaitForFixedUpdate();
+            Rigidbody rb = Body;
+            Vector3 startPosition = rb.position;
+            Quaternion startRotation = rb.rotation;
 
             for (float t = 0f; t < 1f;)
             {
-                yield return waitForPhysics;
+                yield return WaitForPhysics;
 
                 t = Mathf.Min(1f, t + Time.fixedDeltaTime / duration);
                 float eased = returnCurve.Evaluate(t);
-                Body.MovePosition(Vector3.LerpUnclamped(startPosition, glidePosition, eased));
-                Body.MoveRotation(Quaternion.SlerpUnclamped(startRotation, glideRotation, eased));
+                rb.MovePosition(Vector3.LerpUnclamped(startPosition, glidePosition, eased));
+                rb.MoveRotation(Quaternion.SlerpUnclamped(startRotation, glideRotation, eased));
             }
         }
 
         CompleteGlide();
     }
 
-    // Kinematic during a glide so the object doesn't fight physics or shove things around
+    // Kinematic while gliding so the object doesn't fight physics or shove other props around
     private void BeginKinematic()
     {
         if (kinematicSetByGlide) return;
 
-        kinematicBeforeGlide = Body.isKinematic;
-        if (!Body.isKinematic) StopMotion();
+        Rigidbody rb = Body;
+        kinematicBeforeGlide = rb.isKinematic;
+        if (!rb.isKinematic) StopMotion(rb);
 
-        Body.isKinematic = true;
+        rb.isKinematic = true;
         kinematicSetByGlide = true;
     }
 
@@ -217,13 +212,14 @@ public class Grabbable : MonoBehaviour
 
     private void CompleteGlide()
     {
+        Rigidbody rb = Body;
         transform.SetPositionAndRotation(glidePosition, glideRotation);
-        Body.position = glidePosition;
-        Body.rotation = glideRotation;
+        rb.position = glidePosition;
+        rb.rotation = glideRotation;
 
         if (glideStaysKinematic)
         {
-            Body.isKinematic = true;
+            rb.isKinematic = true;
             kinematicSetByGlide = false;
         }
         else
@@ -231,7 +227,7 @@ public class Grabbable : MonoBehaviour
             RestoreKinematic();
         }
 
-        if (!Body.isKinematic) StopMotion();
+        if (!rb.isKinematic) StopMotion(rb);
 
         glideRoutine = null;
         Action completed = glideCompleted;
@@ -239,19 +235,16 @@ public class Grabbable : MonoBehaviour
         completed?.Invoke();
     }
 
-    private void StopMotion()
+    private static void StopMotion(Rigidbody rb)
     {
-        Body.linearVelocity = Vector3.zero;
-        Body.angularVelocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
     }
 
-    // ---------- Editor ----------
-
-    // Runs when the component is first added: sensible Rigidbody settings and a collider if missing
+    // Runs when the component is first added: sensible Rigidbody settings, and a collider if there isn't one
     private void Reset()
     {
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null)
+        if (TryGetComponent(out Rigidbody rb))
         {
             rb.interpolation = RigidbodyInterpolation.Interpolate;
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
@@ -259,8 +252,7 @@ public class Grabbable : MonoBehaviour
 
         if (GetComponentInChildren<Collider>() != null) return;
 
-        MeshFilter meshFilter = GetComponent<MeshFilter>();
-        if (meshFilter != null && meshFilter.sharedMesh != null)
+        if (TryGetComponent(out MeshFilter meshFilter) && meshFilter.sharedMesh != null)
             gameObject.AddComponent<MeshCollider>().convex = true;
         else
             gameObject.AddComponent<BoxCollider>();

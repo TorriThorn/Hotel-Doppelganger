@@ -6,27 +6,18 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using static System.Net.Mime.MediaTypeNames;
 using Image = UnityEngine.UI.Image;
-using Shadow = UnityEngine.UI.Shadow;
 using Text = UnityEngine.UI.Text;
 
-// Ends the game: fades the screen out, then shows a Game Complete screen with Play Again and Quit.
-// Trigger it from any event by calling EndGame (e.g. a dialogue choice's On Chosen or a zone's On Placed).
-// Builds its own UI at runtime. Put it on any GameObject in the scene.
+// Ends the game: fades out, then shows a Game Complete screen with Play Again and Quit.
+// Trigger it by calling EndGame from any UnityEvent, e.g. a dialogue choice's On Chosen.
 [AddComponentMenu("Game/UI/Game Complete")]
 public class GameComplete : MonoBehaviour
 {
-    private class MenuButton
-    {
-        public RectTransform Rect;
-        public Image Back;
-        public Text Label;
-        public Shadow Shadow;
-        public Action OnPress;
-    }
+    private const int SortingOrder = 300;   // above the dialogue box and main menu
 
-    private const float MouseMoveThresholdSqr = 1f;
-    private const float BorderThickness = 2f;
+    private static RectOffset ButtonsBoxPadding => new RectOffset(16, 16, 14, 14);
 
     [Header("Screen")]
     [DisplayAs("Title")]
@@ -108,24 +99,22 @@ public class GameComplete : MonoBehaviour
     [DisplayAs("Player Dialogue (optional)")]
     [SerializeField] private PlayerDialogue dialogue;
 
-    private readonly List<MenuButton> buttons = new List<MenuButton>();
-
-    private GameObject canvasObject;
-    private Image fadeImage;
-    private CanvasGroup content;
-    private Text titleText;
-    private Text messageText;
-    private Image buttonsBox;
+    private readonly MenuStyle style = new MenuStyle();
     private readonly List<Image> borders = new List<Image>();
 
-    private bool hasEnded;
+    private MenuList buttons;
+    private Canvas canvas;
+    private Image fadeImage;
+    private CanvasGroup content;
+    private Image buttonsBox;
+    private Text titleText;
+    private Shadow titleShadow;
+    private Text messageText;
+    private Shadow messageShadow;
+
     private bool buttonsReady;
-    private int selected;
-    private Vector2 lastMousePosition;
 
-    public bool HasEnded => hasEnded;
-
-    // ---------- Lifecycle ----------
+    public bool HasEnded { get; private set; }
 
     private void Awake()
     {
@@ -134,32 +123,37 @@ public class GameComplete : MonoBehaviour
         BuildUI();
     }
 
+    private void OnValidate()
+    {
+        if (canvas != null) ApplyLook();
+    }
+
     private void OnDestroy()
     {
-        if (hasEnded) Time.timeScale = 1f;
-        if (canvasObject != null) Destroy(canvasObject);
+        if (HasEnded) Time.timeScale = 1f;
+        if (canvas != null) Destroy(canvas.gameObject);
     }
 
     private void Update()
     {
-        if (!hasEnded) return;
+        if (!HasEnded) return;
 
         HoldGameplay();
 
-        if (!buttonsReady || Keyboard.current == null || Mouse.current == null) return;
+        Keyboard keyboard = Keyboard.current;
+        Mouse mouse = Mouse.current;
+        if (!buttonsReady || keyboard == null || mouse == null) return;
 
-        if (!HandleKeyboard()) HandleMouse();
-        RefreshButtons();
+        buttons.HandleInput(keyboard, mouse);
+        buttons.Refresh();
     }
 
-    // ---------- Public actions (usable from UnityEvents) ----------
-
-    // Starts the ending. Calling it again while it's already running does nothing.
+    // Starts the ending. Calling it again while it's running does nothing.
     public void EndGame()
     {
-        if (hasEnded) return;
+        if (HasEnded) return;
 
-        hasEnded = true;
+        HasEnded = true;
         StartCoroutine(EndingRoutine());
     }
 
@@ -178,33 +172,31 @@ public class GameComplete : MonoBehaviour
 #endif
     }
 
-    // ---------- Ending sequence ----------
-
     private IEnumerator EndingRoutine()
     {
-        // Lets whatever triggered the ending (e.g. a dialogue choice) finish first
+        // Let whatever triggered the ending (e.g. a dialogue choice) finish its own frame first
         yield return null;
         if (dialogue != null) dialogue.EndConversation();
 
-        canvasObject.SetActive(true);
+        canvas.gameObject.SetActive(true);
         SetFade(0f);
         content.alpha = 0f;
 
         if (delayBeforeFade > 0f) yield return new WaitForSecondsRealtime(delayBeforeFade);
-
         yield return Animate(fadeDuration, SetFade);
 
         Time.timeScale = 0f;
         onGameComplete?.Invoke();
 
-        lastMousePosition = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
-        RefreshButtons();
+        Mouse mouse = Mouse.current;
+        buttons.Reset(mouse != null ? mouse.position.ReadValue() : Vector2.zero);
+        buttons.Refresh();
 
         yield return Animate(textFadeDuration, t => content.alpha = t);
         buttonsReady = true;
     }
 
-    // Runs a 0-to-1 animation on real time, so it isn't affected by pausing
+    // Eases 0 to 1 on real time, so it keeps running while the game is paused
     private static IEnumerator Animate(float duration, Action<float> apply)
     {
         if (duration <= 0f)
@@ -216,7 +208,7 @@ public class GameComplete : MonoBehaviour
         for (float time = 0f; time < duration;)
         {
             time += Time.unscaledDeltaTime;
-            apply(Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(time / duration)));
+            apply(Mathf.SmoothStep(0f, 1f, time / duration));
             yield return null;
         }
     }
@@ -224,225 +216,70 @@ public class GameComplete : MonoBehaviour
     private void SetFade(float amount)
     {
         Color color = fadeColor;
-        color.a = fadeColor.a * amount;
+        color.a *= amount;
         fadeImage.color = color;
     }
 
-    // Keeps the player frozen and the cursor free once the ending has started
     private void HoldGameplay()
     {
         if (player != null) player.InputLocked = true;
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        FirstPersonController.SetCursorLocked(false);
     }
-
-    // ---------- Input ----------
-
-    // Returns true if a button was pressed this frame
-    private bool HandleKeyboard()
-    {
-        Keyboard keyboard = Keyboard.current;
-
-        if (keyboard.wKey.wasPressedThisFrame || keyboard.upArrowKey.wasPressedThisFrame)
-            selected = (selected - 1 + buttons.Count) % buttons.Count;
-        if (keyboard.sKey.wasPressedThisFrame || keyboard.downArrowKey.wasPressedThisFrame)
-            selected = (selected + 1) % buttons.Count;
-
-        bool confirm = keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame
-                       || keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame;
-        if (!confirm) return false;
-
-        buttons[selected].OnPress();
-        return true;
-    }
-
-    private void HandleMouse()
-    {
-        Vector2 mousePosition = Mouse.current.position.ReadValue();
-
-        // Hover only changes the selection when the mouse moves, so it doesn't fight the keyboard
-        bool mouseMoved = (mousePosition - lastMousePosition).sqrMagnitude > MouseMoveThresholdSqr;
-        if (mouseMoved) lastMousePosition = mousePosition;
-
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            if (!RectTransformUtility.RectangleContainsScreenPoint(buttons[i].Rect, mousePosition, null)) continue;
-
-            if (mouseMoved) selected = i;
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                buttons[i].OnPress();
-                return;
-            }
-        }
-    }
-
-    private void RefreshButtons()
-    {
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            MenuButton button = buttons[i];
-            bool isSelected = i == selected;
-
-            button.Back.color = isSelected ? selectedBackColor : Color.clear;
-            button.Label.color = isSelected ? selectedTextColor : buttonColor;
-            button.Shadow.enabled = !isSelected;
-        }
-    }
-
-    // ---------- UI construction ----------
 
     private void BuildUI()
     {
-        if (font == null) font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        UpdateStyle();
+        buttons = new MenuList(style);
 
-        canvasObject = new GameObject("Game Complete UI", typeof(Canvas), typeof(CanvasScaler));
-        Canvas canvas = canvasObject.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 300;   // Above the dialogue and main menu
+        canvas = RuntimeUI.CreateCanvas("Game Complete UI", SortingOrder);
 
-        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920f, 1080f);
-        scaler.matchWidthOrHeight = 1f;
+        fadeImage = RuntimeUI.CreateImage("Fade", canvas.transform, Color.clear);
+        RuntimeUI.Stretch(fadeImage.rectTransform);
 
-        fadeImage = MakeImage(canvasObject.transform, "Fade", Color.clear);
-        Stretch(fadeImage.rectTransform);
-
-        var page = new GameObject("Content", typeof(RectTransform), typeof(CanvasGroup), typeof(VerticalLayoutGroup));
-        page.transform.SetParent(canvasObject.transform, false);
-        Stretch((RectTransform)page.transform);
-        content = page.GetComponent<CanvasGroup>();
+        RectTransform page = RuntimeUI.CreateCenteredColumn("Content", canvas.transform, 32f);
+        content = page.gameObject.AddComponent<CanvasGroup>();
         content.blocksRaycasts = false;
 
-        VerticalLayoutGroup layout = page.GetComponent<VerticalLayoutGroup>();
-        layout.spacing = 32f;
-        layout.childAlignment = TextAnchor.MiddleCenter;
-        layout.childControlWidth = false;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
-        layout.childForceExpandHeight = false;
-
-        titleText = MakeText(page.transform, "Title", titleSize, titleColor, TextAnchor.MiddleCenter);
+        titleText = RuntimeUI.CreateText("Title", page, font, titleSize, titleColor, TextAnchor.MiddleCenter, shadowColor, out titleShadow);
         titleText.rectTransform.sizeDelta = new Vector2(1600f, 0f);
-        titleText.text = title;
 
-        messageText = MakeText(page.transform, "Message", messageSize, textColor, TextAnchor.MiddleCenter);
+        messageText = RuntimeUI.CreateText("Message", page, font, messageSize, textColor, TextAnchor.MiddleCenter, shadowColor, out messageShadow);
         messageText.rectTransform.sizeDelta = new Vector2(1200f, 0f);
+
+        buttonsBox = RuntimeUI.CreateBox("Buttons", page, buttonsWidth, boxColor, borderColor, ButtonsBoxPadding, 2f, borders);
+        buttons.AddButton(buttonsBox.transform, () => playAgainText, PlayAgain);
+        if (showQuitButton) buttons.AddButton(buttonsBox.transform, () => quitText, QuitGame);
+
+        ApplyLook();
+        canvas.gameObject.SetActive(false);
+    }
+
+    private void UpdateStyle()
+    {
+        style.Font = font;
+        style.ButtonTextSize = buttonSize;
+        style.Text = buttonColor;
+        style.SelectedText = selectedTextColor;
+        style.SelectedBack = selectedBackColor;
+        style.Shadow = shadowColor;
+    }
+
+    private void ApplyLook()
+    {
+        UpdateStyle();
+
+        titleText.text = title;
+        titleText.color = titleColor;
+        titleShadow.effectColor = shadowColor;
+
         messageText.text = message;
+        messageText.color = textColor;
+        messageShadow.effectColor = shadowColor;
         messageText.gameObject.SetActive(!string.IsNullOrWhiteSpace(message));
 
-        buttonsBox = MakeBox(page.transform, buttonsWidth);
-        buttons.Add(MakeButton(buttonsBox.transform, playAgainText, PlayAgain));
-        if (showQuitButton) buttons.Add(MakeButton(buttonsBox.transform, quitText, QuitGame));
+        buttonsBox.color = boxColor;
+        foreach (Image border in borders) border.color = borderColor;
 
-        canvasObject.SetActive(false);
-    }
-
-    private Image MakeBox(Transform parent, float width)
-    {
-        Image box = MakeImage(parent, "Buttons", boxColor);
-        box.rectTransform.sizeDelta = new Vector2(width, 0f);
-
-        borders.Add(MakeEdge(box.transform, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0.5f, 1f), new Vector2(0f, BorderThickness)));
-        borders.Add(MakeEdge(box.transform, new Vector2(0f, 0f), new Vector2(1f, 0f), new Vector2(0.5f, 0f), new Vector2(0f, BorderThickness)));
-        borders.Add(MakeEdge(box.transform, new Vector2(0f, 0f), new Vector2(0f, 1f), new Vector2(0f, 0.5f), new Vector2(BorderThickness, 0f)));
-        borders.Add(MakeEdge(box.transform, new Vector2(1f, 0f), new Vector2(1f, 1f), new Vector2(1f, 0.5f), new Vector2(BorderThickness, 0f)));
-
-        VerticalLayoutGroup layout = box.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(16, 16, 14, 14);
-        layout.spacing = 2f;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        return box;
-    }
-
-    private Image MakeEdge(Transform box, Vector2 anchorMin, Vector2 anchorMax, Vector2 pivot, Vector2 size)
-    {
-        Image edge = MakeImage(box, "Border", borderColor);
-        edge.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
-
-        RectTransform rect = edge.rectTransform;
-        rect.anchorMin = anchorMin;
-        rect.anchorMax = anchorMax;
-        rect.pivot = pivot;
-        rect.sizeDelta = size;
-        rect.anchoredPosition = Vector2.zero;
-        return edge;
-    }
-
-    private MenuButton MakeButton(Transform parent, string label, Action onPress)
-    {
-        var row = new GameObject("Button", typeof(RectTransform), typeof(Image), typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        row.transform.SetParent(parent, false);
-
-        Image back = row.GetComponent<Image>();
-        back.color = Color.clear;
-        back.raycastTarget = false;
-
-        HorizontalLayoutGroup layout = row.GetComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(12, 12, 8, 8);
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-
-        row.GetComponent<LayoutElement>().minHeight = buttonSize + 20f;
-
-        Text text = MakeText(row.transform, "Label", buttonSize, buttonColor, TextAnchor.MiddleCenter);
-        text.text = label;
-
-        return new MenuButton
-        {
-            Rect = (RectTransform)row.transform,
-            Back = back,
-            Label = text,
-            Shadow = text.GetComponent<Shadow>(),
-            OnPress = onPress
-        };
-    }
-
-    private Text MakeText(Transform parent, string objectName, int size, Color color, TextAnchor alignment)
-    {
-        var textObject = new GameObject(objectName, typeof(RectTransform), typeof(Text), typeof(Shadow));
-        textObject.transform.SetParent(parent, false);
-
-        Text text = textObject.GetComponent<Text>();
-        text.font = font;
-        text.fontSize = size;
-        text.color = color;
-        text.alignment = alignment;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.supportRichText = false;
-        text.raycastTarget = false;
-
-        Shadow shadow = textObject.GetComponent<Shadow>();
-        shadow.effectColor = shadowColor;
-        shadow.effectDistance = new Vector2(2f, -2f);
-
-        return text;
-    }
-
-    private static Image MakeImage(Transform parent, string objectName, Color color)
-    {
-        var imageObject = new GameObject(objectName, typeof(RectTransform), typeof(Image));
-        imageObject.transform.SetParent(parent, false);
-
-        Image image = imageObject.GetComponent<Image>();
-        image.color = color;
-        image.raycastTarget = false;
-        return image;
-    }
-
-    private static void Stretch(RectTransform rect)
-    {
-        rect.anchorMin = Vector2.zero;
-        rect.anchorMax = Vector2.one;
-        rect.offsetMin = Vector2.zero;
-        rect.offsetMax = Vector2.zero;
+        buttons.MarkDirty();
     }
 }

@@ -4,9 +4,8 @@ using UnityEngine.Events;
 using UnityEngine.Rendering;
 using Application = UnityEngine.Application;
 
-// A spot where one specific Grabbable belongs. While the player carries that object,
-// a glowing ghost of it marks the spot; releasing the object close enough snaps it into place.
-// Place this on an empty GameObject posed where the object's pivot should land.
+// A spot where one particular Grabbable belongs. While the player carries it, a glowing ghost marks the spot,
+// and letting go close enough snaps the object in. Pose this GameObject where the object's pivot should end up.
 [AddComponentMenu("Game/Interaction/Placement Zone")]
 public class PlacementZone : MonoBehaviour
 {
@@ -89,35 +88,50 @@ public class PlacementZone : MonoBehaviour
 
     public UnityEvent onRemoved;
 
-    public bool IsFilled { get; private set; }
-    public bool ObjectInRange { get; private set; }
-    public Grabbable AcceptedObject => acceptedObject;
-
     private readonly List<GhostPart> ghostParts = new List<GhostPart>();
     private Vector3 objectScale = Vector3.one;
     private Rigidbody acceptedBody;
     private Material ghostMaterial;
+    private RenderParams ghostParams;
+    private bool ghostShowsReady;
+
+    public bool IsFilled { get; private set; }
+    public bool ObjectInRange => !IsFilled && IsObjectInRange();
+    public Grabbable AcceptedObject => acceptedObject;
 
     private Quaternion TargetRotation => matchRotation || acceptedObject == null
         ? transform.rotation
         : acceptedObject.transform.rotation;
 
-    // ---------- Lifecycle ----------
-
     private void Awake()
     {
         if (highlightShader == null) highlightShader = Shader.Find("Custom/PlacementGhost");
         if (highlightShader == null) highlightShader = Shader.Find("Custom/GrabHighlight");
+
         if (highlightShader != null)
+        {
             ghostMaterial = new Material(highlightShader) { name = "Placement Ghost (Runtime)" };
+            ghostParams = new RenderParams(ghostMaterial)
+            {
+                shadowCastingMode = ShadowCastingMode.Off,
+                receiveShadows = false,
+                layer = gameObject.layer
+            };
+            ApplyGhostLook(false);
+        }
 
         if (acceptedObject == null) return;
 
-        acceptedBody = acceptedObject.GetComponent<Rigidbody>();
+        acceptedObject.TryGetComponent(out acceptedBody);
         CacheGhostParts();
     }
 
     private void Reset() => highlightShader = Shader.Find("Custom/PlacementGhost");
+
+    private void OnValidate()
+    {
+        if (ghostMaterial != null) ApplyGhostLook(ghostShowsReady);
+    }
 
     private void OnEnable()
     {
@@ -147,17 +161,15 @@ public class PlacementZone : MonoBehaviour
 
     private void Update()
     {
-        if (acceptedObject == null) return;
+        if (!ShouldShowGhost()) return;
 
-        ObjectInRange = !IsFilled && IsObjectInRange();
+        bool ready = acceptedObject.IsHeld && IsObjectInRange();
+        if (ready != ghostShowsReady) ApplyGhostLook(ready);
 
-        if (ShouldShowGhost())
-            DrawGhost(ObjectInRange && acceptedObject.IsHeld);
+        DrawGhost();
     }
 
-    // ---------- Public API (UnityEvent friendly) ----------
-
-    // Puts the accepted object into the zone from wherever it is.
+    // Puts the accepted object into the zone from wherever it currently is
     public void Place(bool instant = false)
     {
         if (acceptedObject == null || IsFilled) return;
@@ -168,24 +180,21 @@ public class PlacementZone : MonoBehaviour
         Vector3 position = transform.position;
         Quaternion rotation = TargetRotation;
 
-        // An object with Return On Drop now treats this spot as home
+        // An object with Return When Dropped now treats this spot as home
         acceptedObject.SetHome(position, rotation);
         acceptedObject.GlideTo(position, rotation, instant ? 0f : snapDuration, lockWhenPlaced);
 
         onPlaced?.Invoke();
     }
 
-    // Lets a locked object be picked up again.
+    // Lets a locked object be picked up again
     public void Unlock()
     {
         if (acceptedObject == null) return;
 
         acceptedObject.canGrab = true;
-        if (acceptedBody != null && IsFilled && !acceptedObject.IsGliding)
-            acceptedBody.isKinematic = false;
+        if (acceptedBody != null && IsFilled && !acceptedObject.IsGliding) acceptedBody.isKinematic = false;
     }
-
-    // ---------- Object events ----------
 
     private void HandleDropped()
     {
@@ -200,7 +209,7 @@ public class PlacementZone : MonoBehaviour
         onRemoved?.Invoke();
     }
 
-    // Compares centres of mass so the check feels right even when the pivot is at the object's base
+    // Compares centers of mass, which feels right even when the pivot sits at the base of the object
     private bool IsObjectInRange()
     {
         if (acceptedBody == null) return false;
@@ -209,11 +218,9 @@ public class PlacementZone : MonoBehaviour
         return (acceptedBody.worldCenterOfMass - targetCenter).sqrMagnitude <= snapRadius * snapRadius;
     }
 
-    // ---------- Ghost rendering ----------
-
     private bool ShouldShowGhost()
     {
-        if (IsFilled || ghostMaterial == null) return false;
+        if (IsFilled || ghostMaterial == null || acceptedObject == null) return false;
 
         switch (showGhost)
         {
@@ -223,53 +230,50 @@ public class PlacementZone : MonoBehaviour
         }
     }
 
-    private void CacheGhostParts()
+    private void ApplyGhostLook(bool ready)
     {
-        Transform root = acceptedObject.transform;
-        objectScale = root.lossyScale;
-        ghostParts.Clear();
-
-        foreach (MeshFilter meshFilter in root.GetComponentsInChildren<MeshFilter>())
-        {
-            MeshRenderer meshRenderer = meshFilter.GetComponent<MeshRenderer>();
-            if (meshFilter.sharedMesh == null || meshRenderer == null || !meshRenderer.enabled) continue;
-
-            ghostParts.Add(new GhostPart
-            {
-                Mesh = meshFilter.sharedMesh,
-                LocalToRoot = root.worldToLocalMatrix * meshFilter.transform.localToWorldMatrix
-            });
-        }
-    }
-
-    private void DrawGhost(bool ready)
-    {
+        ghostShowsReady = ready;
         ghostMaterial.SetColor(ColorId, ready ? readyColor : ghostColor);
         ghostMaterial.SetFloat(FillId, ready ? Mathf.Min(1f, ghostFill * ReadyFillMultiplier) : ghostFill);
         ghostMaterial.SetFloat(RimPowerId, ghostRimSharpness);
         ghostMaterial.SetFloat(PulseId, ghostPulse);
         ghostMaterial.SetFloat(ScanlineDensityId, scanlineDensity);
         ghostMaterial.SetFloat(ScanlineSpeedId, scanlineSpeed);
-        ghostMaterial.SetFloat(ScanlineStrengthId,
-            ready ? Mathf.Min(1f, scanlineStrength * ReadyScanlineMultiplier) : scanlineStrength);
+        ghostMaterial.SetFloat(ScanlineStrengthId, ready ? Mathf.Min(1f, scanlineStrength * ReadyScanlineMultiplier) : scanlineStrength);
+    }
 
-        var renderParams = new RenderParams(ghostMaterial)
+    // Mesh offsets are recorded relative to the object's root, so the ghost can be drawn at this zone's pose
+    private void CacheGhostParts()
+    {
+        Transform root = acceptedObject.transform;
+        Matrix4x4 worldToRoot = root.worldToLocalMatrix;
+        objectScale = root.lossyScale;
+        ghostParts.Clear();
+
+        foreach (MeshFilter meshFilter in root.GetComponentsInChildren<MeshFilter>())
         {
-            shadowCastingMode = ShadowCastingMode.Off,
-            receiveShadows = false,
-            layer = gameObject.layer
-        };
+            if (meshFilter.sharedMesh == null) continue;
+            if (!meshFilter.TryGetComponent(out MeshRenderer meshRenderer) || !meshRenderer.enabled) continue;
 
+            ghostParts.Add(new GhostPart
+            {
+                Mesh = meshFilter.sharedMesh,
+                LocalToRoot = worldToRoot * meshFilter.transform.localToWorldMatrix
+            });
+        }
+    }
+
+    private void DrawGhost()
+    {
         Matrix4x4 rootMatrix = Matrix4x4.TRS(transform.position, TargetRotation, objectScale);
+
         foreach (GhostPart part in ghostParts)
         {
             Matrix4x4 world = rootMatrix * part.LocalToRoot;
             for (int subMesh = 0; subMesh < part.Mesh.subMeshCount; subMesh++)
-                Graphics.RenderMesh(renderParams, part.Mesh, subMesh, world);
+                Graphics.RenderMesh(ghostParams, part.Mesh, subMesh, world);
         }
     }
-
-    // ---------- Editor ----------
 
 #if UNITY_EDITOR
     // Wireframe preview of the placed object while editing the scene
@@ -278,6 +282,7 @@ public class PlacementZone : MonoBehaviour
         if (acceptedObject == null || Application.isPlaying) return;
 
         Transform root = acceptedObject.transform;
+        Matrix4x4 worldToRoot = root.worldToLocalMatrix;
         Matrix4x4 rootMatrix = Matrix4x4.TRS(transform.position, transform.rotation, root.lossyScale);
 
         Gizmos.color = new Color(0.2f, 1f, 0.35f, 0.8f);
@@ -285,7 +290,7 @@ public class PlacementZone : MonoBehaviour
         {
             if (meshFilter.sharedMesh == null) continue;
 
-            Gizmos.matrix = rootMatrix * (root.worldToLocalMatrix * meshFilter.transform.localToWorldMatrix);
+            Gizmos.matrix = rootMatrix * (worldToRoot * meshFilter.transform.localToWorldMatrix);
             Gizmos.DrawWireMesh(meshFilter.sharedMesh);
         }
 
@@ -295,8 +300,8 @@ public class PlacementZone : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Vector3 center = transform.position;
-        Rigidbody rb = acceptedObject != null ? acceptedObject.GetComponent<Rigidbody>() : null;
-        if (rb != null) center += transform.rotation * rb.centerOfMass;
+        if (acceptedObject != null && acceptedObject.TryGetComponent(out Rigidbody rb))
+            center += transform.rotation * rb.centerOfMass;
 
         Gizmos.color = new Color(0.2f, 1f, 0.35f, 0.35f);
         Gizmos.DrawWireSphere(center, snapRadius);

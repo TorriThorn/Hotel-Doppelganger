@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// SOMA-style physical carrying. Hold left mouse to carry, right mouse to rotate, scroll to change distance.
-// Works on any non-kinematic Rigidbody; a Grabbable adds per-object settings.
+// Hold left mouse to carry, right mouse to rotate, scroll to push or pull.
+// Works on any non-kinematic Rigidbody. A Grabbable on the object adds per-object settings.
 [AddComponentMenu("Game/Player/Object Grabber")]
 public class ObjectGrabber : MonoBehaviour
 {
@@ -69,7 +69,7 @@ public class ObjectGrabber : MonoBehaviour
     [DisplayAs("Rotate Strength", Min = 0f)]
     [SerializeField] private float rotateStrength = 15f;
 
-    // "At Max" values apply to the heaviest objects and fade out for lighter ones
+    // "At Max" values are for objects at Heaviest Liftable Mass and blend out toward Weightless Below Mass
     [Foldout("Heavy Objects (advanced)")]
     [DisplayAs("Weightless Below Mass", Min = 0f)]
     [SerializeField] private float lightMass = 1f;
@@ -125,8 +125,6 @@ public class ObjectGrabber : MonoBehaviour
 
     private Collider playerCollider;
 
-    // Held object
-    private bool isHolding;
     private Rigidbody held;
     private Grabbable heldGrabbable;
     private Collider[] heldColliders;
@@ -138,27 +136,25 @@ public class ObjectGrabber : MonoBehaviour
     private float liftProgress;
     private float stuckTimer;
 
-    // Highlight
     private Material highlightMaterial;
     private Rigidbody highlighted;
     private Renderer[] highlightedRenderers;
     private Material[][] originalMaterials;
 
-    public bool IsHolding => isHolding;
+    public bool IsHolding { get; private set; }
     public Rigidbody HeldObject => held;
 
-    // Tunable values, e.g. for the Playtest menu
     public float Reach { get => reach; set => reach = Mathf.Max(0f, value); }
     public float AimForgiveness { get => grabRadius; set => grabRadius = Mathf.Max(0f, value); }
     public float MaxMass { get => maxMass; set => maxMass = Mathf.Max(0f, value); }
 
-    // ---------- Lifecycle ----------
-
     private void Awake()
     {
-        if (player == null) player = GetComponent<FirstPersonController>();
-        playerCollider = GetComponent<CharacterController>();
+        if (player == null) TryGetComponent(out player);
+        TryGetComponent(out CharacterController body);
+        playerCollider = body;
 
+        if (cameraTransform == null && player != null) cameraTransform = player.CameraTransform;
         if (cameraTransform == null)
         {
             Camera cam = GetComponentInChildren<Camera>();
@@ -167,14 +163,22 @@ public class ObjectGrabber : MonoBehaviour
 
         if (highlightShader == null) highlightShader = Shader.Find("Custom/GrabHighlight");
         if (highlightShader != null)
+        {
             highlightMaterial = new Material(highlightShader) { name = "Grab Highlight (Runtime)" };
+            ApplyHighlightLook();
+        }
     }
 
     private void Reset() => highlightShader = Shader.Find("Custom/GrabHighlight");
 
+    private void OnValidate()
+    {
+        if (highlightMaterial != null) ApplyHighlightLook();
+    }
+
     private void OnDisable()
     {
-        if (isHolding) Drop();
+        if (IsHolding) Drop();
         ClearHighlight();
     }
 
@@ -186,22 +190,23 @@ public class ObjectGrabber : MonoBehaviour
 
     private void Update()
     {
-        if (Mouse.current == null || cameraTransform == null) return;
+        Mouse mouse = Mouse.current;
+        if (mouse == null || cameraTransform == null) return;
 
         if (player != null && player.InputLocked)
         {
-            if (isHolding) Drop();
+            if (IsHolding) Drop();
             ClearHighlight();
             return;
         }
 
-        if (isHolding) UpdateHolding();
-        else UpdateSearching();
+        if (IsHolding) UpdateHolding(mouse);
+        else UpdateSearching(mouse);
     }
 
     private void FixedUpdate()
     {
-        if (!isHolding) return;
+        if (!IsHolding) return;
 
         if (!HeldStillValid())
         {
@@ -212,35 +217,34 @@ public class ObjectGrabber : MonoBehaviour
         float liftTime = heavyLiftTime * weight;
         liftProgress = liftTime > 0f ? Mathf.MoveTowards(liftProgress, 1f, Time.fixedDeltaTime / liftTime) : 1f;
 
-        // Center of mass, so objects with off-centre pivots still sit in the middle of the view
-        Vector3 offset = GetHoldPoint() - held.worldCenterOfMass;
+        // Aim for the center of mass so props with offset pivots still sit in the middle of the view
+        Vector3 offset = HoldPoint() - held.worldCenterOfMass;
 
-        if (HasBeenStuckTooLong(offset.magnitude))
+        if (StuckTooLong(offset.magnitude))
         {
             Drop();
             return;
         }
 
-        MoveTowardHoldPoint(offset);
+        float follow = followStrength * Mathf.Lerp(1f, heavyFollow, weight) * Mathf.Lerp(MinLiftFollow, 1f, liftProgress);
+        held.linearVelocity = Vector3.ClampMagnitude(offset * follow, Mathf.Lerp(maxSpeed, heavyMaxSpeed, weight));
+
         RotateTowardHoldRotation();
     }
 
-    // ---------- Frame logic ----------
-
-    private void UpdateSearching()
+    private void UpdateSearching(Mouse mouse)
     {
         Rigidbody target = Cursor.lockState == CursorLockMode.Locked ? FindGrabbable() : null;
 
         SetHighlight(target);
         SetCrosshair(target != null ? FirstPersonController.CrosshairState.OpenHand : FirstPersonController.CrosshairState.Dot);
 
-        if (target != null && Mouse.current.leftButton.wasPressedThisFrame)
-            Grab(target);
+        if (target != null && mouse.leftButton.wasPressedThisFrame) Grab(target);
     }
 
-    private void UpdateHolding()
+    private void UpdateHolding(Mouse mouse)
     {
-        if (!HeldStillValid() || !Mouse.current.leftButton.isPressed)
+        if (!HeldStillValid() || !mouse.leftButton.isPressed)
         {
             Drop();
             return;
@@ -249,32 +253,31 @@ public class ObjectGrabber : MonoBehaviour
         SetCrosshair(FirstPersonController.CrosshairState.ClosedHand);
         SetHighlight(highlightWhileHolding ? held : null);
 
-        float scroll = Mouse.current.scroll.ReadValue().y;
+        float scroll = mouse.scroll.ReadValue().y;
         if (scroll != 0f)
             holdDistance = Mathf.Clamp(holdDistance + Mathf.Sign(scroll) * scrollStep, minHoldDistance, maxHoldDistance);
 
         // Right mouse turns the object instead of the camera
-        bool rotating = Mouse.current.rightButton.isPressed && (heldGrabbable == null || heldGrabbable.canRotate);
+        bool rotating = mouse.rightButton.isPressed && (heldGrabbable == null || heldGrabbable.canRotate);
         if (player != null) player.LookLocked = rotating;
-        if (rotating) RotateHoldWithMouse();
+        if (rotating) RotateHoldWithMouse(mouse);
     }
 
-    // ---------- Holding physics ----------
-
-    private Vector3 GetHoldPoint()
+    private Vector3 HoldPoint()
     {
         Vector3 point = cameraTransform.position + cameraTransform.forward * holdDistance;
-        point += Vector3.down * (heavySag * weight);
+        if (weight <= 0f) return point;
 
         float t = Time.time * ShakeFrequency;
-        Vector3 shake = new Vector3(Mathf.PerlinNoise(t, 0f) - 0.5f, Mathf.PerlinNoise(0f, t) - 0.5f, 0f);
-        point += cameraTransform.rotation * shake * (heavyShake * weight * 2f);
+        var shake = new Vector3(Mathf.PerlinNoise(t, 0f) - 0.5f, Mathf.PerlinNoise(0f, t) - 0.5f, 0f);
 
-        return point;
+        return point
+               + Vector3.down * (heavySag * weight)
+               + cameraTransform.rotation * shake * (heavyShake * weight * 2f);
     }
 
-    // Heavy objects get longer to catch up before being dropped
-    private bool HasBeenStuckTooLong(float distanceFromHoldPoint)
+    // Heavier objects get longer to catch up before they're dropped
+    private bool StuckTooLong(float distanceFromHoldPoint)
     {
         if (distanceFromHoldPoint <= dropDistance)
         {
@@ -286,20 +289,9 @@ public class ObjectGrabber : MonoBehaviour
         return stuckTimer >= stuckTime * (1f + weight * HeavyStuckTimeBonus);
     }
 
-    private void MoveTowardHoldPoint(Vector3 offset)
-    {
-        float follow = followStrength
-                       * Mathf.Lerp(1f, heavyFollow, weight)
-                       * Mathf.Lerp(MinLiftFollow, 1f, liftProgress);
-        float topSpeed = Mathf.Lerp(maxSpeed, heavyMaxSpeed, weight);
-
-        held.linearVelocity = Vector3.ClampMagnitude(offset * follow, topSpeed);
-    }
-
     private void RotateTowardHoldRotation()
     {
-        Quaternion targetRotation = cameraTransform.rotation * holdRotation;
-        Quaternion difference = targetRotation * Quaternion.Inverse(held.rotation);
+        Quaternion difference = cameraTransform.rotation * holdRotation * Quaternion.Inverse(held.rotation);
         difference.ToAngleAxis(out float angle, out Vector3 axis);
         if (angle > 180f) angle -= 360f;
 
@@ -313,20 +305,17 @@ public class ObjectGrabber : MonoBehaviour
         held.angularVelocity = axis * (angle * Mathf.Deg2Rad * strength);
     }
 
-    private void RotateHoldWithMouse()
+    private void RotateHoldWithMouse(Mouse mouse)
     {
-        float speed = rotateSpeed * Mathf.Lerp(1f, heavyRotate, weight);
-        Vector2 delta = Mouse.current.delta.ReadValue() * speed;
+        Vector2 delta = mouse.delta.ReadValue() * (rotateSpeed * Mathf.Lerp(1f, heavyRotate, weight));
 
-        Quaternion worldRotation = cameraTransform.rotation * holdRotation;
-        worldRotation = Quaternion.AngleAxis(-delta.x, cameraTransform.up)
-                      * Quaternion.AngleAxis(delta.y, cameraTransform.right)
-                      * worldRotation;
+        Quaternion cameraRotation = cameraTransform.rotation;
+        Quaternion worldRotation = Quaternion.AngleAxis(-delta.x, cameraTransform.up)
+                                   * Quaternion.AngleAxis(delta.y, cameraTransform.right)
+                                   * cameraRotation * holdRotation;
 
-        holdRotation = Quaternion.Inverse(cameraTransform.rotation) * worldRotation;
+        holdRotation = Quaternion.Inverse(cameraRotation) * worldRotation;
     }
-
-    // ---------- Targeting ----------
 
     private Rigidbody FindGrabbable()
     {
@@ -338,17 +327,17 @@ public class ObjectGrabber : MonoBehaviour
         {
             if (CanGrab(direct.rigidbody)) return direct.rigidbody;
 
-            // Looking straight at an NPC: leave the click for dialogue rather than grabbing a nearby prop
+            // Looking straight at an NPC leaves the click for dialogue instead of grabbing a prop next to them
             if (direct.collider.GetComponentInParent<NPCDialogue>() != null) return null;
         }
 
         if (grabRadius <= 0f) return null;
 
-        // Otherwise sweep a wider ray and pick the candidate closest to the crosshair
-        int count = Physics.SphereCastNonAlloc(origin, grabRadius, direction, sphereHits, reach,
-                                               grabLayers, QueryTriggerInteraction.Ignore);
+        // Otherwise sweep a fatter ray and take whatever sits closest to the crosshair
+        int count = Physics.SphereCastNonAlloc(origin, grabRadius, direction, sphereHits, reach, grabLayers, QueryTriggerInteraction.Ignore);
         Rigidbody best = null;
         float bestScore = float.MaxValue;
+        float reachSqr = reach * reach;
 
         for (int i = 0; i < count; i++)
         {
@@ -356,19 +345,16 @@ public class ObjectGrabber : MonoBehaviour
             Rigidbody candidate = hit.rigidbody;
             if (candidate == best || !CanGrab(candidate)) continue;
 
-            // Colliders already inside the sphere at the start report no hit point
+            // Colliders already inside the sphere when the cast starts report no hit point
             Vector3 point = hit.distance > 0f ? hit.point : ClosestPointOn(hit.collider, origin);
             Vector3 toPoint = point - origin;
+            if (toPoint.sqrMagnitude > reachSqr) continue;
 
-            if (toPoint.magnitude > reach) continue;
-            if (!HasLineOfSight(origin, point, candidate)) continue;
+            float score = Vector3.Cross(direction, toPoint).sqrMagnitude;
+            if (score >= bestScore || !HasLineOfSight(origin, toPoint, candidate)) continue;
 
-            float distanceFromCrosshair = Vector3.Cross(direction, toPoint).magnitude;
-            if (distanceFromCrosshair < bestScore)
-            {
-                bestScore = distanceFromCrosshair;
-                best = candidate;
-            }
+            bestScore = score;
+            best = candidate;
         }
 
         return best;
@@ -378,91 +364,75 @@ public class ObjectGrabber : MonoBehaviour
     {
         if (rb == null || rb.transform.IsChildOf(transform)) return false;
 
-        Grabbable grabbable = rb.GetComponent<Grabbable>();
+        bool hasGrabbable = rb.TryGetComponent(out Grabbable grabbable);
 
-        // Kinematic bodies can't be carried, except a Grabbable mid-glide (the player can catch it)
-        if (rb.isKinematic && (grabbable == null || !grabbable.IsGliding)) return false;
+        // Kinematic bodies can't be carried, except a Grabbable mid-glide, which the player can catch
+        if (rb.isKinematic && (!hasGrabbable || !grabbable.IsGliding)) return false;
 
-        if (grabbable != null)
-        {
-            if (!grabbable.enabled || !grabbable.canGrab) return false;
-            if (!grabbable.weightFromMass) return true;   // Custom weight ignores Max Mass
-        }
-        else if (requireGrabbable)
-        {
-            return false;
-        }
+        if (!hasGrabbable) return !requireGrabbable && rb.mass <= maxMass;
+        if (!grabbable.enabled || !grabbable.canGrab) return false;
 
-        return rb.mass <= maxMass;
+        // A custom weight ignores the mass limit
+        return !grabbable.weightFromMass || rb.mass <= maxMass;
     }
 
-    private bool HasLineOfSight(Vector3 origin, Vector3 point, Rigidbody target)
+    private bool HasLineOfSight(Vector3 origin, Vector3 toPoint, Rigidbody target)
     {
-        Vector3 toPoint = point - origin;
         float distance = toPoint.magnitude - LineOfSightPadding;
         if (distance <= 0f) return true;
 
-        if (!RaycastIgnoringPlayer(origin, toPoint.normalized, distance, Physics.DefaultRaycastLayers, out RaycastHit blocker))
-            return true;
-
-        return blocker.rigidbody == target;
+        return !RaycastIgnoringPlayer(origin, toPoint.normalized, distance, Physics.DefaultRaycastLayers, out RaycastHit blocker)
+               || blocker.rigidbody == target;
     }
 
-    // Skips every collider on the player rig, which would otherwise block the ray
+    // Skips the player's own colliders, which would otherwise block the ray from inside the head
     private bool RaycastIgnoringPlayer(Vector3 origin, Vector3 direction, float distance, int mask, out RaycastHit closest)
     {
         int count = Physics.RaycastNonAlloc(origin, direction, rayHits, distance, mask, QueryTriggerInteraction.Ignore);
 
         closest = default;
-        float closestDistance = float.MaxValue;
         bool found = false;
 
         for (int i = 0; i < count; i++)
         {
             RaycastHit hit = rayHits[i];
-            if (hit.collider.transform.IsChildOf(transform) || hit.distance >= closestDistance) continue;
+            if ((found && hit.distance >= closest.distance) || hit.collider.transform.IsChildOf(transform)) continue;
 
             closest = hit;
-            closestDistance = hit.distance;
             found = true;
         }
 
         return found;
     }
 
-    // Collider.ClosestPoint doesn't support concave mesh colliders, so fall back to their bounds
-    private static Vector3 ClosestPointOn(Collider hitCollider, Vector3 position)
-    {
-        if (hitCollider is MeshCollider meshCollider && !meshCollider.convex)
-            return hitCollider.bounds.ClosestPoint(position);
+    // Collider.ClosestPoint doesn't work on concave mesh colliders, so use their bounds instead
+    private static Vector3 ClosestPointOn(Collider hitCollider, Vector3 position) =>
+        hitCollider is MeshCollider mesh && !mesh.convex
+            ? hitCollider.bounds.ClosestPoint(position)
+            : hitCollider.ClosestPoint(position);
 
-        return hitCollider.ClosestPoint(position);
-    }
-
-    // ---------- Grab / drop ----------
-
-    // The held object can be destroyed, disabled, made kinematic or made ungrabbable at any time
+    // The held object can be destroyed, disabled, made kinematic or locked by something else at any time
     private bool HeldStillValid()
     {
-        if (held == null || !held.gameObject.activeInHierarchy || held.isKinematic) return false;
-        if (heldGrabbable != null && (!heldGrabbable.enabled || !heldGrabbable.canGrab)) return false;
-        return true;
+        if (held == null || held.isKinematic || !held.gameObject.activeInHierarchy) return false;
+        return heldGrabbable == null || (heldGrabbable.enabled && heldGrabbable.canGrab);
     }
 
     private void Grab(Rigidbody rb)
     {
-        isHolding = true;
         held = rb;
-        heldGrabbable = rb.GetComponent<Grabbable>();
-        if (heldGrabbable != null) heldGrabbable.CancelGlide();   // Before saving physics state
+        rb.TryGetComponent(out heldGrabbable);
 
-        heldColliders = held.GetComponentsInChildren<Collider>();
+        // Cancel any glide first so the Rigidbody state saved below is the real one
+        if (heldGrabbable != null) heldGrabbable.CancelGlide();
+
+        IsHolding = true;
+        heldColliders = rb.GetComponentsInChildren<Collider>();
         stuckTimer = 0f;
         liftProgress = 0f;
 
-        weight = heldGrabbable != null && !heldGrabbable.weightFromMass
-            ? heldGrabbable.customWeight
-            : Mathf.InverseLerp(lightMass, maxMass, held.mass);
+        bool customWeight = heldGrabbable != null && !heldGrabbable.weightFromMass;
+        weight = customWeight ? heldGrabbable.customWeight : Mathf.InverseLerp(lightMass, maxMass, rb.mass);
 
         if (player != null)
         {
@@ -470,19 +440,19 @@ public class ObjectGrabber : MonoBehaviour
             player.LookMultiplier = Mathf.Lerp(1f, heavyPlayerLook, weight);
         }
 
-        heldUsedGravity = held.useGravity;
-        heldInterpolation = held.interpolation;
-        held.useGravity = false;
-        held.interpolation = RigidbodyInterpolation.Interpolate;
+        heldUsedGravity = rb.useGravity;
+        heldInterpolation = rb.interpolation;
+        rb.useGravity = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
 
         float startDistance = heldGrabbable != null && heldGrabbable.holdDistance > 0f
             ? heldGrabbable.holdDistance
-            : Vector3.Distance(cameraTransform.position, held.worldCenterOfMass);
+            : Vector3.Distance(cameraTransform.position, rb.worldCenterOfMass);
         holdDistance = Mathf.Clamp(startDistance, minHoldDistance, maxHoldDistance);
 
         holdRotation = heldGrabbable != null && heldGrabbable.useHoldRotation
             ? Quaternion.Euler(heldGrabbable.holdRotation)
-            : Quaternion.Inverse(cameraTransform.rotation) * held.rotation;
+            : Quaternion.Inverse(cameraTransform.rotation) * rb.rotation;
 
         SetPlayerCollision(false);
 
@@ -499,9 +469,9 @@ public class ObjectGrabber : MonoBehaviour
 
         SetPlayerCollision(true);
 
-        if (heldGrabbable != null) heldGrabbable.NotifyDropped();
-
-        isHolding = false;
+        // Clear our state before notifying, in case a listener reacts by grabbing or moving the object
+        Grabbable dropped = heldGrabbable;
+        IsHolding = false;
         held = null;
         heldGrabbable = null;
         heldColliders = null;
@@ -514,6 +484,8 @@ public class ObjectGrabber : MonoBehaviour
         }
 
         SetCrosshair(FirstPersonController.CrosshairState.Dot);
+
+        if (dropped != null) dropped.NotifyDropped();
     }
 
     private void SetPlayerCollision(bool collide)
@@ -526,14 +498,20 @@ public class ObjectGrabber : MonoBehaviour
         }
     }
 
-    // ---------- Feedback ----------
-
     private void SetCrosshair(FirstPersonController.CrosshairState state)
     {
         if (player != null) player.Crosshair = state;
     }
 
-    // Adds the glow as an extra material on the target's renderers, and restores them afterwards
+    private void ApplyHighlightLook()
+    {
+        highlightMaterial.SetColor(ColorId, highlightColor);
+        highlightMaterial.SetFloat(FillId, highlightFill);
+        highlightMaterial.SetFloat(RimPowerId, highlightRimSharpness);
+        highlightMaterial.SetFloat(PulseId, highlightPulse);
+    }
+
+    // The glow is an extra material slot on the target's renderers, removed again when the target changes
     private void SetHighlight(Rigidbody target)
     {
         if (target != null && !ShouldHighlight(target)) target = null;
@@ -541,11 +519,6 @@ public class ObjectGrabber : MonoBehaviour
 
         ClearHighlight();
         if (target == null) return;
-
-        highlightMaterial.SetColor(ColorId, highlightColor);
-        highlightMaterial.SetFloat(FillId, highlightFill);
-        highlightMaterial.SetFloat(RimPowerId, highlightRimSharpness);
-        highlightMaterial.SetFloat(PulseId, highlightPulse);
 
         highlighted = target;
         highlightedRenderers = target.GetComponentsInChildren<Renderer>();
@@ -569,9 +542,7 @@ public class ObjectGrabber : MonoBehaviour
     private bool ShouldHighlight(Rigidbody target)
     {
         if (!highlightTarget || highlightMaterial == null) return false;
-
-        Grabbable grabbable = target.GetComponent<Grabbable>();
-        return grabbable == null || grabbable.highlight;
+        return !target.TryGetComponent(out Grabbable grabbable) || grabbable.highlight;
     }
 
     private void ClearHighlight()

@@ -1,7 +1,7 @@
 using UnityEngine;
 
-// Turns a sprite NPC to face the player when they're within range.
-// While the NPC is walking (see NPCPatrol) it always faces the player so the sprite never turns edge-on.
+// Turns a sprite NPC to face the player once they're close enough.
+// While the NPC is walking it always faces the player, so the sprite never turns edge-on.
 [AddComponentMenu("Game/NPC/NPC Face Player")]
 public class NPCFacePlayer : MonoBehaviour
 {
@@ -27,13 +27,13 @@ public class NPCFacePlayer : MonoBehaviour
 
     private void Start()
     {
-        patrol = GetComponent<NPCPatrol>();
+        TryGetComponent(out patrol);
         startYaw = transform.eulerAngles.y;
         currentYaw = startYaw;
 
         if (player == null)
         {
-            FirstPersonController firstPerson = FindAnyObjectByType<FirstPersonController>();
+            var firstPerson = FindAnyObjectByType<FirstPersonController>();
             if (firstPerson != null) player = firstPerson.transform;
         }
     }
@@ -50,12 +50,10 @@ public class NPCFacePlayer : MonoBehaviour
     {
         Vector3 toPlayer = player.position - transform.position;
         toPlayer.y = 0f;
+        float distanceSqr = toPlayer.sqrMagnitude;
 
         bool isWalking = patrol != null && patrol.IsWalking;
-        bool shouldFacePlayer = (isWalking || toPlayer.magnitude <= noticeRange)
-                                && toPlayer.sqrMagnitude > MinFacingDistanceSqr;
-
-        if (shouldFacePlayer)
+        if ((isWalking || distanceSqr <= noticeRange * noticeRange) && distanceSqr > MinFacingDistanceSqr)
         {
             // Sprites show their front toward -Z, so point +Z away from the player
             yaw = Mathf.Atan2(-toPlayer.x, -toPlayer.z) * Mathf.Rad2Deg;
