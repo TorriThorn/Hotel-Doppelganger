@@ -6,7 +6,6 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using static System.Net.Mime.MediaTypeNames;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
@@ -168,7 +167,7 @@ public class GameComplete : MonoBehaviour
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
 #else
-        Application.Quit();
+        UnityEngine.Application.Quit();
 #endif
     }
 

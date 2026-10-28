@@ -402,7 +402,7 @@ public class MainMenu : MonoBehaviour
         if (QualitySettings.names.Length > 1)
             section.Settings.Add(MenuSetting.Choice("Graphics Quality", QualitySettings.names, QualitySettings.GetQualityLevel, i => QualitySettings.SetQualityLevel(i, true)));
         section.Settings.Add(MenuSetting.Toggle("VSync", () => QualitySettings.vSyncCount > 0, v => QualitySettings.vSyncCount = v ? 1 : 0));
-        section.Settings.Add(MenuSetting.Choice("Frame Rate Limit (VSync off)", FrameRateNames, CurrentFrameRateIndex, i => Application.targetFrameRate = FrameRates[i]));
+        section.Settings.Add(MenuSetting.Choice("Frame Rate Limit (VSync off)", FrameRateNames, CurrentFrameRateIndex, i => UnityEngine.Application.targetFrameRate = FrameRates[i]));
         if (p != null)
         {
             section.Settings.Add(MenuSetting.Slider("Field Of View", 50f, 110f, 1f, "0", () => p.FieldOfView, v => p.FieldOfView = v));
@@ -454,7 +454,7 @@ public class MainMenu : MonoBehaviour
             section.Settings.Add(MenuSetting.Slider("NPC Stop Distance", 0f, 6f, 0.25f, "0.00", () => ReadNPC(n => n.StopRange), v => ForEachNPC(n => n.StopRange = v)));
         }
 
-        NPCFacePlayer[] facers = FindObjectsByType<NPCFacePlayer>(FindObjectsSortMode.None);
+        NPCFacePlayer[] facers = FindObjectsByType<NPCFacePlayer>();
         if (facers.Length > 0)
         {
             section.Settings.Add(MenuSetting.Slider("NPC Notice Distance", 0f, 20f, 0.5f, "0.0", () => facers[0].NoticeRange, v => SetAll(facers, f => f.NoticeRange = v)));
@@ -502,7 +502,7 @@ public class MainMenu : MonoBehaviour
 
     private static int CurrentFrameRateIndex()
     {
-        int index = Array.IndexOf(FrameRates, Application.targetFrameRate);
+        int index = Array.IndexOf(FrameRates, UnityEngine.Application.targetFrameRate);
         return index >= 0 ? index : FrameRates.Length - 1;
     }
 

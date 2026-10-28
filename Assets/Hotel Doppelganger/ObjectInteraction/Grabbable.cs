@@ -261,7 +261,7 @@ public class Grabbable : MonoBehaviour
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
     {
-        if (!Application.isPlaying || !returnOnDrop) return;
+        if (!UnityEngine.Application.isPlaying || !returnOnDrop) return;
 
         Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.8f);
         Gizmos.DrawWireSphere(homePosition, 0.08f);

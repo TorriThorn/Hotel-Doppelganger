@@ -279,7 +279,7 @@ public class PlacementZone : MonoBehaviour
     // Wireframe preview of the placed object while editing the scene
     private void OnDrawGizmos()
     {
-        if (acceptedObject == null || Application.isPlaying) return;
+        if (acceptedObject == null || UnityEngine.Application.isPlaying) return;
 
         Transform root = acceptedObject.transform;
         Matrix4x4 worldToRoot = root.worldToLocalMatrix;

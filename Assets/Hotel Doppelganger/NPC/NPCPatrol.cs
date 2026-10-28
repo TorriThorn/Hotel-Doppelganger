@@ -571,7 +571,7 @@ public class NPCPatrol : MonoBehaviour
     {
         DrawRouteGizmos();
 
-        if (Application.isPlaying && UsingAgent && agent.hasPath)
+        if (UnityEngine.Application.isPlaying && UsingAgent && agent.hasPath)
         {
             Gizmos.color = Color.cyan;
             Vector3[] corners = agent.path.corners;
@@ -599,7 +599,7 @@ public class NPCPatrol : MonoBehaviour
         {
             if (waypoint == null || waypoint.point == null) continue;
 
-            Vector3 position = Application.isPlaying && waypoint.cached ? waypoint.position : waypoint.point.position;
+            Vector3 position = UnityEngine.Application.isPlaying && waypoint.cached ? waypoint.position : waypoint.point.position;
 
             Gizmos.color = waypoint.active ? activeColor : inactiveColor;
             Gizmos.DrawWireSphere(position, pointRadius);
