@@ -1,0 +1,67 @@
+# Blender MTL File: 'Luggage_Cart_painted.blend'
+# Material Count: 6
+
+newmtl Panel
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.800000 0.098423 0.751309
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd Textures\\Luggage_Cart_break_1001_AlbedoTransparency.jpg
+
+newmtl bolt
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.246195 0.246195 0.246195
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+
+newmtl handles
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.000000 0.000000 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Textures\\Luggage_Cart_break_1001_AlbedoTransparency.jpg
+
+newmtl structure
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.987442 0.936300 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd Luggage_Cart_break_1001_BaseMap.jpg
+
+newmtl wheels
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.184935 0.297660 0.367238
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Textures\\Luggage_Cart_break_1001_AlbedoTransparency.jpg
+
+newmtl wheels2
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.184293 0.232172 0.800000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Kd Textures\\Luggage_Cart_break_1001_AlbedoTransparency.jpg
