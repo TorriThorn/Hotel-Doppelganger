@@ -94,8 +94,8 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Talkable Layers")]
     [SerializeField] private LayerMask talkLayers = ~0;
 
-    [DisplayAs("Show Name Under Crosshair")]
-    [SerializeField] private bool showTalkPrompt;
+    [DisplayAs("Show Button Prompt")]
+    [SerializeField] private bool showKeyPrompt = true;
 
     [DisplayAs("Hide NPC In The World While Talking")]
     [SerializeField] private bool hideNpcWhileTalking = true;
@@ -243,6 +243,9 @@ public class PlayerDialogue : MonoBehaviour
     private CanvasGroup choicesGroup;
     private Text promptText;
     private Shadow promptShadow;
+    private Image promptBox;
+    private readonly List<Image> promptBorders = new List<Image>();
+    private bool promptShowsHolding;
     private Text nameText;
     private Shadow nameShadow;
     private Text lineText;
@@ -278,10 +281,10 @@ public class PlayerDialogue : MonoBehaviour
 
     public bool ShowTalkPrompt
     {
-        get => showTalkPrompt;
+        get => showKeyPrompt;
         set
         {
-            showTalkPrompt = value;
+            showKeyPrompt = value;
             NPCDialogue target = lookingAt;
             lookingAt = null;
             if (promptText != null) SetLookingAt(target);
@@ -354,6 +357,7 @@ public class PlayerDialogue : MonoBehaviour
         bool holding = grabber != null && grabber.IsHolding;
         bool canTalk = Cursor.lockState == CursorLockMode.Locked;
         SetLookingAt(canTalk ? FindNPC() : null);
+        if (lookingAt != null && holding != promptShowsHolding) UpdatePrompt();
 
         bool pressed = keyboard.eKey.wasPressedThisFrame || (!holding && mouse.leftButton.wasPressedThisFrame);
         if (lookingAt != null && pressed && Time.time > closeTime + ReopenDelay) Open(lookingAt);
@@ -535,13 +539,19 @@ public class PlayerDialogue : MonoBehaviour
         bool canTalk = target != null;
         if (player != null) player.CanTalk = canTalk;
 
-        bool showPrompt = canTalk && showTalkPrompt;
-        promptText.gameObject.SetActive(showPrompt);
-        if (showPrompt)
-        {
-            bool holding = grabber != null && grabber.IsHolding;
-            promptText.text = target.npcName.ToLower() + (holding ? "\n[E] show" : "\n[click] talk");
-        }
+        UpdatePrompt();
+    }
+
+    // "[E]  Talk to Murray" under the crosshair, or "[E]  Show to Murray" while carrying something
+    private void UpdatePrompt()
+    {
+        bool show = lookingAt != null && showKeyPrompt;
+        promptBox.gameObject.SetActive(show);
+        if (!show) return;
+
+        promptShowsHolding = grabber != null && grabber.IsHolding;
+        string action = promptShowsHolding ? "Show to " : "Talk to ";
+        promptText.text = highlightTag + "[E]</color>   " + action + lookingAt.npcName;
     }
 
     private void Open(NPCDialogue target)
@@ -1024,13 +1034,20 @@ public class PlayerDialogue : MonoBehaviour
         canvas = RuntimeUI.CreateCanvas("Dialogue UI", SortingOrder);
         Transform root = canvas.transform;
 
-        promptText = RuntimeUI.CreateText("Prompt", root, font, promptSize, choiceColor, TextAnchor.UpperCenter, shadowColor, out promptShadow);
-        RectTransform promptRect = promptText.rectTransform;
+        // A small box under the crosshair that grows to fit its text
+        promptBox = RuntimeUI.CreateBox("Prompt", root, 0f, boxColor, borderColor, new RectOffset(16, 16, 8, 10), 0f, promptBorders);
+        RectTransform promptRect = promptBox.rectTransform;
         promptRect.anchorMin = promptRect.anchorMax = new Vector2(0.5f, 0.5f);
         promptRect.pivot = new Vector2(0.5f, 1f);
-        promptRect.anchoredPosition = new Vector2(0f, -40f);
-        promptRect.sizeDelta = new Vector2(600f, 100f);
-        promptText.gameObject.SetActive(false);
+        promptRect.anchoredPosition = new Vector2(0f, -48f);
+        var promptFit = promptBox.gameObject.AddComponent<ContentSizeFitter>();
+        promptFit.horizontalFit = ContentSizeFitter.FitMode.PreferredSize;
+        promptFit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        promptText = RuntimeUI.CreateText("Text", promptBox.transform, font, promptSize, lineColor, TextAnchor.MiddleCenter, shadowColor, out promptShadow);
+        promptText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        promptText.supportRichText = true;
+        promptBox.gameObject.SetActive(false);
 
         RectTransform dialogueRect = RuntimeUI.CreateRect("Dialogue", root);
         RuntimeUI.Stretch(dialogueRect);
@@ -1124,7 +1141,9 @@ public class PlayerDialogue : MonoBehaviour
         }
         portrait.rectTransform.sizeDelta = new Vector2(portraitHeight * 1.2f, portraitHeight);
         if (portraitTime >= 1f) portrait.rectTransform.anchoredPosition = new Vector2(0f, portraitRaise);
-        promptText.color = choiceColor;
+        promptText.color = lineColor;
+        promptBox.color = boxColor;
+        foreach (Image edge in promptBorders) edge.color = borderColor;
         nameShadow.effectColor = shadowColor;
         lineShadow.effectColor = shadowColor;
         promptShadow.effectColor = shadowColor;

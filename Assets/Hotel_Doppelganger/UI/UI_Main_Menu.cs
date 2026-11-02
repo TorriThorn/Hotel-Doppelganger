@@ -450,7 +450,7 @@ public class MainMenu : MonoBehaviour
             section = AddSection("Talking");
             section.Settings.Add(MenuSetting.Slider("Talk Distance", 1f, 10f, 0.25f, "0.00", () => d.TalkRange, v => d.TalkRange = v));
             section.Settings.Add(MenuSetting.Slider("Talk Aim Forgiveness", 0f, 1f, 0.05f, "0.00", () => d.TalkAimForgiveness, v => d.TalkAimForgiveness = v));
-            section.Settings.Add(MenuSetting.Toggle("Show Name At Crosshair", () => d.ShowTalkPrompt, v => d.ShowTalkPrompt = v));
+            section.Settings.Add(MenuSetting.Toggle("Show Talk Button Prompt", () => d.ShowTalkPrompt, v => d.ShowTalkPrompt = v));
             section.Settings.Add(MenuSetting.Slider("Text Speed (letters/sec)", 5f, 150f, 5f, "0", () => d.LettersPerSecond, v => d.LettersPerSecond = v));
             section.Settings.Add(MenuSetting.Slider("Pause After Sentences", 0f, 1f, 0.05f, "0.00", () => d.SentencePause, v => d.SentencePause = v));
         }

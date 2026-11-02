@@ -16132,7 +16132,7 @@ MonoBehaviour:
   talkLayers:
     serializedVersion: 2
     m_Bits: 4294967295
-  showTalkPrompt: 0
+  showKeyPrompt: 1
   hideNpcWhileTalking: 1
   lettersPerSecond: 35
   sentencePause: 0.35
@@ -33110,19 +33110,19 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
       propertyPath: m_LocalScale.x
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
       propertyPath: m_LocalScale.y
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
       propertyPath: m_LocalScale.z
-      value: 2
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 30.958
+      value: 30.989
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
       propertyPath: m_LocalPosition.y
@@ -36468,17 +36468,29 @@ MonoBehaviour:
 
     Mouse  -  Look around
 
-    Left click  -  Talk to people
+    E or Left click  -  Talk to someone
 
-    Hold left click  -  Pick up and carry things
+    Hold Left click  -  Pick up and carry things
 
-    Right click while carrying  -  Rotate what you''re holding
+    Right click while carrying  -  Turn what you''re holding
 
     Scroll while carrying  -  Move it closer or further away
 
+    E while carrying  -  Show it to someone
+
     Mouse, number keys or W/S + E  -  Pick what to say
 
-    Tab  -  Leave a conversation'
+    Tab  -  Leave a conversation
+
+    J  -  Open your journal
+
+    Esc  -  Free the mouse
+
+    
+
+    !  above someone  -  They have something new to say
+
+    ?  above someone  -  They want to see what you''re holding'
   backText: Back
   showPlaytestButton: 1
   playtestButtonText: Playtest
@@ -38009,7 +38021,7 @@ MonoBehaviour:
   - {fileID: 1928498117}
   needed: 0
   thought: Geno was building a case against *James*. Whatever he found, someone didn't want it found.
-  journalTitle: 
+  journalTitle: Geno's Notes  - Complete
   onComplete:
     m_PersistentCalls:
       m_Calls:
@@ -38145,7 +38157,7 @@ MonoBehaviour:
       nextNode: fire
       endConversation: 0
       greyAfterChosen: 1
-      appearAfter: 60
+      appearAfter: 0
       unlockId: 
       salemThinks: 
       onChosen:
