@@ -257,6 +257,7 @@ public abstract class FoldoutInspector : Editor
 [CanEditMultipleObjects, CustomEditor(typeof(MainMenu))] public class MainMenuEditor : FoldoutInspector { }
 [CanEditMultipleObjects, CustomEditor(typeof(GameComplete))] public class GameCompleteEditor : FoldoutInspector { }
 [CanEditMultipleObjects, CustomEditor(typeof(PlayerBody))] public class PlayerBodyEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(IntroCutscene))] public class IntroCutsceneEditor : FoldoutInspector { }
 
 // Draws a dialogue choice or event entry labelled by its text (or Event Id), with [MoreOptions] fields in a closed section
 [CustomPropertyDrawer(typeof(NPCDialogue.Choice))]

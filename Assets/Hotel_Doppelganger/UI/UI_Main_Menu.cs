@@ -191,6 +191,9 @@ public class MainMenu : MonoBehaviour
 
     public bool IsOpen { get; private set; }
 
+    // Raised when Start closes the menu over this scene, e.g. so the intro cutscene can begin
+    public event Action GameStarted;
+
     private MenuList CurrentList
     {
         get
@@ -274,6 +277,7 @@ public class MainMenu : MonoBehaviour
         if (string.IsNullOrWhiteSpace(sceneToLoad))
         {
             Close();
+            GameStarted?.Invoke();
             return;
         }
 
@@ -334,6 +338,7 @@ public class MainMenu : MonoBehaviour
     {
         if (!allowInGamePlaytest) return false;
         if (gameComplete != null && gameComplete.HasEnded) return false;
+        if (IntroCutscene.IsPlaying) return false;
         return dialogue == null || !dialogue.IsTalking;
     }
 
@@ -395,8 +400,7 @@ public class MainMenu : MonoBehaviour
             section.Settings.Add(MenuSetting.Slider("Scroll Push/Pull Step", 0.05f, 1f, 0.05f, "0.00", () => g.ScrollStep, v => g.ScrollStep = v));
         }
 
-        section = AddSection("Display & Sound");
-        section.Settings.Add(MenuSetting.Slider("Master Volume", 0f, 100f, 5f, "0", () => AudioListener.volume * 100f, v => AudioListener.volume = v / 100f));
+        section = AddSection("Display");
         AddResolution(section);
         section.Settings.Add(MenuSetting.Toggle("Fullscreen", () => Screen.fullScreen, v => Screen.fullScreen = v));
         if (QualitySettings.names.Length > 1)

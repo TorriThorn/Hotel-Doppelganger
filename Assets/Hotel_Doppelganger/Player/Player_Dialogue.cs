@@ -50,7 +50,8 @@ public class PlayerDialogue : MonoBehaviour
     private const int MaxNumberKeys = 9;
     private const int SortingOrder = 100;
 
-    private static RectOffset NpcBoxPadding => new RectOffset(30, 30, 22, 26);
+    public static RectOffset NpcBoxPadding => new RectOffset(30, 30, 22, 26);
+    public const float NpcBoxSpacing = 8f;
     private static RectOffset ChoicesBoxPadding => new RectOffset(16, 16, 14, 14);
     private static RectOffset RowPadding => new RectOffset(12, 12, 6, 6);
 
@@ -187,6 +188,17 @@ public class PlayerDialogue : MonoBehaviour
     private Shadow lineShadow;
 
     public bool IsTalking => npc != null;
+
+    // The NPC box's look, so other text boxes (like the intro cutscene's) can match it
+    public Font BoxFont => font;
+    public Color BoxColor => boxColor;
+    public Color BoxBorderColor => borderColor;
+    public Color NameColor => nameColor;
+    public Color LineColor => lineColor;
+    public Color ShadowColor => shadowColor;
+    public float BoxWidth => boxWidth;
+    public int NameSize => nameSize;
+    public int LineSize => lineSize;
 
     public float TalkRange { get => talkRange; set => talkRange = Mathf.Max(0f, value); }
     public float LettersPerSecond { get => lettersPerSecond; set => lettersPerSecond = Mathf.Max(1f, value); }
@@ -715,7 +727,7 @@ public class PlayerDialogue : MonoBehaviour
 
         Transform stack = BuildBoxStack(dialogueRect);
 
-        npcBox = RuntimeUI.CreateBox("NPC Box", stack, boxWidth, boxColor, borderColor, NpcBoxPadding, 8f, npcBoxBorders);
+        npcBox = RuntimeUI.CreateBox("NPC Box", stack, boxWidth, boxColor, borderColor, NpcBoxPadding, NpcBoxSpacing, npcBoxBorders);
         nameText = RuntimeUI.CreateText("Name", npcBox.transform, font, nameSize, nameColor, TextAnchor.UpperLeft, shadowColor, out nameShadow);
         lineText = RuntimeUI.CreateText("Line", npcBox.transform, font, lineSize, lineColor, TextAnchor.UpperLeft, shadowColor, out lineShadow);
         lineText.supportRichText = true;
