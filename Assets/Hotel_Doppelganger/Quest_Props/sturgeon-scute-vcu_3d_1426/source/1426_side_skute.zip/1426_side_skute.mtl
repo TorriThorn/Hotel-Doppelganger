@@ -1,0 +1,9 @@
+newmtl Fused_Mesh
+Ka 0.100000 0.100000 0.402000
+Kd 0.470600 0.784300 1.000000
+Ks 0.564700 0.749000 0.996100
+illum 0
+map_Ka 1426_side_skute.jpg
+map_Kd 1426_side_skute.jpg
+map_Ks 1426_side_skute.jpg
+

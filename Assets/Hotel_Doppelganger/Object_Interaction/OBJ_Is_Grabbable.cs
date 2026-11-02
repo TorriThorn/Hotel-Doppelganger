@@ -109,6 +109,27 @@ public class Grabbable : MonoBehaviour
         homeRotation = rotation;
     }
 
+    // Handy from UnityEvents, e.g. a dialogue choice where an NPC hands over something they took.
+    // The spot becomes the object's new home, so Return When Dropped sends it back there and not to where it started.
+    public void MoveTo(Transform spot)
+    {
+        if (spot == null) return;
+        Show();
+        SetHome(spot.position, spot.rotation);
+        GlideTo(spot.position, spot.rotation, 0f);
+    }
+
+    public void GlideToSpot(Transform spot)
+    {
+        if (spot == null) return;
+        Show();
+        SetHome(spot.position, spot.rotation);
+        GlideTo(spot.position, spot.rotation, returnDuration);
+    }
+
+    public void Hide() => gameObject.SetActive(false);
+    public void Show() => gameObject.SetActive(true);
+
     public void ReturnHome() =>
         GlideTo(homePosition, homeRotation, returnDuration, false, () => onReturned?.Invoke(), returnDelay);
 

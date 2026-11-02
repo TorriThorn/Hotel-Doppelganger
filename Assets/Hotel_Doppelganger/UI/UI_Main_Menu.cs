@@ -95,7 +95,13 @@ public class MainMenu : MonoBehaviour
     [DisplayAs("Font (optional)")]
     [SerializeField] private Font font;
 
-    [DisplayAs("Background")]
+    [DisplayAs("Background Image (optional)")]
+    [SerializeField] private Sprite backgroundImage;
+
+    [DisplayAs("Darken Image", Min = 0f, Max = 1f)]
+    [SerializeField] private float imageDarken = 0.35f;
+
+    [DisplayAs("Background Tint (no image, or F1 in game)")]
     [SerializeField] private Color backgroundColor = new Color(0.02f, 0.02f, 0.02f, 0.85f);
 
     [DisplayAs("Title Color")]
@@ -178,6 +184,9 @@ public class MainMenu : MonoBehaviour
     private GameObject tutorialPage;
     private GameObject playtestPage;
     private Image background;
+    private Image picture;
+    private AspectRatioFitter pictureFit;
+    private Image pictureDarken;
     private Text titleText;
     private Text tutorialTitleText;
     private Text tutorialBodyText;
@@ -248,7 +257,7 @@ public class MainMenu : MonoBehaviour
         }
 
         HoldGameplay();
-        if (mouse == null) return;
+        if (mouse == null || StartupNotice.IsShowing) return;
 
         if (keyboard.escapeKey.wasPressedThisFrame && page != Page.Main)
         {
@@ -312,6 +321,7 @@ public class MainMenu : MonoBehaviour
         IsOpen = true;
         openedInGame = inGame;
         canvas.gameObject.SetActive(true);
+        UpdateBackground();
 
         if (pauseWhileOpen || inGame) Time.timeScale = 0f;
         HoldGameplay();
@@ -558,6 +568,15 @@ public class MainMenu : MonoBehaviour
         background = RuntimeUI.CreateImage("Background", canvas.transform, backgroundColor);
         RuntimeUI.Stretch(background.rectTransform);
 
+        // Fills the screen at the image's own shape, cropping the edges rather than stretching it
+        picture = RuntimeUI.CreateImage("Background Image", canvas.transform, Color.white);
+        RuntimeUI.Stretch(picture.rectTransform);
+        pictureFit = picture.gameObject.AddComponent<AspectRatioFitter>();
+        pictureFit.aspectMode = AspectRatioFitter.AspectMode.EnvelopeParent;
+
+        pictureDarken = RuntimeUI.CreateImage("Darken", canvas.transform, Color.clear);
+        RuntimeUI.Stretch(pictureDarken.rectTransform);
+
         BuildMainPage();
         BuildTutorialPage();
         BuildPlaytestPage();
@@ -642,7 +661,7 @@ public class MainMenu : MonoBehaviour
     {
         UpdateStyle();
 
-        background.color = backgroundColor;
+        UpdateBackground();
         foreach (Image box in boxes) box.color = boxColor;
         foreach (Image border in borders) border.color = borderColor;
         foreach (Shadow shadow in textShadows) shadow.effectColor = shadowColor;
@@ -657,6 +676,22 @@ public class MainMenu : MonoBehaviour
         tutorialList.MarkDirty();
         playtestList.MarkDirty();
         foreach (SettingsSection section in sections) section.List.MarkDirty();
+    }
+
+    // The image is for the title screen. The F1 Playtest page keeps the tinted game view, so changes can be seen behind it.
+    private void UpdateBackground()
+    {
+        bool useImage = backgroundImage != null && !openedInGame;
+
+        background.color = useImage ? Color.black : backgroundColor;
+        picture.gameObject.SetActive(useImage);
+        pictureDarken.gameObject.SetActive(useImage);
+        if (!useImage) return;
+
+        picture.sprite = backgroundImage;
+        Rect size = backgroundImage.rect;
+        pictureFit.aspectRatio = size.height > 0f ? size.width / size.height : 1f;
+        pictureDarken.color = new Color(0f, 0f, 0f, imageDarken);
     }
 
     private static void SetText(Text target, string value, Color color)

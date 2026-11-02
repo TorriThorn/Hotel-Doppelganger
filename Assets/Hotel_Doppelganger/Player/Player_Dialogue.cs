@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -38,8 +37,6 @@ public class PlayerDialogue : MonoBehaviour
     private const string GoodbyeText = "Goodbye.";
     private const string FallbackBackText = "Back.";
     private const string EventReplyIdPrefix = "event:";
-    private const string HiddenTextOpen = "<color=#00000000>";
-    private const string HiddenTextClose = "</color>";
 
     private const float ReopenDelay = 0.2f;
     private const float TypingSkipDelay = 0.25f;
@@ -49,6 +46,27 @@ public class PlayerDialogue : MonoBehaviour
     private const float LineOfSightPadding = 0.02f;
     private const int MaxNumberKeys = 9;
     private const int SortingOrder = 100;
+    private const float PortraitSlideTime = 0.25f;
+    private const float PortraitSlideDistance = 60f;
+    private const float MarkerPixelsPerMeter = 100f;
+    private const float MarkerBobSpeed = 3f;
+    private const float MarkerBobHeight = 0.06f;
+    private const float MarkerFallbackHeight = 2f;
+
+    // A floating ! over one NPC. It sits outside the NPC so hiding or turning the NPC doesn't affect it.
+    private sealed class Marker
+    {
+        public NPCDialogue Npc;
+        public Transform Root;
+        public Renderer Body;
+        public Collider Shape;
+        public GameObject Object;
+        public Text Label;
+        public Shadow Shadow;
+        public int SeenVersion = -1;
+        public bool HasNew;
+        public float Phase;
+    }
 
     public static RectOffset NpcBoxPadding => new RectOffset(30, 30, 22, 26);
     public const float NpcBoxSpacing = 8f;
@@ -78,6 +96,9 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Show Name Under Crosshair")]
     [SerializeField] private bool showTalkPrompt;
 
+    [DisplayAs("Hide NPC In The World While Talking")]
+    [SerializeField] private bool hideNpcWhileTalking = true;
+
     [Foldout("Typing Effect")]
     [DisplayAs("Letters Per Second", Min = 1f)]
     [SerializeField] private float lettersPerSecond = 35f;
@@ -88,9 +109,18 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Pause After Commas", Min = 0f)]
     [SerializeField] private float commaPause = 0.12f;
 
+    [DisplayAs("Mouth Flap Time (seconds)", Min = 0.05f, Max = 0.5f)]
+    [SerializeField] private float flapInterval = 0.2f;
+
     [Foldout("Text Look")]
     [DisplayAs("Font (optional)")]
     [SerializeField] private Font font;
+
+    [DisplayAs("Highlighted Words")]
+    [SerializeField] private Color highlightColor = new Color(1f, 0.45f, 0.35f);
+
+    [DisplayAs("Show Character Portraits")]
+    [SerializeField] private bool showPortraits = true;
 
     [DisplayAs("NPC Name Color")]
     [SerializeField] private Color nameColor = new Color(0.45f, 0.44f, 0.41f);
@@ -151,13 +181,37 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Crosshair Name Text Size", Min = 1f)]
     [SerializeField] private int promptSize = 22;
 
+    [DisplayAs("Portrait Height", Min = 100f)]
+    [SerializeField] private float portraitHeight = 900f;
+
+    [DisplayAs("Portrait Raise (from bottom)")]
+    [SerializeField] private float portraitRaise = 220f;
+
+    [Foldout("New Dialogue Marker")]
+    [DisplayAs("Show ! Over NPCs With Something New")]
+    [SerializeField] private bool showMarkers = true;
+
+    [DisplayAs("Marker Color", ShowIf = nameof(showMarkers))]
+    [SerializeField] private Color markerColor = new Color(1f, 0.82f, 0.2f);
+
+    [DisplayAs("Marker Size", ShowIf = nameof(showMarkers), Min = 0.1f, Max = 3f)]
+    [SerializeField] private float markerSize = 1f;
+
+    [DisplayAs("Height Above Head", ShowIf = nameof(showMarkers))]
+    [SerializeField] private float markerHeight = 0.25f;
+
+    [DisplayAs("Show Within (meters)", ShowIf = nameof(showMarkers), Min = 0f)]
+    [SerializeField] private float markerRange = 20f;
+
     private readonly RaycastHit[] rayHits = new RaycastHit[32];
     private readonly RaycastHit[] sphereHits = new RaycastHit[32];
     private readonly List<Option> options = new List<Option>();
     private readonly List<ChoiceRow> rows = new List<ChoiceRow>();
     private readonly List<Image> npcBoxBorders = new List<Image>();
     private readonly List<Image> choicesBoxBorders = new List<Image>();
-    private readonly StringBuilder lineBuilder = new StringBuilder();
+    private readonly List<Renderer> hiddenRenderers = new List<Renderer>();
+    private readonly List<Marker> markers = new List<Marker>();
+    private readonly TypedLine typedLine = new TypedLine();
 
     private NPCDialogue lookingAt;
     private NPCDialogue npc;
@@ -186,6 +240,15 @@ public class PlayerDialogue : MonoBehaviour
     private Shadow nameShadow;
     private Text lineText;
     private Shadow lineShadow;
+    private Image portrait;
+    private Image timerBar;
+
+    private string highlightTag;
+    private Sprite idleSprite;
+    private Sprite talkingSprite;
+    private bool mouthOpen;
+    private float flapTimer;
+    private float portraitTime = 1f;
 
     public bool IsTalking => npc != null;
 
@@ -199,6 +262,7 @@ public class PlayerDialogue : MonoBehaviour
     public float BoxWidth => boxWidth;
     public int NameSize => nameSize;
     public int LineSize => lineSize;
+    public Color HighlightColor => highlightColor;
 
     public float TalkRange { get => talkRange; set => talkRange = Mathf.Max(0f, value); }
     public float LettersPerSecond { get => lettersPerSecond; set => lettersPerSecond = Mathf.Max(1f, value); }
@@ -217,7 +281,13 @@ public class PlayerDialogue : MonoBehaviour
         }
     }
 
-    private bool IsTyping => node != null && visibleLetters < node.npcText.Length;
+    private bool IsTyping => node != null && visibleLetters < typedLine.Length;
+
+    // Markers are made in Start so every NPC in the scene exists by then
+    private void Start()
+    {
+        foreach (NPCDialogue target in FindObjectsByType<NPCDialogue>()) markers.Add(CreateMarker(target));
+    }
 
     private void Awake()
     {
@@ -245,6 +315,11 @@ public class PlayerDialogue : MonoBehaviour
 
     private void OnDestroy()
     {
+        ShowHiddenNpc();
+        foreach (Marker marker in markers)
+        {
+            if (marker.Object != null) Destroy(marker.Object);
+        }
         if (canvas != null) Destroy(canvas.gameObject);
     }
 
@@ -255,7 +330,7 @@ public class PlayerDialogue : MonoBehaviour
         if (keyboard == null || mouse == null || cameraTransform == null) return;
 
         if (IsTalking) UpdateTalking(keyboard, mouse);
-        else UpdateNotTalking(mouse);
+        else UpdateNotTalking(keyboard, mouse);
 
         if (IsTalking) RefreshConversation();
     }
@@ -266,12 +341,15 @@ public class PlayerDialogue : MonoBehaviour
         if (IsTalking) Close();
     }
 
-    private void UpdateNotTalking(Mouse mouse)
+    // Click to talk, or E. E is the only way while carrying something, since the left button is busy holding it.
+    private void UpdateNotTalking(Keyboard keyboard, Mouse mouse)
     {
-        bool canTalk = Cursor.lockState == CursorLockMode.Locked && (grabber == null || !grabber.IsHolding);
+        bool holding = grabber != null && grabber.IsHolding;
+        bool canTalk = Cursor.lockState == CursorLockMode.Locked;
         SetLookingAt(canTalk ? FindNPC() : null);
 
-        if (lookingAt != null && mouse.leftButton.wasPressedThisFrame && Time.time > closeTime + ReopenDelay) Open(lookingAt);
+        bool pressed = keyboard.eKey.wasPressedThisFrame || (!holding && mouse.leftButton.wasPressedThisFrame);
+        if (lookingAt != null && pressed && Time.time > closeTime + ReopenDelay) Open(lookingAt);
     }
 
     private void UpdateTalking(Keyboard keyboard, Mouse mouse)
@@ -290,6 +368,12 @@ public class PlayerDialogue : MonoBehaviour
             bool skip = confirm || keyboard.spaceKey.wasPressedThisFrame || (click && Time.time > openTime + TypingSkipDelay);
             if (skip) FinishTyping();
             else TypeLetters();
+            return;
+        }
+
+        if (node.timeLimit > 0f && Time.time - choicesShownTime >= node.timeLimit)
+        {
+            TimeOut();
             return;
         }
 
@@ -334,31 +418,20 @@ public class PlayerDialogue : MonoBehaviour
     {
         letterTimer -= Time.deltaTime;
 
-        string text = node.npcText;
         float letterDelay = 1f / Mathf.Max(1f, lettersPerSecond);
 
-        while (letterTimer <= 0f && visibleLetters < text.Length)
+        while (letterTimer <= 0f && visibleLetters < typedLine.Length)
         {
-            letterTimer += letterDelay + PauseAfter(text[visibleLetters]);
+            letterTimer += letterDelay + typedLine.PauseAfter(visibleLetters, sentencePause, commaPause);
             visibleLetters++;
         }
 
         if (!IsTyping) choicesShownTime = Time.time;
     }
 
-    private float PauseAfter(char letter)
-    {
-        switch (letter)
-        {
-            case '.': case '!': case '?': return sentencePause;
-            case ',': case ';': case ':': return commaPause;
-            default: return 0f;
-        }
-    }
-
     private void FinishTyping()
     {
-        visibleLetters = node.npcText.Length;
+        visibleLetters = typedLine.Length;
         choicesShownTime = Time.time;
     }
 
@@ -385,7 +458,7 @@ public class PlayerDialogue : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             RaycastHit hit = sphereHits[i];
-            if (hit.collider.transform.IsChildOf(transform)) continue;
+            if (IsOwnOrHeld(hit)) continue;
 
             NPCDialogue candidate = hit.collider.GetComponentInParent<NPCDialogue>();
             if (candidate == null || candidate == best) continue;
@@ -425,13 +498,20 @@ public class PlayerDialogue : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             RaycastHit hit = rayHits[i];
-            if ((found && hit.distance >= closest.distance) || hit.collider.transform.IsChildOf(transform)) continue;
+            if ((found && hit.distance >= closest.distance) || IsOwnOrHeld(hit)) continue;
 
             closest = hit;
             found = true;
         }
 
         return found;
+    }
+
+    // The player's own colliders and whatever they're carrying would otherwise block the view of the NPC
+    private bool IsOwnOrHeld(RaycastHit hit)
+    {
+        if (hit.collider.transform.IsChildOf(transform)) return true;
+        return grabber != null && grabber.HeldObject != null && hit.rigidbody == grabber.HeldObject;
     }
 
     // Collider.ClosestPoint doesn't work on concave mesh colliders, so use their bounds instead
@@ -450,7 +530,11 @@ public class PlayerDialogue : MonoBehaviour
 
         bool showPrompt = canTalk && showTalkPrompt;
         promptText.gameObject.SetActive(showPrompt);
-        if (showPrompt) promptText.text = target.npcName.ToLower() + "\n[click] talk";
+        if (showPrompt)
+        {
+            bool holding = grabber != null && grabber.IsHolding;
+            promptText.text = target.npcName.ToLower() + (holding ? "\n[E] show" : "\n[click] talk");
+        }
     }
 
     private void Open(NPCDialogue target)
@@ -459,13 +543,21 @@ public class PlayerDialogue : MonoBehaviour
         npc = target;
         openTime = Time.time;
 
+        // Whatever the player is carrying stays in hand and unlocks any "show the item" lines
+        Rigidbody held = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
+        npc.ShownItem = held != null ? held.GetComponent<Grabbable>() : null;
+        if (grabber != null) grabber.HoldThroughLock = true;
+
         if (player != null) player.InputLocked = true;
         FirstPersonController.SetCursorLocked(false);
         lastMousePosition = Mouse.current.position.ReadValue();
 
         SetPatrolPaused(true);
+        npc.MarkTalkedTo();
+        HideNpc();
 
         nameText.text = npc.npcName.ToUpper();
+        portraitTime = 0f;
         dialogueRoot.SetActive(true);
         GoTo(npc.startNode);
     }
@@ -473,7 +565,10 @@ public class PlayerDialogue : MonoBehaviour
     private void Close()
     {
         SetPatrolPaused(false);
+        ShowHiddenNpc();
 
+        npc.ShownItem = null;
+        if (grabber != null) grabber.HoldThroughLock = false;
         npc = null;
         node = null;
         nodeIsEventReply = false;
@@ -494,6 +589,133 @@ public class PlayerDialogue : MonoBehaviour
         if (patrol != null) patrol.Paused = paused;
     }
 
+    // Each NPC only rechecks what it has left to say when its dialogue changes; the rest is just following and facing
+    private void LateUpdate()
+    {
+        if (markers.Count == 0 || cameraTransform == null) return;
+
+        bool hideAll = !showMarkers || IsTalking;
+        Vector3 cameraPosition = cameraTransform.position;
+        Quaternion facing = cameraTransform.rotation;
+        float rangeSqr = markerRange * markerRange;
+        float bob = Time.time * MarkerBobSpeed;
+
+        foreach (Marker marker in markers)
+        {
+            if (marker.Object == null) continue;
+
+            bool show = false;
+            Vector3 top = Vector3.zero;
+
+            if (!hideAll && marker.Npc != null && marker.Npc.isActiveAndEnabled)
+            {
+                if (marker.SeenVersion != marker.Npc.Version)
+                {
+                    marker.SeenVersion = marker.Npc.Version;
+                    marker.HasNew = marker.Npc.HasNewDialogue();
+                }
+
+                if (marker.HasNew)
+                {
+                    top = MarkerAnchor(marker);
+                    show = (top - cameraPosition).sqrMagnitude <= rangeSqr;
+                }
+            }
+
+            if (marker.Object.activeSelf != show) marker.Object.SetActive(show);
+            if (!show) continue;
+
+            Vector3 position = top + Vector3.up * (markerHeight + Mathf.Sin(bob + marker.Phase) * MarkerBobHeight);
+            marker.Object.transform.SetPositionAndRotation(position, facing);
+        }
+    }
+
+    // The top of the NPC's sprite, or its collider if it has no visible sprite
+    private static Vector3 MarkerAnchor(Marker marker)
+    {
+        if (marker.Body != null && marker.Body.enabled) return marker.Npc.HeadPosition(marker.Body, MarkerFallbackHeight);
+
+        Vector3 root = marker.Root.position;
+        float top = marker.Shape != null && marker.Shape.enabled ? marker.Shape.bounds.max.y : root.y + MarkerFallbackHeight;
+        return new Vector3(root.x, top + marker.Npc.headHeightAdjust, root.z);
+    }
+
+    private Marker CreateMarker(NPCDialogue target)
+    {
+        NPCPatrol patrol = target.GetComponentInParent<NPCPatrol>();
+        Transform root = patrol != null ? patrol.transform : target.transform;
+
+        var marker = new Marker
+        {
+            Npc = target,
+            Root = root,
+            Body = root.GetComponentInChildren<SpriteRenderer>(),
+            Shape = root.GetComponentInChildren<Collider>(),
+            Phase = markers.Count * 1.3f
+        };
+        if (marker.Body == null) marker.Body = root.GetComponentInChildren<Renderer>();
+
+        // A small world-space canvas, so the ! uses the same font and shadow as the rest of the UI
+        var canvas = new GameObject(target.npcName + " New Dialogue Marker").AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.WorldSpace;
+        RectTransform rect = canvas.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(100f, 140f);
+        rect.pivot = new Vector2(0.5f, 0f);
+
+        marker.Label = RuntimeUI.CreateText("!", canvas.transform, font, 120, markerColor, TextAnchor.LowerCenter, shadowColor, out marker.Shadow);
+        RuntimeUI.Stretch(marker.Label.rectTransform);
+        marker.Label.text = "!";
+        marker.Label.fontStyle = FontStyle.Bold;
+        marker.Label.horizontalOverflow = HorizontalWrapMode.Overflow;
+        marker.Label.verticalOverflow = VerticalWrapMode.Overflow;
+
+        marker.Object = canvas.gameObject;
+        StyleMarker(marker);
+        marker.Object.SetActive(false);
+        return marker;
+    }
+
+    private void StyleMarker(Marker marker)
+    {
+        marker.Object.transform.localScale = Vector3.one * (markerSize / MarkerPixelsPerMeter);
+        marker.Label.color = markerColor;
+        marker.Shadow.effectColor = shadowColor;
+    }
+
+    // Only the visuals are switched off, so the NPC keeps its collider and spot in the room.
+    // The portrait still reads the hidden sprite, so a sprite swap mid-conversation shows up.
+    private void HideNpc()
+    {
+        if (!hideNpcWhileTalking) return;
+
+        NPCPatrol patrol = npc.GetComponentInParent<NPCPatrol>();
+        Transform root = patrol != null ? patrol.transform : npc.transform;
+
+        foreach (Renderer part in root.GetComponentsInChildren<Renderer>())
+        {
+            if (!part.enabled) continue;
+            part.enabled = false;
+            hiddenRenderers.Add(part);
+        }
+    }
+
+    private void ShowHiddenNpc()
+    {
+        foreach (Renderer part in hiddenRenderers)
+        {
+            if (part != null) part.enabled = true;
+        }
+        hiddenRenderers.Clear();
+    }
+
+    // A quick-time screen ran out: move on to its timeout node, or end the conversation if it has none
+    private void TimeOut()
+    {
+        string next = node.timeoutNode;
+        if (string.IsNullOrWhiteSpace(next)) Close();
+        else GoTo(next);
+    }
+
     // A Go To Node that doesn't match any node keeps the player on the current screen.
     // Only an unknown First Node ends the conversation, since there's nothing to show.
     private void GoTo(string nodeId)
@@ -508,12 +730,13 @@ public class PlayerDialogue : MonoBehaviour
     private void ShowNode(NPCDialogue.Node target, bool isEventReply, bool skipTyping = false)
     {
         node = target;
-        if (node.npcText == null) node.npcText = string.Empty;
         nodeIsEventReply = isEventReply;
+        typedLine.Set(node.npcText);
+        ShowPortrait(node.expression);
 
         // Nothing to type out means the choices can appear straight away
-        bool showAtOnce = skipTyping || node.npcText.Length == 0;
-        visibleLetters = showAtOnce ? node.npcText.Length : 0;
+        bool showAtOnce = skipTyping || typedLine.Length == 0;
+        visibleLetters = showAtOnce ? typedLine.Length : 0;
         renderedLetters = -1;
         letterTimer = FirstLetterDelay;
         if (showAtOnce) choicesShownTime = Time.time;
@@ -564,6 +787,7 @@ public class PlayerDialogue : MonoBehaviour
 
     private void ChooseNodeChoice(NPCDialogue.Choice choice)
     {
+        npc.MarkVisited(choice);
         if (choice.greyAfterChosen) npc.MarkChosen(choice);
         choice.onChosen?.Invoke();
 
@@ -577,6 +801,7 @@ public class PlayerDialogue : MonoBehaviour
 
     private void ChooseEvent(NPCDialogue.EventDialogue entry, int index)
     {
+        npc.MarkVisited(entry);
         if (entry.greyAfterChosen) npc.MarkChosen(entry);
         entry.onChosen?.Invoke();
         if (!IsTalking) return;
@@ -599,6 +824,7 @@ public class PlayerDialogue : MonoBehaviour
         {
             id = EventReplyIdPrefix + index,
             npcText = entry.npcReply,
+            expression = entry.expression,
             choices = new List<NPCDialogue.Choice>(entry.choices)
         };
 
@@ -647,31 +873,79 @@ public class PlayerDialogue : MonoBehaviour
     private void RefreshConversation()
     {
         if (renderedLetters != visibleLetters) RenderLine();
+        AnimatePortrait(Time.deltaTime);
 
         float choicesAlpha = IsTyping ? 0f : 1f;
         if (choicesGroup.alpha != choicesAlpha) choicesGroup.alpha = choicesAlpha;
 
+        bool timed = node != null && node.timeLimit > 0f && !IsTyping;
+        if (timerBar.gameObject.activeSelf != timed) timerBar.gameObject.SetActive(timed);
+        if (timed)
+        {
+            float left = 1f - (Time.time - choicesShownTime) / node.timeLimit;
+            timerBar.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(left), 1f);
+        }
+
         if (rowsDirty) DrawRows();
     }
 
-    // Letters not typed yet are drawn invisible, so line breaks and box size never shift while typing
     private void RenderLine()
     {
         renderedLetters = visibleLetters;
-        string text = node.npcText;
+        lineText.text = typedLine.Render(visibleLetters, highlightTag);
+    }
 
-        if (visibleLetters >= text.Length)
+    // An expression on the node wins, then the NPC's portrait, then the sprite the NPC shows in the world
+    private void ShowPortrait(Sprite expression)
+    {
+        idleSprite = null;
+        talkingSprite = null;
+
+        if (showPortraits)
         {
-            lineText.text = text;
-            return;
+            idleSprite = expression != null ? expression : npc.portrait != null ? npc.portrait : WorldSprite(npc);
+            talkingSprite = expression == null ? npc.talkingPortrait : null;
         }
 
-        lineBuilder.Clear();
-        lineBuilder.Append(text, 0, visibleLetters)
-                   .Append(HiddenTextOpen)
-                   .Append(text, visibleLetters, text.Length - visibleLetters)
-                   .Append(HiddenTextClose);
-        lineText.text = lineBuilder.ToString();
+        portrait.sprite = idleSprite;
+        portrait.gameObject.SetActive(idleSprite != null);
+        mouthOpen = false;
+    }
+
+    private static Sprite WorldSprite(NPCDialogue target)
+    {
+        SpriteRenderer sprite = target.GetComponentInChildren<SpriteRenderer>();
+        if (sprite == null) sprite = target.GetComponentInParent<SpriteRenderer>();
+        return sprite != null ? sprite.sprite : null;
+    }
+
+    // Slides the portrait in when a conversation opens, and flaps its mouth while the line types
+    private void AnimatePortrait(float dt)
+    {
+        if (idleSprite == null) return;
+
+        if (portraitTime < 1f)
+        {
+            portraitTime = Mathf.Min(1f, portraitTime + dt / PortraitSlideTime);
+            float eased = Mathf.SmoothStep(0f, 1f, portraitTime);
+            portrait.color = new Color(1f, 1f, 1f, eased);
+            portrait.rectTransform.anchoredPosition = new Vector2((1f - eased) * PortraitSlideDistance, portraitRaise);
+        }
+
+        if (talkingSprite == null) return;
+
+        bool open = false;
+        if (IsTyping)
+        {
+            flapTimer += dt;
+            if (flapTimer >= flapInterval)
+            {
+                flapTimer = 0f;
+                mouthOpen = !mouthOpen;
+            }
+            open = mouthOpen;
+        }
+        portrait.sprite = open ? talkingSprite : idleSprite;
     }
 
     // Rows are pooled and reused between screens instead of being destroyed and rebuilt
@@ -725,6 +999,16 @@ public class PlayerDialogue : MonoBehaviour
         dimImage = RuntimeUI.CreateImage("Dim", dialogueRect, screenDimColor);
         RuntimeUI.Stretch(dimImage.rectTransform);
 
+        // Stands behind the boxes at the bottom of the screen, like the intro cutscene
+        portrait = RuntimeUI.CreateImage("Portrait", dialogueRect, Color.white);
+        portrait.preserveAspect = true;
+        RectTransform portraitRect = portrait.rectTransform;
+        portraitRect.anchorMin = portraitRect.anchorMax = new Vector2(0.5f, 0f);
+        portraitRect.pivot = new Vector2(0.5f, 0f);
+        portraitRect.sizeDelta = new Vector2(portraitHeight * 1.2f, portraitHeight);
+        portraitRect.anchoredPosition = new Vector2(0f, portraitRaise);
+        portrait.gameObject.SetActive(false);
+
         Transform stack = BuildBoxStack(dialogueRect);
 
         npcBox = RuntimeUI.CreateBox("NPC Box", stack, boxWidth, boxColor, borderColor, NpcBoxPadding, NpcBoxSpacing, npcBoxBorders);
@@ -736,6 +1020,18 @@ public class PlayerDialogue : MonoBehaviour
         choicesGroup = choicesBox.gameObject.AddComponent<CanvasGroup>();
         choicesGroup.blocksRaycasts = false;
 
+        // A thin bar along the top of the choices box that drains on quick-time screens
+        timerBar = RuntimeUI.CreateImage("Timer", choicesBox.transform, highlightColor);
+        timerBar.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+        RectTransform barRect = timerBar.rectTransform;
+        barRect.anchorMin = new Vector2(0f, 1f);
+        barRect.anchorMax = Vector2.one;
+        barRect.pivot = new Vector2(0f, 1f);
+        barRect.sizeDelta = new Vector2(0f, 6f);
+        barRect.anchoredPosition = Vector2.zero;
+        timerBar.gameObject.SetActive(false);
+
+        highlightTag = TypedLine.ColorTag(highlightColor);
         dialogueRoot.SetActive(false);
     }
 
@@ -780,6 +1076,14 @@ public class PlayerDialogue : MonoBehaviour
 
         nameText.color = nameColor;
         lineText.color = lineColor;
+        highlightTag = TypedLine.ColorTag(highlightColor);
+        timerBar.color = highlightColor;
+        foreach (Marker marker in markers)
+        {
+            if (marker.Object != null) StyleMarker(marker);
+        }
+        portrait.rectTransform.sizeDelta = new Vector2(portraitHeight * 1.2f, portraitHeight);
+        if (portraitTime >= 1f) portrait.rectTransform.anchoredPosition = new Vector2(0f, portraitRaise);
         promptText.color = choiceColor;
         nameShadow.effectColor = shadowColor;
         lineShadow.effectColor = shadowColor;

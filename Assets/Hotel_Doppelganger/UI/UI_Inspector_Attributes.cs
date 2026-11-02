@@ -258,6 +258,13 @@ public abstract class FoldoutInspector : Editor
 [CanEditMultipleObjects, CustomEditor(typeof(GameComplete))] public class GameCompleteEditor : FoldoutInspector { }
 [CanEditMultipleObjects, CustomEditor(typeof(PlayerBody))] public class PlayerBodyEditor : FoldoutInspector { }
 [CanEditMultipleObjects, CustomEditor(typeof(IntroCutscene))] public class IntroCutsceneEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(StartupNotice))] public class StartupNoticeEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(DetectiveThoughts))] public class DetectiveThoughtsEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(Clue))] public class ClueEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(ClueSet))] public class ClueSetEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(GameTrigger))] public class GameTriggerEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(OverheardConversation))] public class OverheardConversationEditor : FoldoutInspector { }
+[CanEditMultipleObjects, CustomEditor(typeof(Journal))] public class JournalEditor : FoldoutInspector { }
 
 // Draws a dialogue choice or event entry labelled by its text (or Event Id), with [MoreOptions] fields in a closed section
 [CustomPropertyDrawer(typeof(NPCDialogue.Choice))]

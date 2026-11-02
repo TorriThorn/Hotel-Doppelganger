@@ -142,6 +142,9 @@ public class ObjectGrabber : MonoBehaviour
     private Material[][] originalMaterials;
 
     public bool IsHolding { get; private set; }
+
+    // Set by the dialogue so an item can be shown to an NPC without being dropped when the player freezes
+    public bool HoldThroughLock { get; set; }
     public Rigidbody HeldObject => held;
 
     public float Reach { get => reach; set => reach = Mathf.Max(0f, value); }
@@ -201,7 +204,7 @@ public class ObjectGrabber : MonoBehaviour
 
         if (player != null && player.InputLocked)
         {
-            if (IsHolding) Drop();
+            if (IsHolding && !HoldThroughLock) Drop();
             ClearHighlight();
             return;
         }

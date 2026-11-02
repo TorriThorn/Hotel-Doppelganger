@@ -144,6 +144,12 @@ public sealed class MenuList
     public MenuList(MenuStyle style) => this.style = style;
 
     public int Count => items.Count;
+    public int Selected => selected;
+
+    public void SetSelected(int index)
+    {
+        if (items.Count > 0) Select(Mathf.Clamp(index, 0, items.Count - 1));
+    }
 
     public MenuItem AddButton(Transform parent, Func<string> getText, Action onPress)
     {
