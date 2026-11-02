@@ -21,6 +21,10 @@ public class NPCFacePlayer : MonoBehaviour
     [DisplayAs("Turn Back When Player Leaves")]
     [SerializeField] private bool returnWhenFar = true;
 
+    // A flat sprite looks the same from either side, so it only ever needs to turn the short way
+    [DisplayAs("Flat Sprite (never turn more than 90\u00b0)")]
+    [SerializeField] private bool flatSprite = true;
+
     private NPCPatrol patrol;
     private float startYaw;
     private float currentYaw;
@@ -44,9 +48,17 @@ public class NPCFacePlayer : MonoBehaviour
     private void Update()
     {
         if (player == null || !TryGetTargetYaw(out float targetYaw)) return;
+        if (flatSprite) targetYaw = ShortestFacing(currentYaw, targetYaw);
 
         currentYaw = Mathf.LerpAngle(currentYaw, targetYaw, turnSpeed * Time.deltaTime);
         transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
+    }
+
+    // Facing the player and facing directly away put the sprite in the same plane, so take whichever is closer
+    private static float ShortestFacing(float from, float target)
+    {
+        float flipped = target + 180f;
+        return Mathf.Abs(Mathf.DeltaAngle(from, target)) <= Mathf.Abs(Mathf.DeltaAngle(from, flipped)) ? target : flipped;
     }
 
     private bool TryGetTargetYaw(out float yaw)

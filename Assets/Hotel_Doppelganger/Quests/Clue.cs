@@ -63,7 +63,7 @@ public class Clue : MonoBehaviour
         if (Found) return;
 
         Found = true;
-        if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Say(thought, false);
+        if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Think(thought, false);
         if (addToJournal) Journal.Get().Add(JournalTitle, noteText, thought);
         onFound?.Invoke();
         FoundChanged?.Invoke(this);

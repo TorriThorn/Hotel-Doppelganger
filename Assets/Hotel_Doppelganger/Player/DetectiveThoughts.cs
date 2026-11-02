@@ -120,10 +120,11 @@ public class DetectiveThoughts : MonoBehaviour
     }
 
     // Queues a line. Words between *asterisks* are highlighted, like in dialogue.
-    public void Say(string line) => Say(line, true);
+    public void Say(string line) => Think(line, true);
 
-    // Clues pass false, since they write their own journal entry with the thought included
-    public void Say(string line, bool addToJournal)
+    // Clues pass false, since they write their own journal entry with the thought included.
+    // Named differently from Say so event dropdowns only ever offer the one-box version.
+    public void Think(string line, bool addToJournal)
     {
         if (string.IsNullOrWhiteSpace(line)) return;
         waiting.Enqueue(line.Trim());

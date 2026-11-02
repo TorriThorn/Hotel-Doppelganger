@@ -65,6 +65,7 @@ public class PlayerDialogue : MonoBehaviour
         public Shadow Shadow;
         public int SeenVersion = -1;
         public bool HasNew;
+        public bool WantsItem;
         public float Phase;
     }
 
@@ -202,6 +203,12 @@ public class PlayerDialogue : MonoBehaviour
 
     [DisplayAs("Show Within (meters)", ShowIf = nameof(showMarkers), Min = 0f)]
     [SerializeField] private float markerRange = 20f;
+
+    [DisplayAs("Show-Item Marker", ShowIf = nameof(showMarkers))]
+    [SerializeField] private string itemMarkerText = "?";
+
+    [DisplayAs("Show-Item Marker Color", ShowIf = nameof(showMarkers))]
+    [SerializeField] private Color itemMarkerColor = new Color(0.45f, 0.85f, 1f);
 
     private readonly RaycastHit[] rayHits = new RaycastHit[32];
     private readonly RaycastHit[] sphereHits = new RaycastHit[32];
@@ -595,6 +602,7 @@ public class PlayerDialogue : MonoBehaviour
         if (markers.Count == 0 || cameraTransform == null) return;
 
         bool hideAll = !showMarkers || IsTalking;
+        Grabbable held = HeldGrabbable();
         Vector3 cameraPosition = cameraTransform.position;
         Quaternion facing = cameraTransform.rotation;
         float rangeSqr = markerRange * markerRange;
@@ -615,7 +623,15 @@ public class PlayerDialogue : MonoBehaviour
                     marker.HasNew = marker.Npc.HasNewDialogue();
                 }
 
-                if (marker.HasNew)
+                // "Show me that" beats "something new", since it's the more useful thing to know right now
+                bool wantsItem = marker.Npc.WantsItem(held);
+                if (wantsItem != marker.WantsItem)
+                {
+                    marker.WantsItem = wantsItem;
+                    StyleMarker(marker);
+                }
+
+                if (marker.HasNew || wantsItem)
                 {
                     top = MarkerAnchor(marker);
                     show = (top - cameraPosition).sqrMagnitude <= rangeSqr;
@@ -678,8 +694,24 @@ public class PlayerDialogue : MonoBehaviour
     private void StyleMarker(Marker marker)
     {
         marker.Object.transform.localScale = Vector3.one * (markerSize / MarkerPixelsPerMeter);
-        marker.Label.color = markerColor;
+        marker.Label.text = marker.WantsItem ? itemMarkerText : "!";
+        marker.Label.color = marker.WantsItem ? itemMarkerColor : markerColor;
         marker.Shadow.effectColor = shadowColor;
+    }
+
+    // The Grabbable in the player's hands, looked up only when what they're holding changes
+    private Rigidbody heldBody;
+    private Grabbable heldGrabbable;
+
+    private Grabbable HeldGrabbable()
+    {
+        Rigidbody body = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
+        if (body != heldBody)
+        {
+            heldBody = body;
+            heldGrabbable = body != null ? body.GetComponent<Grabbable>() : null;
+        }
+        return heldGrabbable;
     }
 
     // Only the visuals are switched off, so the NPC keeps its collider and spot in the room.
@@ -706,6 +738,12 @@ public class PlayerDialogue : MonoBehaviour
             if (part != null) part.enabled = true;
         }
         hiddenRenderers.Clear();
+    }
+
+    // Queued now, shown once the conversation closes, since thoughts wait while the dialogue box is up
+    private static void Think(string line)
+    {
+        if (!string.IsNullOrWhiteSpace(line)) DetectiveThoughts.Get().Say(line);
     }
 
     // A quick-time screen ran out: move on to its timeout node, or end the conversation if it has none
@@ -788,6 +826,7 @@ public class PlayerDialogue : MonoBehaviour
     private void ChooseNodeChoice(NPCDialogue.Choice choice)
     {
         npc.MarkVisited(choice);
+        Think(choice.salemThinks);
         if (choice.greyAfterChosen) npc.MarkChosen(choice);
         choice.onChosen?.Invoke();
 
@@ -802,6 +841,7 @@ public class PlayerDialogue : MonoBehaviour
     private void ChooseEvent(NPCDialogue.EventDialogue entry, int index)
     {
         npc.MarkVisited(entry);
+        Think(entry.salemThinks);
         if (entry.greyAfterChosen) npc.MarkChosen(entry);
         entry.onChosen?.Invoke();
         if (!IsTalking) return;

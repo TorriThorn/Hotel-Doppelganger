@@ -27,9 +27,19 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Grey Out Once Picked")]
         public bool greyAfterChosen = true;
 
+        // Counts play time only: menus, the intro and conversations don't use it up
+        [MoreOptions]
+        [DisplayAs("Appears After (seconds, 0 = always)", Min = 0f)]
+        public float appearAfter;
+
         // Older setups gated choices inside nodes with this; they get moved to Event Dialogue on load
         [HideInInspector]
         public string unlockId = "";
+
+        // Shown once the conversation closes, and written in the journal
+        [MoreOptions]
+        [DisplayAs("Salem Thinks Afterwards (optional)", Lines = 2)]
+        public string salemThinks = "";
 
         [MoreOptions]
         public UnityEvent onChosen;
@@ -101,6 +111,10 @@ public class NPCDialogue : MonoBehaviour
         public bool endConversation;
 
         [MoreOptions]
+        [DisplayAs("Salem Thinks Afterwards (optional)", Lines = 2)]
+        public string salemThinks = "";
+
+        [MoreOptions]
         public UnityEvent onChosen;
     }
 
@@ -148,11 +162,62 @@ public class NPCDialogue : MonoBehaviour
     // Top of each sprite's drawn pixels, in the sprite's own units, worked out once per sprite
     private static readonly Dictionary<Sprite, float> spriteTops = new Dictionary<Sprite, float>();
     private bool talkedTo;
+    private readonly List<float> appearTimes = new List<float>();
+    private PlayerDialogue playerDialogue;
+    private float playTime;
+    private int nextAppear;
 
     // Goes up whenever something changes what the NPC has left to say, so markers only recheck when needed
     public int Version { get; private set; }
 
-    private void Awake() => MoveEventChoicesOutOfNodes();
+    private void Awake()
+    {
+        MoveEventChoicesOutOfNodes();
+        CollectAppearTimes();
+    }
+
+    private void Start() => playerDialogue = FindAnyObjectByType<PlayerDialogue>();
+
+    // Only runs while a timed choice is still waiting to appear
+    private void Update()
+    {
+        if (nextAppear >= appearTimes.Count || IntroCutscene.IsPlaying) return;
+        if (playerDialogue != null && playerDialogue.IsTalking) return;
+
+        playTime += Time.deltaTime;
+
+        bool appeared = false;
+        while (nextAppear < appearTimes.Count && playTime >= appearTimes[nextAppear])
+        {
+            nextAppear++;
+            appeared = true;
+        }
+        if (appeared) Version++;
+    }
+
+    // Every timed choice's time in order, so Update only ever checks the next one due
+    private void CollectAppearTimes()
+    {
+        appearTimes.Clear();
+        foreach (Node node in nodes)
+        {
+            if (node?.choices == null) continue;
+            foreach (Choice choice in node.choices)
+            {
+                if (choice != null && choice.appearAfter > 0f) appearTimes.Add(choice.appearAfter);
+            }
+        }
+        foreach (EventDialogue entry in eventDialogue)
+        {
+            if (entry?.choices == null) continue;
+            foreach (Choice choice in entry.choices)
+            {
+                if (choice != null && choice.appearAfter > 0f) appearTimes.Add(choice.appearAfter);
+            }
+        }
+        appearTimes.Sort();
+        nextAppear = 0;
+    }
 
 #if UNITY_EDITOR
     private void OnValidate()
@@ -173,7 +238,9 @@ public class NPCDialogue : MonoBehaviour
     }
 
     public bool IsAvailable(Choice choice) =>
-        choice != null && (string.IsNullOrWhiteSpace(choice.unlockId) || unlockedIds.Contains(choice.unlockId.Trim()));
+        choice != null
+        && (string.IsNullOrWhiteSpace(choice.unlockId) || unlockedIds.Contains(choice.unlockId.Trim()))
+        && playTime >= choice.appearAfter;
 
     // The object the player brought into this conversation, if any
     public Grabbable ShownItem { get; set; }
@@ -210,16 +277,28 @@ public class NPCDialogue : MonoBehaviour
     public void MarkVisited(Choice choice) { if (visited.Add(choice)) Version++; }
     public void MarkVisited(EventDialogue entry) { if (visited.Add(entry)) Version++; }
 
-    // True while there's something the player hasn't clicked through yet: a first conversation, an unlocked
-    // event, or a choice on any screen they can reach. Choices that only end the conversation don't count.
-    public bool HasNewDialogue()
+    // Whether this NPC has an unheard "show the item" line for this object, so a marker can say "show me that"
+    public bool WantsItem(Grabbable item)
     {
-        if (!talkedTo) return nodes.Count > 0;
+        if (item == null) return false;
 
         foreach (EventDialogue entry in eventDialogue)
         {
-            if (entry.requiredItem == null && IsAvailable(entry) && !string.IsNullOrWhiteSpace(entry.text) && !visited.Contains(entry)) return true;
+            if (entry == null || entry.requiredItem != item || string.IsNullOrWhiteSpace(entry.text) || visited.Contains(entry)) continue;
+
+            bool needsId = !string.IsNullOrWhiteSpace(entry.unlockId);
+            if (!needsId || unlockedIds.Contains(entry.unlockId.Trim())) return true;
         }
+
+        return false;
+    }
+
+    // True while there's something the player hasn't heard yet: a first conversation, an unlocked event line,
+    // or a choice that greys out once picked on any screen they can reach. Choices that never grey out
+    // ("I had other questions") only move between screens, so they're followed but never counted.
+    public bool HasNewDialogue()
+    {
+        if (!talkedTo) return nodes.Count > 0;
 
         scanned.Clear();
         toScan.Clear();
@@ -227,8 +306,10 @@ public class NPCDialogue : MonoBehaviour
 
         foreach (EventDialogue entry in eventDialogue)
         {
-            if (!visited.Contains(entry) || !IsAvailable(entry)) continue;
+            if (entry == null || entry.requiredItem != null || !IsAvailable(entry) || string.IsNullOrWhiteSpace(entry.text)) continue;
+            if (IsUnheard(entry.greyAfterChosen, visited.Contains(entry))) return true;
 
+            // Heard (or never greys out): whatever it leads to may still hold something new
             Node target = GetNode(entry.nextNode);
             if (target != null) QueueScan(target);
             else if (HasNewChoice(entry.choices)) return true;
@@ -277,12 +358,18 @@ public class NPCDialogue : MonoBehaviour
         {
             if (!IsAvailable(choice) || string.IsNullOrWhiteSpace(choice.text)) continue;
 
-            if (visited.Contains(choice)) QueueScan(GetNode(choice.nextNode));
-            else if (!choice.endConversation || choice.onChosen.GetPersistentEventCount() > 0) return true;
+            // A choice that only closes the conversation has nothing to hear, unless it sets something off
+            bool worthHearing = !choice.endConversation || choice.onChosen.GetPersistentEventCount() > 0;
+            if (worthHearing && IsUnheard(choice.greyAfterChosen, visited.Contains(choice))) return true;
+
+            QueueScan(GetNode(choice.nextNode));
         }
 
         return false;
     }
+
+    // Only lines that grey out once picked can be "done", which matches what the player sees on screen
+    private static bool IsUnheard(bool greysOut, bool picked) => greysOut && !picked;
 
     private void QueueScan(Node node)
     {

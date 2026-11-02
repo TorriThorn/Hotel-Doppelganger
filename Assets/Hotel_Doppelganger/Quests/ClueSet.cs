@@ -61,7 +61,7 @@ public class ClueSet : MonoBehaviour
         IsComplete = true;
         if (!string.IsNullOrWhiteSpace(thought))
         {
-            DetectiveThoughts.Get().Say(thought, false);
+            DetectiveThoughts.Get().Think(thought, false);
             Journal.Get().Add(string.IsNullOrWhiteSpace(journalTitle) ? gameObject.name : journalTitle.Trim(), "", thought);
         }
         onComplete?.Invoke();
