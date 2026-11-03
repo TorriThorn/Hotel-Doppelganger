@@ -36456,7 +36456,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5c2a287018394a4a9fe740d0fd46039, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenu
-  gameTitle: Hotel Doppelganger
+  gameTitle: "Hotel Doppelg\xE4nger"
   startText: Start
   tutorialButtonText: Controls
   sceneToLoad: 
@@ -36486,7 +36486,7 @@ MonoBehaviour:
 
     Esc  -  Free the mouse
 
-    
+
 
     !  above someone  -  They have something new to say
 
