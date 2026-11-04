@@ -8593,17 +8593,17 @@ MonoBehaviour:
     background: {fileID: 0}
     profile: 
     effect: 0
-  - text: '*Helena*. James''s girlfriend. She hasn''t stopped crying since we got here.'
-    speaker: Police Chief
-    expression: {fileID: 0}
-    background: {fileID: 0}
-    profile: Helena
-    effect: 0
   - text: '*James*. Tech billionaire, in town for a business meeting. Cold as ice, and not happy we''re keeping him here.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: James
+    effect: 0
+  - text: '*Helena*. James''s girlfriend. She hasn''t stopped crying since we got here.'
+    speaker: Police Chief
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: Helena
     effect: 0
   - text: '*Carmela*. A certified witch who brews healing potions. Says she was called here to deliver a sobering tonic.'
     speaker: Police Chief
