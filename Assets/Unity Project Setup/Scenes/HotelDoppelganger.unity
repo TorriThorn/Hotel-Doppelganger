@@ -2528,7 +2528,7 @@ MonoBehaviour:
     showInNode: 
     text: What do you make of this?
     requiredItem: {fileID: 1012264499}
-    npcReply: Give that here! No, no, I only want a look. Fishman powder, in a sardine tin. Of course it is.
+    npcReply: Give that here! No, no, I only want a look. Peixe dust, in a sardine tin. Of course it is.
     choices:
     - text: Who'd carry something like this?
       nextNode: keepBusy
@@ -33315,7 +33315,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1dbba2a0be8c1334fa17d76b85791336, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Clue
-  thought: Fishman powder, in a *sardine tin*
+  thought: Peixe Dust, in a *sardine tin*
   noteTitle: 
   noteText: 
   addToJournal: 1
@@ -38234,7 +38234,9 @@ MonoBehaviour:
     timeLimit: 0
     timeoutNode: 
   - id: genoPush
-    npcText: Couldn't tell you. I'm just here for the caviar.
+    npcText: 'Couldn''t tell you. I''m just here for the caviar.
+
+'
     expression: {fileID: 0}
     choices:
     - text: Right
