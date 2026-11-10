@@ -181,7 +181,7 @@ public class NPCDialogue : MonoBehaviour
     // Goes up whenever something changes what the NPC has left to say, so markers only recheck when needed
     public int Version { get; private set; }
 
-    // The object the player brought into this conversation, if any
+    // The item the player last presented in this conversation, if any
     public Grabbable ShownItem { get; set; }
 
     private void Awake()
@@ -232,7 +232,7 @@ public class NPCDialogue : MonoBehaviour
         && (string.IsNullOrWhiteSpace(choice.unlockId) || unlockedIds.Contains(choice.unlockId.Trim()))
         && playTime >= choice.appearAfter;
 
-    // Event dialogue shows once its event has happened. A held-item line only needs the item, unless it also has an Event Id
+    // Event dialogue shows once its event has happened. A present-the-item line only needs the item, unless it also has an Event Id
     public bool IsAvailable(EventDialogue entry)
     {
         if (entry == null) return false;

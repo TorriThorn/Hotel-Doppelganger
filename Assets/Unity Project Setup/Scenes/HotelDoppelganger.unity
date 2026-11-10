@@ -3542,7 +3542,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6dc59f9b8d9e7fa4a93701e4cde1aeed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Journal
-  openKey: 1
+  openKey: 3
   pauseGame: 1
   itemsTitle: Items
   showHoldControls: 1
@@ -38546,11 +38546,11 @@ MonoBehaviour:
     active: 1
   mode: 1
   startAtFirstPoint: 1
-  defaultWaitTime: 0.5
+  defaultWaitTime: 1
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 3
+  walkSpeed: 2
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1

@@ -63,14 +63,13 @@ public class MainMenu : MonoBehaviour
     [DisplayAs("Page Title")]
     [SerializeField] private string tutorialTitle = "How To Play";
 
-    [DisplayAs("Page Text", Lines = 13)]
+    [DisplayAs("Page Text", Lines = 12)]
     [SerializeField]
     private string tutorialText =
         "WASD  -  Walk\n" +
         "Shift  -  Sprint\n" +
         "Mouse  -  Look around\n" +
         "E or left click  -  Talk to someone\n" +
-        "E while carrying something  -  Show it to them\n" +
         "Left click  -  Pick up or put down things\n" +
         "Right click while carrying  -  Rotate what you're holding\n" +
         "Scroll while carrying  -  Move it closer or further away\n" +

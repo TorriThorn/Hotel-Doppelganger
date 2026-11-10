@@ -90,9 +90,6 @@ public class PlayerDialogue : MonoBehaviour
     private static RectOffset RowPadding => new RectOffset(0, 12, 6, 6);
     private static RectOffset BoxPadding => new RectOffset(32, 32, 24, 26);
 
-    // Where a shown item waits during a conversation, relative to the view: low, to the right and out of the zoomed shot
-    private static readonly Vector3 TuckedItemOffset = new Vector3(0.35f, -0.45f, 0.75f);
-
     [Foldout("References (filled in automatically)")]
     [DisplayAs("Camera (optional)")]
     [SerializeField] private Transform cameraTransform;
@@ -312,7 +309,6 @@ public class PlayerDialogue : MonoBehaviour
     private Text promptText;
     private Shadow promptShadow;
     private Image promptBox;
-    private bool promptShowsHolding;
     private Text lineText;
     private Shadow lineShadow;
     private Image timerBar;
@@ -343,8 +339,6 @@ public class PlayerDialogue : MonoBehaviour
     private float zoomAmount;
     private bool returning;
 
-    private Rigidbody heldBody;
-    private Grabbable heldGrabbable;
     private PlayerBody playerBody;
     private int presentedFrame = -1;
 
@@ -458,7 +452,6 @@ public class PlayerDialogue : MonoBehaviour
         if (markers.Count == 0) return;
 
         bool hideAll = !showMarkers || IsTalking;
-        Grabbable held = HeldGrabbable();
         Vector3 cameraPosition = cameraTransform.position;
         Quaternion facing = cameraTransform.rotation;
         float rangeSqr = markerRange * markerRange;
@@ -480,7 +473,7 @@ public class PlayerDialogue : MonoBehaviour
                 }
 
                 // "Show me that" beats "something new", since it's the more useful thing to know right now
-                bool wantsItem = marker.Npc.WantsItem(held) || WantsCarriedItem(marker.Npc);
+                bool wantsItem = WantsCarriedItem(marker.Npc);
                 if (wantsItem != marker.WantsItem)
                 {
                     marker.WantsItem = wantsItem;
@@ -514,7 +507,6 @@ public class PlayerDialogue : MonoBehaviour
         bool holding = grabber != null && grabber.IsHolding;
         bool canTalk = Cursor.lockState == CursorLockMode.Locked;
         SetLookingAt(canTalk ? FindNPC() : null);
-        if (lookingAt != null && holding != promptShowsHolding) UpdatePrompt();
 
         bool pressed = keyboard.eKey.wasPressedThisFrame || (!holding && mouse.leftButton.wasPressedThisFrame);
         if (lookingAt != null && pressed && Time.time > closeTime + ReopenDelay) Open(lookingAt);
@@ -700,16 +692,12 @@ public class PlayerDialogue : MonoBehaviour
         UpdatePrompt();
     }
 
-    // "[E]  Talk to Murray" under the crosshair, or "[E]  Show to Murray" while carrying something
+    // "Talk to Murray" under the crosshair
     private void UpdatePrompt()
     {
         bool show = lookingAt != null && showKeyPrompt;
         promptBox.gameObject.SetActive(show);
-        if (!show) return;
-
-        promptShowsHolding = grabber != null && grabber.IsHolding;
-        string action = promptShowsHolding ? "Show to " : "Talk to ";
-        promptText.text = highlightTag + "[E]</color>   " + action + lookingAt.npcName;
+        if (show) promptText.text = "Talk to " + lookingAt.npcName;
     }
 
     private void Open(NPCDialogue target)
@@ -718,17 +706,12 @@ public class PlayerDialogue : MonoBehaviour
         npc = target;
         openTime = Time.time;
 
-        // Whatever the player is carrying stays in hand and unlocks any "show the item" lines
-        Rigidbody held = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
-        npc.ShownItem = held != null ? held.GetComponent<Grabbable>() : null;
-        if (grabber != null)
-        {
-            grabber.HoldThroughLock = true;
-            grabber.SetHoldPose(cameraTransform.TransformPoint(TuckedItemOffset), cameraTransform.rotation);
-            grabber.SetHeldHidden(true);
-        }
+        // Items are shown by presenting them, so anything in hand is let go: an inventory item is put away,
+        // anything else drops
+        npc.ShownItem = null;
+        if (grabber != null) grabber.LetGo();
 
-        // The camera leaves the player's head, so their own body and carried item would otherwise be in the shot
+        // The camera leaves the player's head, so their own body would otherwise be in the shot
         if (playerBody != null) playerBody.HiddenFromView = true;
 
         if (player != null) player.InputLocked = true;
@@ -770,12 +753,6 @@ public class PlayerDialogue : MonoBehaviour
     private void ReleasePlayer()
     {
         returning = false;
-        if (grabber != null)
-        {
-            grabber.HoldThroughLock = false;
-            grabber.ClearHoldPose();
-            grabber.SetHeldHidden(false);
-        }
         if (playerBody != null) playerBody.HiddenFromView = false;
 
         if (player != null) player.InputLocked = false;
@@ -869,18 +846,6 @@ public class PlayerDialogue : MonoBehaviour
             if (target.WantsItem(items[i])) return true;
         }
         return false;
-    }
-
-    // The Grabbable in the player's hands, looked up only when what they're holding changes
-    private Grabbable HeldGrabbable()
-    {
-        Rigidbody body = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
-        if (body != heldBody)
-        {
-            heldBody = body;
-            heldGrabbable = body != null ? body.GetComponent<Grabbable>() : null;
-        }
-        return heldGrabbable;
     }
 
     // Remembers the player's own view so the camera can return to it exactly

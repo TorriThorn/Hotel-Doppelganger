@@ -431,10 +431,10 @@ public class Journal : MonoBehaviour
     }
 
     // The buttons under an item's page: Inspect for anything with a model, Combine when something in the
-    // inventory fits with it, then Present while presenting or Take Out for something put away
+    // inventory fits with it, then Take Out for something put away. While presenting, only Present shows
     private void UpdateActionButtons(Mouse mouse)
     {
-        bool showInspect = tab == Tab.Items && selectedCanInspect;
+        bool showInspect = tab == Tab.Items && !presenting && selectedCanInspect;
         bool showCombine = tab == Tab.Items && !presenting && partners.Count > 0;
         bool showAction = ActionLabel(SelectedItem) != null;
 

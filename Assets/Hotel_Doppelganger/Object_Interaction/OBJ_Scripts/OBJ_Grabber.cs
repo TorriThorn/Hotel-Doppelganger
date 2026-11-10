@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.Rendering;
 
 // SOMA-style physical carrying: click to pick up and click again to drop (or hold the button, if set),
 // right mouse to rotate, scroll to push or pull.
@@ -151,20 +150,11 @@ public class ObjectGrabber : MonoBehaviour
     private Renderer[] highlightedRenderers;
     private Material[][] originalMaterials;
 
-    private bool hasHoldPose;
-    private Renderer[] hiddenParts;
-    private ShadowCastingMode[] hiddenPartModes;
-    private Vector3 holdPosePosition;
-    private Quaternion holdPoseRotation;
-
     public bool IsHolding { get; private set; }
-
-    // Set by the dialogue so an item can be shown to an NPC without being dropped when the player freezes
-    public bool HoldThroughLock { get; set; }
+    public Rigidbody HeldObject => held;
 
     // Set by the journal: called when the player lets go, and returns true if it put the object away instead
     public Func<Grabbable, bool> PutAwayOnRelease { get; set; }
-    public Rigidbody HeldObject => held;
 
     public float Reach { get => reach; set => reach = Mathf.Max(0f, value); }
     public float AimForgiveness { get => grabRadius; set => grabRadius = Mathf.Max(0f, value); }
@@ -176,8 +166,6 @@ public class ObjectGrabber : MonoBehaviour
     public float FollowStrength { get => followStrength; set => followStrength = Mathf.Max(0f, value); }
     public bool ShowGlow { get => highlightTarget; set => highlightTarget = value; }
     public bool ToggleHold { get => toggleHold; set => toggleHold = value; }
-
-    private Quaternion ViewRotation => hasHoldPose ? holdPoseRotation : cameraTransform.rotation;
 
     private void Awake()
     {
@@ -226,7 +214,8 @@ public class ObjectGrabber : MonoBehaviour
 
         if (player != null && player.InputLocked)
         {
-            if (IsHolding && !HoldThroughLock) Drop();
+            // A menu or conversation taking over counts as letting go, so an inventory item is put away
+            LetGo();
             ClearHighlight();
             return;
         }
@@ -263,15 +252,12 @@ public class ObjectGrabber : MonoBehaviour
         RotateTowardHoldRotation();
     }
 
-    // Holds the object at a fixed spot instead of in front of the camera, so the dialogue camera can move freely
-    public void SetHoldPose(Vector3 point, Quaternion rotation)
+    // Lets go as if the player had: an inventory item is put away, anything else drops
+    public void LetGo()
     {
-        hasHoldPose = true;
-        holdPosePosition = point;
-        holdPoseRotation = rotation;
+        if (held == null) return;
+        if (heldGrabbable == null || PutAwayOnRelease == null || !PutAwayOnRelease(heldGrabbable)) Drop();
     }
-
-    public void ClearHoldPose() => hasHoldPose = false;
 
     // Takes the carried object out of the world for the inventory. It doesn't count as a drop, so placement zones
     // and Return When Dropped leave it alone
@@ -307,32 +293,6 @@ public class ObjectGrabber : MonoBehaviour
         body.angularVelocity = Vector3.zero;
     }
 
-    // Hides what's being carried from view while keeping its shadow, e.g. while the dialogue camera is away
-    public void SetHeldHidden(bool hidden)
-    {
-        if (hidden)
-        {
-            if (held == null || hiddenParts != null) return;
-
-            hiddenParts = held.GetComponentsInChildren<Renderer>();
-            hiddenPartModes = new ShadowCastingMode[hiddenParts.Length];
-            for (int i = 0; i < hiddenParts.Length; i++)
-            {
-                hiddenPartModes[i] = hiddenParts[i].shadowCastingMode;
-                hiddenParts[i].shadowCastingMode = ShadowCastingMode.ShadowsOnly;
-            }
-            return;
-        }
-
-        if (hiddenParts == null) return;
-
-        for (int i = 0; i < hiddenParts.Length; i++)
-        {
-            if (hiddenParts[i] != null) hiddenParts[i].shadowCastingMode = hiddenPartModes[i];
-        }
-        hiddenParts = null;
-    }
-
     private void UpdateSearching(Mouse mouse)
     {
         Rigidbody target = Cursor.lockState == CursorLockMode.Locked ? FindGrabbable() : null;
@@ -354,7 +314,7 @@ public class ObjectGrabber : MonoBehaviour
 
         if (letGo)
         {
-            if (heldGrabbable == null || PutAwayOnRelease == null || !PutAwayOnRelease(heldGrabbable)) Drop();
+            LetGo();
             return;
         }
 
@@ -373,7 +333,7 @@ public class ObjectGrabber : MonoBehaviour
 
     private Vector3 HoldPoint()
     {
-        Vector3 point = hasHoldPose ? holdPosePosition : cameraTransform.position + cameraTransform.forward * holdDistance;
+        Vector3 point = cameraTransform.position + cameraTransform.forward * holdDistance;
         if (weight <= 0f) return point;
 
         float t = Time.time * ShakeFrequency;
@@ -381,7 +341,7 @@ public class ObjectGrabber : MonoBehaviour
 
         return point
                + Vector3.down * (heavySag * weight)
-               + ViewRotation * shake * (heavyShake * weight * 2f);
+               + cameraTransform.rotation * shake * (heavyShake * weight * 2f);
     }
 
     // Heavier objects get longer to catch up before they're dropped
@@ -399,7 +359,7 @@ public class ObjectGrabber : MonoBehaviour
 
     private void RotateTowardHoldRotation()
     {
-        Quaternion difference = ViewRotation * holdRotation * Quaternion.Inverse(held.rotation);
+        Quaternion difference = cameraTransform.rotation * holdRotation * Quaternion.Inverse(held.rotation);
         difference.ToAngleAxis(out float angle, out Vector3 axis);
         if (angle > 180f) angle -= 360f;
 
@@ -569,7 +529,6 @@ public class ObjectGrabber : MonoBehaviour
 
     private void Drop(bool putAway = false)
     {
-        SetHeldHidden(false);
         if (held != null)
         {
             held.useGravity = heldUsedGravity;
