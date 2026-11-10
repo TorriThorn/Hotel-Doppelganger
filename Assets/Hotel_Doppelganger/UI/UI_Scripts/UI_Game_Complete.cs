@@ -140,11 +140,10 @@ public class GameComplete : MonoBehaviour
 
         HoldGameplay();
 
-        Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
-        if (!buttonsReady || keyboard == null || mouse == null) return;
+        if (!buttonsReady || mouse == null) return;
 
-        buttons.HandleInput(keyboard, mouse);
+        buttons.HandleInput(mouse);
         buttons.Refresh();
     }
 

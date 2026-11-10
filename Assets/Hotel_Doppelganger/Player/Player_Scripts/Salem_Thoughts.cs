@@ -12,6 +12,7 @@ public class DetectiveThoughts : MonoBehaviour
 {
     // Under the dialogue box, so conversations cover it
     private const int SortingOrder = 90;
+
     private const float FadeTime = 0.25f;
 
     [Header("Thoughts")]
@@ -121,15 +122,9 @@ public class DetectiveThoughts : MonoBehaviour
     }
 
     // Queues a line. Words between *asterisks* are highlighted, like in dialogue
-    public void Say(string line) => Think(line, true);
-
-    // Clues pass false, since they write their own journal entry with the thought included.
-    // Named differently from Say so event dropdowns only ever offer the one-box version
-    public void Think(string line, bool addToJournal)
+    public void Say(string line)
     {
-        if (string.IsNullOrWhiteSpace(line)) return;
-        waiting.Enqueue(line.Trim());
-        if (addToJournal) Journal.Get().AddThought(line.Trim());
+        if (!string.IsNullOrWhiteSpace(line)) waiting.Enqueue(line.Trim());
     }
 
     public void ClearThoughts()

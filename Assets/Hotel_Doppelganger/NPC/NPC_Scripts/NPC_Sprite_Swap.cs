@@ -15,6 +15,10 @@ public class NPCSpriteSwap : MonoBehaviour
     [DisplayAs("Turn Off Animator On Swap")]
     [SerializeField] private bool disableAnimatorOnSwap = true;
 
+    // For reveals: mid-conversation, the camera pulls back to show the whole new sprite
+    [DisplayAs("Zoom Out To Show The Swap")]
+    [SerializeField] private bool zoomOutOnSwap = true;
+
     [Foldout("Pop Effect")]
     [DisplayAs("Pop When Changing")]
     [SerializeField] private bool popOnSwap = true;
@@ -29,6 +33,9 @@ public class NPCSpriteSwap : MonoBehaviour
     private Sprite originalSprite;
     private Vector3 baseScale;
     private Coroutine popRoutine;
+
+    public bool IsSwapped { get; private set; }
+    public bool ZoomOutOnSwap => zoomOutOnSwap;
 
     private void Awake()
     {
@@ -48,6 +55,7 @@ public class NPCSpriteSwap : MonoBehaviour
 
         if (disableAnimatorOnSwap && animator != null) animator.enabled = false;
         spriteRenderer.sprite = sprite;
+        IsSwapped = true;
         Pop();
     }
 
@@ -56,6 +64,7 @@ public class NPCSpriteSwap : MonoBehaviour
         if (spriteRenderer == null) return;
 
         spriteRenderer.sprite = originalSprite;
+        IsSwapped = false;
         if (disableAnimatorOnSwap && animator != null) animator.enabled = true;
         Pop();
     }

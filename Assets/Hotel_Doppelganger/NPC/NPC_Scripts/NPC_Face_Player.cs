@@ -1,11 +1,14 @@
 using UnityEngine;
 
-// Turns a sprite NPC to face the player once they're close enough.
-// While the NPC is walking it always faces the player, so the sprite never turns edge-on
+// Turns a sprite NPC to face the player's camera once they're close enough.
+// While the NPC is walking or in a conversation it always faces the camera, so the sprite never turns edge-on
 [AddComponentMenu("Game/NPC/NPC Face Player")]
 public class NPCFacePlayer : MonoBehaviour
 {
     private const float MinFacingDistanceSqr = 0.001f;
+
+    // Fast enough to be facing the camera before the conversation zoom lands
+    private const float ConversationTurnSpeed = 10f;
 
     [Foldout("References (filled in automatically)")]
     [DisplayAs("Player (optional)")]
@@ -26,11 +29,15 @@ public class NPCFacePlayer : MonoBehaviour
     [SerializeField] private bool flatSprite = true;
 
     private NPCPatrol patrol;
+    private Transform viewer;
     private float startYaw;
     private float currentYaw;
 
     public float NoticeRange { get => noticeRange; set => noticeRange = Mathf.Max(0f, value); }
     public float TurnSpeed { get => turnSpeed; set => turnSpeed = Mathf.Max(0f, value); }
+
+    // Set by the dialogue while this NPC is being talked to
+    public bool InConversation { get; set; }
 
     private void Start()
     {
@@ -43,14 +50,19 @@ public class NPCFacePlayer : MonoBehaviour
             var firstPerson = FindAnyObjectByType<FirstPersonController>();
             if (firstPerson != null) player = firstPerson.transform;
         }
+
+        FirstPersonController controller = player != null ? player.GetComponent<FirstPersonController>() : null;
+        viewer = controller != null && controller.CameraTransform != null ? controller.CameraTransform : player;
+        if (viewer == null && Camera.main != null) viewer = Camera.main.transform;
     }
 
     private void Update()
     {
-        if (player == null || !TryGetTargetYaw(out float targetYaw)) return;
+        if (viewer == null || !TryGetTargetYaw(out float targetYaw)) return;
         if (flatSprite) targetYaw = ShortestFacing(currentYaw, targetYaw);
 
-        currentYaw = Mathf.LerpAngle(currentYaw, targetYaw, turnSpeed * Time.deltaTime);
+        float speed = InConversation ? Mathf.Max(turnSpeed, ConversationTurnSpeed) : turnSpeed;
+        currentYaw = Mathf.LerpAngle(currentYaw, targetYaw, speed * Time.deltaTime);
         transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
     }
 
@@ -63,15 +75,15 @@ public class NPCFacePlayer : MonoBehaviour
 
     private bool TryGetTargetYaw(out float yaw)
     {
-        Vector3 toPlayer = player.position - transform.position;
-        toPlayer.y = 0f;
-        float distanceSqr = toPlayer.sqrMagnitude;
+        Vector3 toViewer = viewer.position - transform.position;
+        toViewer.y = 0f;
+        float distanceSqr = toViewer.sqrMagnitude;
 
-        bool isWalking = patrol != null && patrol.IsWalking;
-        if ((isWalking || distanceSqr <= noticeRange * noticeRange) && distanceSqr > MinFacingDistanceSqr)
+        bool alwaysFace = InConversation || (patrol != null && patrol.IsWalking);
+        if ((alwaysFace || distanceSqr <= noticeRange * noticeRange) && distanceSqr > MinFacingDistanceSqr)
         {
-            // Sprites show their front toward -Z, so point +Z away from the player
-            yaw = Mathf.Atan2(-toPlayer.x, -toPlayer.z) * Mathf.Rad2Deg;
+            // Sprites show their front toward -Z, so point +Z away from the camera
+            yaw = Mathf.Atan2(-toViewer.x, -toViewer.z) * Mathf.Rad2Deg;
             return true;
         }
 

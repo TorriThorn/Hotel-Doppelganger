@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
@@ -119,8 +118,9 @@ public sealed class MenuItem
     public bool IsSlider => Setting != null && Setting.HasTrack;
 }
 
-// A column of rows driven by mouse and keyboard: W/S or arrows to move, A/D to change a value,
-// Enter/E/Space to press. Rows only redraw when something on them changes
+// A column of rows driven by the mouse alone: hover to highlight, click to press. Sliders drag or scroll,
+// and toggles and choices step forward on a left click and back on a right click. A list made with selectOnClick
+// ignores hovering and only changes selection on a click. Rows only redraw when something on them changes
 public sealed class MenuList
 {
     private const float MouseMoveThresholdSqr = 1f;
@@ -135,13 +135,18 @@ public sealed class MenuList
 
     private readonly List<MenuItem> items = new List<MenuItem>();
     private readonly MenuStyle style;
+    private readonly bool selectOnClick;
 
     private int selected;
     private MenuItem dragging;
     private Vector2 lastMousePosition;
     private bool dirty = true;
 
-    public MenuList(MenuStyle style) => this.style = style;
+    public MenuList(MenuStyle style, bool selectOnClick = false)
+    {
+        this.style = style;
+        this.selectOnClick = selectOnClick;
+    }
 
     public int Count => items.Count;
     public int Selected => selected;
@@ -201,6 +206,23 @@ public sealed class MenuList
         return Add(item);
     }
 
+    public void RemoveLast()
+    {
+        if (items.Count == 0) return;
+
+        MenuItem last = items[items.Count - 1];
+        items.RemoveAt(items.Count - 1);
+        UnityEngine.Object.Destroy(last.Back.gameObject);
+        selected = Mathf.Clamp(selected, 0, Mathf.Max(0, items.Count - 1));
+        dirty = true;
+    }
+
+    public void Clear()
+    {
+        while (items.Count > 0) RemoveLast();
+        selected = 0;
+    }
+
     // Call when the list comes on screen so a mouse that's already resting there doesn't count as a hover
     public void Reset(Vector2 mousePosition)
     {
@@ -212,10 +234,9 @@ public sealed class MenuList
 
     public void MarkDirty() => dirty = true;
 
-    public void HandleInput(Keyboard keyboard, Mouse mouse)
+    public void HandleInput(Mouse mouse)
     {
-        if (items.Count == 0) return;
-        if (!HandleKeyboard(keyboard)) HandleMouse(mouse);
+        if (items.Count > 0) HandleMouse(mouse);
     }
 
     public void Refresh()
@@ -233,29 +254,6 @@ public sealed class MenuList
         return item;
     }
 
-    // Returns true if a row was pressed, so the mouse isn't handled on the same frame
-    private bool HandleKeyboard(Keyboard keyboard)
-    {
-        int move = Axis(keyboard.sKey, keyboard.downArrowKey, keyboard.wKey, keyboard.upArrowKey);
-        if (move != 0) Select((selected + move + items.Count) % items.Count);
-
-        MenuItem item = items[selected];
-
-        int change = Axis(keyboard.dKey, keyboard.rightArrowKey, keyboard.aKey, keyboard.leftArrowKey);
-        if (change != 0 && item.Setting != null)
-        {
-            item.Setting.Nudge(change);
-            dirty = true;
-        }
-
-        bool confirm = keyboard.enterKey.wasPressedThisFrame || keyboard.numpadEnterKey.wasPressedThisFrame
-                       || keyboard.eKey.wasPressedThisFrame || keyboard.spaceKey.wasPressedThisFrame;
-        if (!confirm) return false;
-
-        Press(item);
-        return true;
-    }
-
     private void HandleMouse(Mouse mouse)
     {
         Vector2 position = mouse.position.ReadValue();
@@ -268,14 +266,15 @@ public sealed class MenuList
             return;
         }
 
-        // Hover only moves the selection when the mouse actually moves, so it doesn't fight the keyboard
+        // Hover only moves the selection when the mouse actually moves, so a mouse resting on a row as the list opens
+        // doesn't steal the starting selection
         bool moved = (position - lastMousePosition).sqrMagnitude > MouseMoveThresholdSqr;
         if (moved) lastMousePosition = position;
 
         int hovered = IndexAt(position);
         if (hovered < 0) return;
 
-        if (moved) Select(hovered);
+        if (moved && !selectOnClick) Select(hovered);
 
         MenuItem item = items[hovered];
         float scroll = mouse.scroll.ReadValue().y;
@@ -283,6 +282,14 @@ public sealed class MenuList
         {
             item.Setting.Nudge(scroll > 0f ? 1 : -1);
             dirty = true;
+        }
+
+        if (mouse.rightButton.wasPressedThisFrame && item.Setting != null && !item.IsSlider)
+        {
+            Select(hovered);
+            item.Setting.Nudge(-1);
+            dirty = true;
+            return;
         }
 
         if (!mouse.leftButton.wasPressedThisFrame) return;
@@ -314,7 +321,8 @@ public sealed class MenuList
     {
         for (int i = 0; i < items.Count; i++)
         {
-            if (RuntimeUI.Contains(items[i].Rect, screenPoint)) return i;
+            // A hidden row keeps its old rectangle, so it would otherwise still catch clicks
+            if (items[i].Back.gameObject.activeInHierarchy && RuntimeUI.Contains(items[i].Rect, screenPoint)) return i;
         }
 
         return -1;
@@ -363,14 +371,5 @@ public sealed class MenuList
         item.TrackImage.color = style.Track;
         item.FillImage.color = isSelected ? style.SelectedText : style.Fill;
         item.Fill.anchorMax = new Vector2(item.Setting.Fraction, 1f);
-    }
-
-    // +1 if either positive key was pressed this frame, -1 for either negative key
-    private static int Axis(KeyControl positive, KeyControl positiveAlt, KeyControl negative, KeyControl negativeAlt)
-    {
-        int value = 0;
-        if (positive.wasPressedThisFrame || positiveAlt.wasPressedThisFrame) value++;
-        if (negative.wasPressedThisFrame || negativeAlt.wasPressedThisFrame) value--;
-        return value;
     }
 }

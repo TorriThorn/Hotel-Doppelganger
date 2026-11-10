@@ -2242,6 +2242,7 @@ Transform:
   - {fileID: 2116396216}
   - {fileID: 514267736}
   - {fileID: 1012264496}
+  - {fileID: 1333084724}
   - {fileID: 101083542}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2312,8 +2313,10 @@ MonoBehaviour:
   npcName: Yaroslava
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: start
@@ -2871,6 +2874,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -3535,11 +3543,35 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Journal
   openKey: 1
-  title: Journal
-  thoughtsTitle: Salem's Thoughts
-  emptyText: Nothing yet. Pick up anything that looks important.
-  newEntryText: Journal updated
   pauseGame: 1
+  itemsTitle: Items
+  showHoldControls: 1
+  noItemsText: Nothing in your pockets yet. Quest items are added when you pick them up.
+  combinedText: made by combining
+  itemAddedText: added to inventory
+  itemPutAwayText: put away
+  bestiaryTitle: Bestiary
+  unknownCreatureText: Salem hasn't come across this one yet.
+  bestiaryUpdatedText: Bestiary updated
+  creatures:
+  - name: Werewolf
+    kind: Shapeshifter
+    description: 'Sample text. '
+    weakness: '*Silver*, and staying indoors on the full moon.'
+    picture: {fileID: 0}
+    startsKnown: 1
+  - name: Vampire
+    kind: Undead
+    description: Sample text.
+    weakness: '*Sunlight*, garlic and a stake through the heart.'
+    picture: {fileID: 0}
+    startsKnown: 1
+  - name: Fishman
+    kind: Aquatic
+    description: Sample text. Passes for human on land, but sheds *scales* and is never far from water.
+    weakness: Sample text. *Drying out*. Keep them away from water for long enough and they weaken.
+    picture: {fileID: 0}
+    startsKnown: 0
   matchDialogueBox: 1
   font: {fileID: 0}
   boxColor: {r: 0, g: 0, b: 0, a: 0.92}
@@ -3550,7 +3582,7 @@ MonoBehaviour:
   shadowColor: {r: 0, g: 0, b: 0, a: 0.9}
   dimColor: {r: 0, g: 0, b: 0, a: 0.6}
   boxWidth: 1400
-  boxHeight: 760
+  screenMargin: 60
   listWidth: 440
   listSize: 24
   pageSize: 28
@@ -3843,8 +3875,10 @@ MonoBehaviour:
   npcName: Helena
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: Start
@@ -8117,8 +8151,10 @@ MonoBehaviour:
   npcName: Zain
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: Start
@@ -8954,9 +8990,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: dbd88058c7d44e541a0387cf98ebe578, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2079292873}
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: dbd88058c7d44e541a0387cf98ebe578, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1333084724}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: dbd88058c7d44e541a0387cf98ebe578, type: 3}
       insertIndex: -1
@@ -9028,6 +9061,29 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 1
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations:
+  - other: {fileID: 101083546}
+    result: {fileID: 1333084727}
+    salemThinks: 
+    onCombined:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1299698502}
+          m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+          m_MethodName: UnlockChoice
+          m_Mode: 5
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: AccuseMurray
+            m_BoolArgument: 0
+          m_CallState: 2
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -16087,6 +16143,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   grabRadius: 0.2
   requireGrabbable: 0
+  toggleHold: 1
   minHoldDistance: 1
   maxHoldDistance: 2.5
   scrollStep: 0.25
@@ -16133,35 +16190,44 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   showKeyPrompt: 1
-  hideNpcWhileTalking: 1
+  presentOptionText: Show them something...
+  presentLogText: (Shows {0}.)
+  zoomToFace: 1
+  zoomDistance: 1.6
+  zoomFieldOfView: 45
+  zoomTime: 0.6
+  faceBelowHeadTop: 0.2
+  revealZoomTime: 0.9
+  revealMargin: 1.2
+  faceScreenHeight: 0.5
   lettersPerSecond: 35
   sentencePause: 0.35
   commaPause: 0.12
   flapInterval: 0.2
   font: {fileID: 0}
   highlightColor: {r: 1, g: 0.45, b: 0.35, a: 1}
-  showPortraits: 1
   nameColor: {r: 1, g: 0, b: 0.019385934, a: 1}
   lineColor: {r: 1, g: 1, b: 1, a: 1}
-  choiceColor: {r: 1, g: 1, b: 1, a: 1}
+  playerName: Salem
+  playerNameColor: {r: 0.85, g: 0.83, b: 0.78, a: 1}
+  choiceTextColor: {r: 0.82, g: 0.45, b: 0.32, a: 1}
   saidChoiceColor: {r: 0.34, g: 0.33, b: 0.31, a: 1}
+  presentColor: {r: 0.45, g: 0.85, b: 1, a: 1}
   selectedTextColor: {r: 0, g: 0, b: 0, a: 1}
   selectedBackColor: {r: 1, g: 1, b: 1, a: 1}
   shadowColor: {r: 0, g: 0, b: 0, a: 0.9}
   boxColor: {r: 0, g: 0, b: 0, a: 0.92}
   borderColor: {r: 0.85, g: 0.83, b: 0.78, a: 0.5}
-  choicesBoxColor: {r: 0, g: 0, b: 0, a: 0.92}
-  choicesBorderColor: {r: 0.85, g: 0.83, b: 0.78, a: 0.5}
   screenDimColor: {r: 0, g: 0, b: 0, a: 0.35}
-  boxWidth: 1100
-  choicesBoxWidth: 700
-  boxGap: 16
-  nameSize: 22
+  panelWidth: 640
   lineSize: 32
   choiceSize: 28
+  logSpacing: 36
+  choiceSpacing: 10
+  choicesGap: 16
   promptSize: 22
-  portraitHeight: 900
-  portraitRaise: 220
+  boxWidth: 1100
+  nameSize: 22
   showMarkers: 1
   markerColor: {r: 1, g: 0.82, b: 0.2, a: 1}
   markerSize: 1
@@ -17222,123 +17288,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.24058788, y: 0.3769235, z: 0.21149063}
   m_Center: {x: 0.0016649035, y: -0.14358433, z: -0.00062243146}
---- !u!1001 &849122660
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1333084724}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.366
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.001302097
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -3.7414516e-14
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.00000016292066
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0.9999992
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: -179.851
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_ConstrainProportionsScale
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_Name
-      value: Scale_Dust
-      objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 849122665}
-  m_SourcePrefab: {fileID: 100100000, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
---- !u!1 &849122661 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-  m_PrefabInstance: {fileID: 849122660}
-  m_PrefabAsset: {fileID: 0}
---- !u!54 &849122665
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 849122661}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 1
-  m_Constraints: 0
-  m_CollisionDetection: 2
---- !u!4 &849122666 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-  m_PrefabInstance: {fileID: 849122660}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &858540899
 GameObject:
   m_ObjectHideFlags: 0
@@ -33267,6 +33216,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -36212,6 +36166,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -38021,7 +37980,6 @@ MonoBehaviour:
   - {fileID: 1928498117}
   needed: 0
   thought: Geno was building a case against *James*. Whatever he found, someone didn't want it found.
-  journalTitle: Geno's Notes  - Complete
   onComplete:
     m_PersistentCalls:
       m_Calls:
@@ -38125,8 +38083,10 @@ MonoBehaviour:
   npcName: Murray
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: start
@@ -38561,6 +38521,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCSpriteSwap
   spriteRenderer: {fileID: 0}
   disableAnimatorOnSwap: 1
+  zoomOutOnSwap: 1
   popOnSwap: 1
   popDuration: 0.25
   popAmount: 0.15
@@ -38747,31 +38708,31 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 514267736}
+    m_TransformParent: {fileID: 64407326}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.010000001
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.010000001
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.010000001
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0.0014375051
+      value: 0.09171581
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.03173834
+      value: 2.15867
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.0000000015506015
+      value: 25.36156
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalRotation.w
@@ -38779,7 +38740,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0.00000011920929
+      value: 0.00000008146034
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_LocalRotation.y
@@ -38811,14 +38772,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects:
-    - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 849122666}
+    m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 15764a7cb3e08444fa6073840de32c32, type: 3}
       insertIndex: -1
@@ -38890,6 +38848,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 0
+  itemName: Scale Dust
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -38942,7 +38905,7 @@ MonoBehaviour:
   noteTitle: 
   noteText: 
   addToJournal: 1
-  journalTitle: What the scale turns into
+  journalTitle: 
   onFound:
     m_PersistentCalls:
       m_Calls: []
@@ -54140,6 +54103,11 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -56598,8 +56566,10 @@ MonoBehaviour:
   npcName: James
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: Start
@@ -57677,8 +57647,10 @@ MonoBehaviour:
   npcName: Carmela
   startNode: start
   addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
   talkingPortrait: {fileID: 0}
+  faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: Start

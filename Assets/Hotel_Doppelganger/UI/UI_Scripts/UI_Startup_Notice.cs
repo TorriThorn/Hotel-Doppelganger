@@ -8,7 +8,7 @@ using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
 // A full-screen notice shown once when the game first opens, before the main menu.
-// Any key or click dismisses it once it has been up for a moment
+// A click dismisses it once it has been up for a moment
 [AddComponentMenu("Game/UI/Startup Notice")]
 public class StartupNotice : MonoBehaviour
 {
@@ -36,7 +36,7 @@ public class StartupNotice : MonoBehaviour
     [SerializeField] private string buildLabel = "Playtest Build";
 
     [DisplayAs("Continue Hint")]
-    [SerializeField] private string continueText = "Press any key to continue";
+    [SerializeField] private string continueText = "Click to continue";
 
     [Header("Timing")]
     [DisplayAs("Can Skip After (seconds)", Min = 0f)]
@@ -127,7 +127,7 @@ public class StartupNotice : MonoBehaviour
         while (Time.unscaledTime < waitUntil) yield return null;
 
         yield return Animate(HintFadeTime, t => hintGroup.alpha = t);
-        while (!AnyInput()) yield return null;
+        while (!Clicked()) yield return null;
 
         // Words out first, then the black lifts to reveal the menu
         yield return Animate(FadeTime, t => textGroup.alpha = 1f - t);
@@ -140,12 +140,10 @@ public class StartupNotice : MonoBehaviour
         IsShowing = false;
     }
 
-    private static bool AnyInput()
+    private static bool Clicked()
     {
-        Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
-        return (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
-               || (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame));
+        return mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame);
     }
 
     // Eases 0 to 1 on real time, so it works even if something has paused the game

@@ -6,7 +6,9 @@ using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
 // The player's side of conversations. Click an NPC or press E to talk, pick replies with the mouse, number keys or W/S + E,
-// and press Tab to leave. Builds its own UI at runtime and only redraws what changes
+// and press Tab to leave. Conversations play out in a log down the right side of the screen, like Disco Elysium,
+// while the camera frames the NPC's face in the space beside it and their sprite swaps between idle and talking.
+// Builds its own UI at runtime and only redraws what changes
 [AddComponentMenu("Game/Player/Player Dialogue")]
 public class PlayerDialogue : MonoBehaviour
 {
@@ -14,6 +16,7 @@ public class PlayerDialogue : MonoBehaviour
     {
         Choice,
         Event,
+        Present,
         Goodbye
     }
 
@@ -59,6 +62,8 @@ public class PlayerDialogue : MonoBehaviour
 
     private const string GoodbyeText = "Goodbye.";
     private const string FallbackBackText = "Back.";
+    private const string NeverMindText = "Never mind.";
+    private const string WrongItemNodeId = "present:none";
     private const string EventReplyIdPrefix = "event:";
 
     private const float ReopenDelay = 0.2f;
@@ -69,16 +74,24 @@ public class PlayerDialogue : MonoBehaviour
     private const float LineOfSightPadding = 0.02f;
     private const int MaxNumberKeys = 9;
     private const int SortingOrder = 100;
-    private const float PortraitSlideTime = 0.25f;
-    private const float PortraitSlideDistance = 60f;
     private const float MarkerPixelsPerMeter = 100f;
     private const float MarkerBobSpeed = 3f;
     private const float MarkerBobHeight = 0.06f;
     private const float MarkerFallbackHeight = 2f;
+    private const float WrappedLineSpacing = 1.2f;
+    private const float RevealWallPadding = 0.25f;
+    private const float ScreenMargin = 32f;
+    private const string NameSeparator = "</color>  \u2014  ";
+
+    // Older lines are reused once the log is this long; by then they've long scrolled off the top
+    private const int MaxLogEntries = 40;
 
     public static RectOffset NpcBoxPadding => new RectOffset(30, 30, 22, 26);
-    private static RectOffset ChoicesBoxPadding => new RectOffset(16, 16, 14, 14);
-    private static RectOffset RowPadding => new RectOffset(12, 12, 6, 6);
+    private static RectOffset RowPadding => new RectOffset(0, 12, 6, 6);
+    private static RectOffset BoxPadding => new RectOffset(32, 32, 24, 26);
+
+    // Where a shown item waits during a conversation, relative to the view: low, to the right and out of the zoomed shot
+    private static readonly Vector3 TuckedItemOffset = new Vector3(0.35f, -0.45f, 0.75f);
 
     [Foldout("References (filled in automatically)")]
     [DisplayAs("Camera (optional)")]
@@ -103,8 +116,41 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Show Button Prompt")]
     [SerializeField] private bool showKeyPrompt = true;
 
-    [DisplayAs("Hide NPC In The World While Talking")]
-    [SerializeField] private bool hideNpcWhileTalking = true;
+    // Like Ace Attorney's Present: opens the inventory so the player can show the NPC an item
+    [DisplayAs("Present Option Text")]
+    [SerializeField] private string presentOptionText = "Show them something...";
+
+    // {0} is the item's name
+    [DisplayAs("Presenting In The Log")]
+    [SerializeField] private string presentLogText = "(Shows {0}.)";
+
+    [Foldout("Conversation Camera")]
+    [DisplayAs("Zoom To NPC's Face")]
+    [SerializeField] private bool zoomToFace = true;
+
+    [DisplayAs("Distance From Face (meters)", ShowIf = nameof(zoomToFace), Min = 0.3f, Max = 3f)]
+    [SerializeField] private float zoomDistance = 1.3f;
+
+    [DisplayAs("Zoomed Field Of View (0 = no change)", ShowIf = nameof(zoomToFace), Min = 0f, Max = 90f)]
+    [SerializeField] private float zoomFieldOfView = 45f;
+
+    [DisplayAs("Zoom Time (seconds)", ShowIf = nameof(zoomToFace), Min = 0f, Max = 2f)]
+    [SerializeField] private float zoomTime = 0.6f;
+
+    [DisplayAs("Face Below Top Of Head (meters)", ShowIf = nameof(zoomToFace), Min = 0f, Max = 1f)]
+    [SerializeField] private float faceBelowHeadTop = 0.2f;
+
+    [DisplayAs("Reveal Zoom Out Time (seconds)", ShowIf = nameof(zoomToFace), Min = 0f, Max = 3f)]
+    [SerializeField] private float revealZoomTime = 0.9f;
+
+    // 1 fits the revealed sprite exactly; higher leaves room around it
+    [DisplayAs("Space Around Revealed Sprite", ShowIf = nameof(zoomToFace), Min = 1f, Max = 2f)]
+    [SerializeField] private float revealMargin = 1.2f;
+
+    // How far up the screen the face sits, from 0 at the bottom to 1 at the top. Sideways it's centered in the
+    // space left of the conversation log
+    [DisplayAs("Face Height On Screen", ShowIf = nameof(zoomToFace), Min = 0.3f, Max = 0.9f)]
+    [SerializeField] private float faceScreenHeight = 0.6f;
 
     [Foldout("Typing Effect")]
     [DisplayAs("Letters Per Second", Min = 1f)]
@@ -126,73 +172,77 @@ public class PlayerDialogue : MonoBehaviour
     [DisplayAs("Highlighted Words")]
     [SerializeField] private Color highlightColor = new Color(1f, 0.45f, 0.35f);
 
-    [DisplayAs("Show Character Portraits")]
-    [SerializeField] private bool showPortraits = true;
-
     [DisplayAs("NPC Name Color")]
     [SerializeField] private Color nameColor = new Color(0.45f, 0.44f, 0.41f);
 
-    [DisplayAs("NPC Line Color")]
+    // Used for everything in the conversation log, from both the NPC and the player
+    [DisplayAs("Log Text Color")]
     [SerializeField] private Color lineColor = new Color(0.85f, 0.83f, 0.78f);
 
+    [DisplayAs("Player Name In Log")]
+    [SerializeField] private string playerName = "YOU";
+
+    [DisplayAs("Player Name Color")]
+    [SerializeField] private Color playerNameColor = new Color(0.85f, 0.83f, 0.78f);
+
+    // The replies the player can still pick, set apart from the log
     [DisplayAs("Choice Color")]
-    [SerializeField] private Color choiceColor = new Color(0.45f, 0.44f, 0.41f);
+    [SerializeField] private Color choiceTextColor = new Color(0.82f, 0.45f, 0.32f);
 
     [DisplayAs("Already Picked Choice Color")]
-    [SerializeField] private Color saidChoiceColor = new Color(0.34f, 0.33f, 0.31f);
+    [SerializeField] private Color saidChoiceColor = new Color(0.47f, 0.35f, 0.3f);
+
+    [DisplayAs("Present Option Color")]
+    [SerializeField] private Color presentColor = new Color(0.45f, 0.85f, 1f);
 
     [DisplayAs("Highlighted Choice Text")]
-    [SerializeField] private Color selectedTextColor = Color.black;
+    [SerializeField] private Color selectedTextColor = Color.white;
 
     [DisplayAs("Highlighted Choice Background")]
-    [SerializeField] private Color selectedBackColor = new Color(0.85f, 0.83f, 0.78f);
+    [SerializeField] private Color selectedBackColor = Color.clear;
 
     [DisplayAs("Text Shadow Color")]
     [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.9f);
 
     [Foldout("Box Look")]
-    [DisplayAs("NPC Box Color")]
+    [DisplayAs("Box Color")]
     [SerializeField] private Color boxColor = new Color(0f, 0f, 0f, 0.92f);
 
-    [DisplayAs("NPC Box Border")]
+    [DisplayAs("Box Border")]
     [SerializeField] private Color borderColor = new Color(0.85f, 0.83f, 0.78f, 0.5f);
 
-    [DisplayAs("Choices Box Color")]
-    [SerializeField] private Color choicesBoxColor = new Color(0f, 0f, 0f, 0.92f);
-
-    [DisplayAs("Choices Box Border")]
-    [SerializeField] private Color choicesBorderColor = new Color(0.85f, 0.83f, 0.78f, 0.5f);
-
     [DisplayAs("Screen Darkening")]
-    [SerializeField] private Color screenDimColor = new Color(0f, 0f, 0f, 0.35f);
+    [SerializeField] private Color screenDimColor = new Color(0f, 0f, 0f, 0f);
 
     [Foldout("Sizes (as on a 1080p screen)")]
-    [DisplayAs("NPC Box Width", Min = 0f)]
-    [SerializeField] private float boxWidth = 1100f;
+    [DisplayAs("Box Width", Min = 300f)]
+    [SerializeField] private float panelWidth = 640f;
 
-    [DisplayAs("Choices Box Width", Min = 0f)]
-    [SerializeField] private float choicesBoxWidth = 700f;
-
-    [DisplayAs("Gap Between Boxes", Min = 0f)]
-    [SerializeField] private float boxGap = 16f;
-
-    [DisplayAs("NPC Name Text Size", Min = 1f)]
-    [SerializeField] private int nameSize = 22;
-
-    [DisplayAs("NPC Line Text Size", Min = 1f)]
-    [SerializeField] private int lineSize = 32;
+    [DisplayAs("Log Text Size", Min = 1f)]
+    [SerializeField] private int lineSize = 26;
 
     [DisplayAs("Choice Text Size", Min = 1f)]
-    [SerializeField] private int choiceSize = 28;
+    [SerializeField] private int choiceSize = 26;
+
+    [DisplayAs("Space Between Log Lines", Min = 0f)]
+    [SerializeField] private float logSpacing = 36f;
+
+    [DisplayAs("Space Between Choices", Min = 0f)]
+    [SerializeField] private float choiceSpacing = 10f;
+
+    // Split evenly above and below the line between the log and the choices
+    [DisplayAs("Space Above Choices", Min = 0f)]
+    [SerializeField] private float choicesGap = 32f;
 
     [DisplayAs("Crosshair Name Text Size", Min = 1f)]
     [SerializeField] private int promptSize = 22;
 
-    [DisplayAs("Portrait Height", Min = 100f)]
-    [SerializeField] private float portraitHeight = 900f;
+    // The intro cutscene borrows these when it matches this look
+    [DisplayAs("Intro Text Box Width", Min = 0f)]
+    [SerializeField] private float boxWidth = 1100f;
 
-    [DisplayAs("Portrait Raise (from bottom)")]
-    [SerializeField] private float portraitRaise = 220f;
+    [DisplayAs("Intro Name Text Size", Min = 1f)]
+    [SerializeField] private int nameSize = 22;
 
     [Foldout("New Dialogue Marker")]
     [DisplayAs("Show ! Over NPCs With Something New")]
@@ -220,12 +270,13 @@ public class PlayerDialogue : MonoBehaviour
     private readonly RaycastHit[] sphereHits = new RaycastHit[32];
     private readonly List<Option> options = new List<Option>();
     private readonly List<ChoiceRow> rows = new List<ChoiceRow>();
-    private readonly List<Image> npcBoxBorders = new List<Image>();
-    private readonly List<Image> choicesBoxBorders = new List<Image>();
     private readonly List<Image> promptBorders = new List<Image>();
-    private readonly List<Renderer> hiddenRenderers = new List<Renderer>();
     private readonly List<Marker> markers = new List<Marker>();
+    private readonly List<Image> boxBorders = new List<Image>();
+    private readonly List<Text> logEntries = new List<Text>();
+    private readonly List<Shadow> logShadows = new List<Shadow>();
     private readonly TypedLine typedLine = new TypedLine();
+    private readonly TypedLine logLine = new TypedLine();
 
     private NPCDialogue lookingAt;
     private NPCDialogue npc;
@@ -245,33 +296,61 @@ public class PlayerDialogue : MonoBehaviour
     private Canvas canvas;
     private GameObject dialogueRoot;
     private Image dimImage;
-    private Image npcBox;
-    private Image choicesBox;
+    private RectTransform boxes;
+    private Image dialogueBox;
+    private VerticalLayoutGroup boxLayout;
+    private Image divider;
+    private RectTransform logWindow;
+    private RectTransform logColumn;
+    private WheelScroll logScroll;
+    private RectTransform choicesColumn;
+    private VerticalLayoutGroup logLayout;
+    private VerticalLayoutGroup choicesLayout;
     private CanvasGroup choicesGroup;
+    private int usedLogEntries;
+    private string namePrefix;
     private Text promptText;
     private Shadow promptShadow;
     private Image promptBox;
     private bool promptShowsHolding;
-    private Text nameText;
-    private Shadow nameShadow;
     private Text lineText;
     private Shadow lineShadow;
-    private Image portrait;
     private Image timerBar;
 
     private string highlightTag;
-    private Sprite idleSprite;
-    private Sprite talkingSprite;
+    private SpriteRenderer npcSprite;
+    private NPCSpriteSwap npcSpriteSwap;
+    private NPCFacePlayer npcFacer;
+    private Sprite baseSprite;
+    private Sprite appliedSprite;
+    private Sprite expression;
     private bool mouthOpen;
     private float flapTimer;
-    private float portraitTime = 1f;
+
+    private Camera playerCamera;
+    private Vector3 homeLocalPosition;
+    private Quaternion homeLocalRotation;
+    private float homeFieldOfView;
+    private Transform faceAnchor;
+    private Vector3 faceOffset;
+    private float faceScreenWidth = 0.5f;
+    private Vector3 revealOffset;
+    private Vector3 revealSize;
+    private bool revealMeasured;
+    private float revealAmount;
+    private Vector3 zoomPosition;
+    private Quaternion zoomRotation;
+    private float zoomAmount;
+    private bool returning;
 
     private Rigidbody heldBody;
     private Grabbable heldGrabbable;
+    private PlayerBody playerBody;
+    private int presentedFrame = -1;
 
     public bool IsTalking => npc != null;
 
-    // The NPC box's look, so other text boxes (like the intro cutscene's) can match it
+    // The conversation's look, so other text boxes (like the intro cutscene's) can match it
     public Font BoxFont => font;
     public Color BoxColor => boxColor;
     public Color BoxBorderColor => borderColor;
@@ -313,6 +392,8 @@ public class PlayerDialogue : MonoBehaviour
             Camera cam = GetComponentInChildren<Camera>();
             if (cam != null) cameraTransform = cam.transform;
         }
+        if (cameraTransform != null) cameraTransform.TryGetComponent(out playerCamera);
+        TryGetComponent(out playerBody);
 
         BuildUI();
     }
@@ -334,7 +415,9 @@ public class PlayerDialogue : MonoBehaviour
 
     private void OnDestroy()
     {
-        ShowHiddenNpc();
+        RestoreNpcSprite();
+        if (zoomAmount > 0f) PutCameraBack();
+
         foreach (Marker marker in markers)
         {
             if (marker.Object != null) Destroy(marker.Object);
@@ -346,18 +429,33 @@ public class PlayerDialogue : MonoBehaviour
     {
         Keyboard keyboard = Keyboard.current;
         Mouse mouse = Mouse.current;
-        if (keyboard == null || mouse == null || cameraTransform == null) return;
+        if (keyboard == null || mouse == null || cameraTransform == null || returning) return;
 
-        if (IsTalking) UpdateTalking(keyboard, mouse);
+        // The inventory takes the input while an item is being picked, and for a frame after so the click isn't reused
+        bool presenting = Journal.IsPresenting || Time.frameCount <= presentedFrame + 1;
+        if (IsTalking)
+        {
+            if (!presenting) UpdateTalking(keyboard, mouse);
+        }
         else UpdateNotTalking(keyboard, mouse);
 
         if (IsTalking) RefreshConversation();
     }
 
-    // Each NPC only rechecks what it has left to say when its dialogue changes; the rest is just following and facing
+    // Runs after animation, so the talking sprite wins over an Animator on the NPC
     private void LateUpdate()
     {
-        if (markers.Count == 0 || cameraTransform == null) return;
+        if (cameraTransform == null) return;
+
+        UpdateCamera();
+        if (IsTalking) UpdateNpcSprite();
+        UpdateMarkers();
+    }
+
+    // Each NPC only rechecks what it has left to say when its dialogue changes; the rest is just following and facing
+    private void UpdateMarkers()
+    {
+        if (markers.Count == 0) return;
 
         bool hideAll = !showMarkers || IsTalking;
         Grabbable held = HeldGrabbable();
@@ -382,7 +480,7 @@ public class PlayerDialogue : MonoBehaviour
                 }
 
                 // "Show me that" beats "something new", since it's the more useful thing to know right now
-                bool wantsItem = marker.Npc.WantsItem(held);
+                bool wantsItem = marker.Npc.WantsItem(held) || WantsCarriedItem(marker.Npc);
                 if (wantsItem != marker.WantsItem)
                 {
                     marker.WantsItem = wantsItem;
@@ -410,7 +508,7 @@ public class PlayerDialogue : MonoBehaviour
         if (IsTalking) Close();
     }
 
-    // Click to talk, or E. E is the only way while carrying something, since the left button is busy holding it
+    // Click to talk, or E. E is the only way while carrying something, since a click is for the object
     private void UpdateNotTalking(Keyboard keyboard, Mouse mouse)
     {
         bool holding = grabber != null && grabber.IsHolding;
@@ -431,7 +529,8 @@ public class PlayerDialogue : MonoBehaviour
         }
 
         bool confirm = keyboard.eKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame;
-        bool click = mouse.leftButton.wasPressedThisFrame;
+        // A click on the log's scroll bar is only for scrolling
+        bool click = mouse.leftButton.wasPressedThisFrame && !logScroll.IsOver(mouse);
 
         if (IsTyping)
         {
@@ -622,7 +721,15 @@ public class PlayerDialogue : MonoBehaviour
         // Whatever the player is carrying stays in hand and unlocks any "show the item" lines
         Rigidbody held = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
         npc.ShownItem = held != null ? held.GetComponent<Grabbable>() : null;
-        if (grabber != null) grabber.HoldThroughLock = true;
+        if (grabber != null)
+        {
+            grabber.HoldThroughLock = true;
+            grabber.SetHoldPose(cameraTransform.TransformPoint(TuckedItemOffset), cameraTransform.rotation);
+            grabber.SetHeldHidden(true);
+        }
+
+        // The camera leaves the player's head, so their own body and carried item would otherwise be in the shot
+        if (playerBody != null) playerBody.HiddenFromView = true;
 
         if (player != null) player.InputLocked = true;
         FirstPersonController.SetCursorLocked(false);
@@ -630,10 +737,13 @@ public class PlayerDialogue : MonoBehaviour
 
         SetPatrolPaused(true);
         npc.MarkTalkedTo();
-        HideNpc();
+        GrabNpcSprite();
+        StartZoom();
+        FaceCamera(true);
 
-        nameText.text = npc.npcName.ToUpper();
-        portraitTime = 0f;
+        namePrefix = TypedLine.ColorTag(nameColor) + npc.npcName.ToUpper() + NameSeparator;
+        ClearLog();
+        logScroll.Reset();
         dialogueRoot.SetActive(true);
         GoTo(npc.startNode);
     }
@@ -641,10 +751,10 @@ public class PlayerDialogue : MonoBehaviour
     private void Close()
     {
         SetPatrolPaused(false);
-        ShowHiddenNpc();
+        RestoreNpcSprite();
+        FaceCamera(false);
 
         npc.ShownItem = null;
-        if (grabber != null) grabber.HoldThroughLock = false;
         npc = null;
         node = null;
         nodeIsEventReply = false;
@@ -652,8 +762,38 @@ public class PlayerDialogue : MonoBehaviour
         dialogueRoot.SetActive(false);
         closeTime = Time.time;
 
+        // The player gets control back once the camera has returned to them
+        returning = zoomAmount > 0f;
+        if (!returning) ReleasePlayer();
+    }
+
+    private void ReleasePlayer()
+    {
+        returning = false;
+        if (grabber != null)
+        {
+            grabber.HoldThroughLock = false;
+            grabber.ClearHoldPose();
+            grabber.SetHeldHidden(false);
+        }
+        if (playerBody != null) playerBody.HiddenFromView = false;
+
         if (player != null) player.InputLocked = false;
         FirstPersonController.SetCursorLocked(true);
+    }
+
+    // NPCs without NPC Face Player get one, so every NPC turns to the camera when talked to
+    private void FaceCamera(bool facing)
+    {
+        if (facing)
+        {
+            Transform root = NpcRoot(npc);
+            npcFacer = root.GetComponentInChildren<NPCFacePlayer>();
+            if (npcFacer == null) npcFacer = root.gameObject.AddComponent<NPCFacePlayer>();
+        }
+
+        if (npcFacer != null) npcFacer.InConversation = facing;
+        if (!facing) npcFacer = null;
     }
 
     // Walking NPCs hold still for the length of the conversation
@@ -677,8 +817,7 @@ public class PlayerDialogue : MonoBehaviour
 
     private Marker CreateMarker(NPCDialogue target)
     {
-        NPCPatrol patrol = target.GetComponentInParent<NPCPatrol>();
-        Transform root = patrol != null ? patrol.transform : target.transform;
+        Transform root = NpcRoot(target);
 
         var marker = new Marker
         {
@@ -718,6 +857,20 @@ public class PlayerDialogue : MonoBehaviour
         marker.Shadow.effectColor = shadowColor;
     }
 
+    // Anything in the inventory counts, not just what's in the player's hands
+    private static bool WantsCarriedItem(NPCDialogue target)
+    {
+        Journal journal = Journal.Current;
+        if (journal == null) return false;
+
+        IReadOnlyList<Grabbable> items = journal.Items;
+        for (int i = 0; i < items.Count; i++)
+        {
+            if (target.WantsItem(items[i])) return true;
+        }
+        return false;
+    }
+
     // The Grabbable in the player's hands, looked up only when what they're holding changes
     private Grabbable HeldGrabbable()
     {
@@ -730,30 +883,237 @@ public class PlayerDialogue : MonoBehaviour
         return heldGrabbable;
     }
 
-    // Only the visuals are switched off, so the NPC keeps its collider and spot in the room.
-    // The portrait still reads the hidden sprite, so a sprite swap mid-conversation shows up
-    private void HideNpc()
+    // Remembers the player's own view so the camera can return to it exactly
+    private void StartZoom()
     {
-        if (!hideNpcWhileTalking) return;
+        homeLocalPosition = cameraTransform.localPosition;
+        homeLocalRotation = cameraTransform.localRotation;
+        homeFieldOfView = playerCamera != null ? playerCamera.fieldOfView : 60f;
 
-        NPCPatrol patrol = npc.GetComponentInParent<NPCPatrol>();
-        Transform root = patrol != null ? patrol.transform : npc.transform;
+        // Centered in the space left of the log
+        float panelPixels = (panelWidth + ScreenMargin) * canvas.scaleFactor;
+        faceScreenWidth = Screen.width > 0 ? Mathf.Clamp01(0.5f * (1f - panelPixels / Screen.width)) : 0.5f;
 
-        foreach (Renderer part in root.GetComponentsInChildren<Renderer>())
+        // Measured once and pinned to the NPC's sprite object, so the shot follows the NPC turning or settling
+        // but swapping between idle and talking sprites can't nudge it
+        faceAnchor = npcSprite != null ? npcSprite.transform : NpcRoot(npc);
+        faceOffset = faceAnchor.InverseTransformPoint(FacePosition());
+        revealMeasured = false;
+        revealAmount = 0f;
+    }
+
+    // Eases between the player's own view and a shot of the NPC's face. Unscaled time, so it still finishes if the game pauses
+    private void UpdateCamera()
+    {
+        if (!IsTalking && !returning) return;
+
+        Vector3 homePosition = HomePosition();
+        Quaternion homeRotation = HomeRotation();
+        if (IsTalking) AimAtFace(homePosition, homeRotation);
+
+        float target = IsTalking && zoomToFace ? 1f : 0f;
+        zoomAmount = zoomTime > 0f ? Mathf.MoveTowards(zoomAmount, target, Time.unscaledDeltaTime / zoomTime) : target;
+
+        float eased = Mathf.SmoothStep(0f, 1f, zoomAmount);
+        cameraTransform.SetPositionAndRotation(Vector3.Lerp(homePosition, zoomPosition, eased), Quaternion.Slerp(homeRotation, zoomRotation, eased));
+        if (playerCamera != null && zoomFieldOfView > 0f) playerCamera.fieldOfView = Mathf.Lerp(homeFieldOfView, zoomFieldOfView, eased);
+
+        if (returning && zoomAmount <= 0f)
         {
-            if (!part.enabled) continue;
-            part.enabled = false;
-            hiddenRenderers.Add(part);
+            PutCameraBack();
+            ReleasePlayer();
         }
     }
 
-    private void ShowHiddenNpc()
+    // Level with the face, on the line between the NPC and the player, so nothing is in the way
+    private void AimAtFace(Vector3 homePosition, Quaternion homeRotation)
     {
-        foreach (Renderer part in hiddenRenderers)
+        Vector3 face = faceAnchor != null ? faceAnchor.TransformPoint(faceOffset) : FacePosition();
+        Vector3 away = homePosition - face;
+        away.y = 0f;
+
+        // Never further back than the player already is
+        float distance = Mathf.Min(zoomDistance, away.magnitude);
+        if (away.sqrMagnitude < 0.0001f)
         {
-            if (part != null) part.enabled = true;
+            away = homeRotation * Vector3.back;
+            away.y = 0f;
+            distance = zoomDistance;
         }
-        hiddenRenderers.Clear();
+
+        zoomPosition = face + away.normalized * distance;
+
+        // Turns and tilts just enough to put the face at its spot on screen
+        float halfHeight = HalfViewHeight();
+        float tilt = Mathf.Atan((2f * faceScreenHeight - 1f) * halfHeight) * Mathf.Rad2Deg;
+        zoomRotation = Quaternion.LookRotation(face - zoomPosition, Vector3.up) * Quaternion.Euler(tilt, SideTurn(halfHeight), 0f);
+
+        UpdateReveal();
+        if (revealAmount <= 0f) return;
+
+        AimAtWholeSprite(homePosition, homeRotation, out Vector3 revealPosition, out Quaternion revealRotation);
+        float eased = Mathf.SmoothStep(0f, 1f, revealAmount);
+        zoomPosition = Vector3.Lerp(zoomPosition, revealPosition, eased);
+        zoomRotation = Quaternion.Slerp(zoomRotation, revealRotation, eased);
+    }
+
+    // A sprite swap during the conversation (like a monster reveal) pulls the camera back, and swapping back
+    // returns it to the face. The new sprite is measured the moment it appears, before its pop animation
+    private void UpdateReveal()
+    {
+        bool revealed = npcSpriteSwap != null && npcSpriteSwap.IsSwapped && npcSpriteSwap.ZoomOutOnSwap && npcSprite != null;
+        if (revealed && !revealMeasured)
+        {
+            Bounds bounds = npcSprite.bounds;
+            revealOffset = faceAnchor.InverseTransformPoint(bounds.center);
+            revealSize = bounds.size;
+            revealMeasured = true;
+        }
+
+        float step = revealZoomTime > 0f ? Time.unscaledDeltaTime / revealZoomTime : 1f;
+        revealAmount = Mathf.MoveTowards(revealAmount, revealed ? 1f : 0f, step);
+        if (!revealed && revealAmount <= 0f) revealMeasured = false;
+    }
+
+    // Far enough back to fit the whole sprite, tall or wide, in the space beside the log, but never inside a wall
+    private void AimAtWholeSprite(Vector3 homePosition, Quaternion homeRotation, out Vector3 position, out Quaternion rotation)
+    {
+        Vector3 center = faceAnchor.TransformPoint(revealOffset);
+        Vector3 away = homePosition - center;
+        away.y = 0f;
+        if (away.sqrMagnitude < 0.0001f)
+        {
+            away = homeRotation * Vector3.back;
+            away.y = 0f;
+        }
+        away = away.normalized;
+
+        float halfHeight = HalfViewHeight();
+        float aspect = playerCamera != null ? playerCamera.aspect : 16f / 9f;
+        float height = revealSize.y * revealMargin;
+        float width = Mathf.Max(revealSize.x, revealSize.z) * revealMargin;
+        float fitHeight = height * 0.5f / halfHeight;
+        float fitWidth = width / (2f * halfHeight * aspect * Mathf.Max(0.1f, 2f * faceScreenWidth));
+        float distance = Mathf.Max(zoomDistance, Mathf.Max(fitHeight, fitWidth));
+
+        if (RaycastIgnoringPlayer(center, away, distance, out RaycastHit wall) && wall.collider.GetComponentInParent<NPCDialogue>() != npc)
+            distance = Mathf.Max(zoomDistance, wall.distance - RevealWallPadding);
+
+        position = center + away * distance;
+        rotation = Quaternion.LookRotation(center - position, Vector3.up) * Quaternion.Euler(0f, SideTurn(halfHeight), 0f);
+    }
+
+    private float HalfViewHeight()
+    {
+        float fieldOfView = zoomFieldOfView > 0f ? zoomFieldOfView : homeFieldOfView;
+        return Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad);
+    }
+
+    // Turns the camera so its subject sits in the middle of the space left of the log
+    private float SideTurn(float halfHeight)
+    {
+        float aspect = playerCamera != null ? playerCamera.aspect : 16f / 9f;
+        return -Mathf.Atan((2f * faceScreenWidth - 1f) * halfHeight * aspect) * Mathf.Rad2Deg;
+    }
+
+    // Centered on the drawn sprite rather than the NPC's pivot, in case the art sits off to one side
+    private Vector3 FacePosition()
+    {
+        Transform root = NpcRoot(npc);
+        Renderer body = npcSprite != null ? npcSprite : root.GetComponentInChildren<Renderer>();
+        Vector3 face = npc.HeadPosition(body, MarkerFallbackHeight);
+        face.y += npc.faceHeightAdjust - npc.headHeightAdjust - faceBelowHeadTop;
+
+        if (body != null && body.enabled)
+        {
+            Vector3 center = body.bounds.center;
+            face.x = center.x;
+            face.z = center.z;
+        }
+        return face;
+    }
+
+    private Vector3 HomePosition()
+    {
+        Transform parent = cameraTransform.parent;
+        return parent != null ? parent.TransformPoint(homeLocalPosition) : homeLocalPosition;
+    }
+
+    private Quaternion HomeRotation()
+    {
+        Transform parent = cameraTransform.parent;
+        return parent != null ? parent.rotation * homeLocalRotation : homeLocalRotation;
+    }
+
+    private void PutCameraBack()
+    {
+        zoomAmount = 0f;
+        cameraTransform.localPosition = homeLocalPosition;
+        cameraTransform.localRotation = homeLocalRotation;
+        if (playerCamera != null && zoomFieldOfView > 0f) playerCamera.fieldOfView = homeFieldOfView;
+    }
+
+    private void GrabNpcSprite()
+    {
+        Transform root = NpcRoot(npc);
+        npcSprite = root.GetComponentInChildren<SpriteRenderer>();
+        npcSpriteSwap = root.GetComponentInChildren<NPCSpriteSwap>();
+        if (npcSpriteSwap == null) npcSpriteSwap = npc.GetComponentInParent<NPCSpriteSwap>();
+
+        baseSprite = npcSprite != null ? npcSprite.sprite : null;
+        appliedSprite = baseSprite;
+        expression = null;
+        mouthOpen = false;
+    }
+
+    // Anything else that changes the sprite (an Animator, a sprite swap) is picked up as the new base, and the
+    // idle and talking sprites step aside while a swapped sprite (like a monster reveal) is showing
+    private void UpdateNpcSprite()
+    {
+        if (npcSprite == null) return;
+
+        Sprite current = npcSprite.sprite;
+        if (current != appliedSprite) baseSprite = current;
+
+        Sprite shown = baseSprite;
+        bool swapped = npcSpriteSwap != null && npcSpriteSwap.IsSwapped;
+        if (expression != null) shown = expression;
+        else if (!swapped && mouthOpen && npc.talkingPortrait != null) shown = npc.talkingPortrait;
+        else if (!swapped && npc.portrait != null) shown = npc.portrait;
+
+        if (current != shown) npcSprite.sprite = shown;
+        appliedSprite = shown;
+    }
+
+    // Only undoes the dialogue's own change, so a sprite swap made during the conversation stays
+    private void RestoreNpcSprite()
+    {
+        if (npcSprite != null && npcSprite.sprite == appliedSprite) npcSprite.sprite = baseSprite;
+        npcSprite = null;
+        npcSpriteSwap = null;
+        faceAnchor = null;
+    }
+
+    // Flaps between idle and talking while the line types, and rests closed after
+    private void AnimateMouth(float dt)
+    {
+        if (!IsTyping)
+        {
+            mouthOpen = false;
+            return;
+        }
+
+        flapTimer += dt;
+        if (flapTimer < flapInterval) return;
+
+        flapTimer = 0f;
+        mouthOpen = !mouthOpen;
+    }
+
+    private static Transform NpcRoot(NPCDialogue target)
+    {
+        NPCPatrol patrol = target.GetComponentInParent<NPCPatrol>();
+        return patrol != null ? patrol.transform : target.transform;
     }
 
     // Queued now, shown once the conversation closes, since thoughts wait while the dialogue box is up
@@ -765,6 +1125,7 @@ public class PlayerDialogue : MonoBehaviour
     // A quick-time screen ran out: move on to its timeout node, or end the conversation if it has none
     private void TimeOut()
     {
+        LogCurrentLine();
         string next = node.timeoutNode;
         if (string.IsNullOrWhiteSpace(next)) Close();
         else GoTo(next);
@@ -781,12 +1142,15 @@ public class PlayerDialogue : MonoBehaviour
         else Close();
     }
 
+    // A screen shown again after a choice that leads nowhere new keeps its line in the log rather than repeating it
     private void ShowNode(NPCDialogue.Node target, bool isEventReply, bool skipTyping = false)
     {
+        logScroll.ReturnToStart();
         node = target;
         nodeIsEventReply = isEventReply;
-        typedLine.Set(node.npcText);
-        ShowPortrait(node.expression);
+        typedLine.Set(skipTyping ? string.Empty : node.npcText);
+        lineText.gameObject.SetActive(typedLine.Length > 0);
+        expression = node.expression;
 
         // Nothing to type out means the choices can appear straight away
         bool showAtOnce = skipTyping || typedLine.Length == 0;
@@ -814,23 +1178,37 @@ public class PlayerDialogue : MonoBehaviour
                 options.Add(new Option(OptionKind.Choice, i, npc.WasChosen(choice)));
         }
 
-        // Unlocked event dialogue sits on its own screen, never on an event's reply screen
+        // Unlocked event dialogue sits on its own screen, never on an event's reply screen.
+        // Item lines are only reached by presenting the item
         if (!nodeIsEventReply)
         {
             List<NPCDialogue.EventDialogue> events = npc.eventDialogue;
             for (int i = 0; i < events.Count; i++)
             {
                 NPCDialogue.EventDialogue entry = events[i];
+                if (entry == null || entry.requiredItem != null) continue;
                 if (npc.IsShownOn(entry, node) && !string.IsNullOrWhiteSpace(entry.text))
                     options.Add(new Option(OptionKind.Event, i, npc.WasChosen(entry)));
             }
         }
 
+        // Only on the NPC's first screen, like Ace Attorney's Present button outside of testimony
+        bool onFirstScreen = !nodeIsEventReply && node == npc.GetNode(npc.startNode);
+        if (onFirstScreen && Journal.Get().HasItems) options.Add(new Option(OptionKind.Present, -1, false));
         if (npc.addGoodbye) options.Add(new Option(OptionKind.Goodbye, -1, false));
     }
 
     private void Choose(Option option)
     {
+        if (option.Kind == OptionKind.Present)
+        {
+            Journal.Get().OpenToPresent(Present);
+            return;
+        }
+
+        LogCurrentLine();
+        AddLogEntry(TypedLine.ColorTag(playerNameColor) + playerName + NameSeparator, OptionText(option));
+
         switch (option.Kind)
         {
             case OptionKind.Goodbye: Close(); break;
@@ -873,6 +1251,37 @@ public class PlayerDialogue : MonoBehaviour
         ShowNode(target ?? BuildEventReply(entry, index), target == null);
     }
 
+    // The right item plays that item's line; anything else gets the NPC's "that's not relevant" reply
+    private void Present(Grabbable item)
+    {
+        presentedFrame = Time.frameCount;
+        if (item == null || !IsTalking) return;
+
+        LogCurrentLine();
+        AddLogEntry(TypedLine.ColorTag(playerNameColor) + playerName + NameSeparator, presentLogText.Replace("{0}", item.DisplayName));
+        npc.ShownItem = item;
+
+        int index = npc.FindItemEntry(item);
+        if (index >= 0) ChooseEvent(npc.eventDialogue[index], index);
+        else ShowNode(BuildWrongItemReply(), true);
+    }
+
+    private NPCDialogue.Node BuildWrongItemReply()
+    {
+        // Event reply screens have no node of their own to go back to, so those lead back to the first node
+        string returnTo = npc.GetNode(node.id) != null ? node.id : npc.startNode;
+
+        return new NPCDialogue.Node
+        {
+            id = WrongItemNodeId,
+            npcText = npc.wrongItemReply,
+            choices = new List<NPCDialogue.Choice>
+            {
+                new NPCDialogue.Choice { text = NeverMindText, nextNode = returnTo, greyAfterChosen = false }
+            }
+        };
+    }
+
     // The entry's reply screen: its own choices, plus a way back to the screen it was picked from
     private NPCDialogue.Node BuildEventReply(NPCDialogue.EventDialogue entry, int index)
     {
@@ -904,6 +1313,7 @@ public class PlayerDialogue : MonoBehaviour
         switch (option.Kind)
         {
             case OptionKind.Goodbye: return GoodbyeText;
+            case OptionKind.Present: return presentOptionText;
             case OptionKind.Event: return npc.eventDialogue[option.Index].text;
             default: return node.choices[option.Index].text;
         }
@@ -928,8 +1338,9 @@ public class PlayerDialogue : MonoBehaviour
 
     private void RefreshConversation()
     {
+        logScroll.Update(Mouse.current, Time.unscaledDeltaTime);
         if (renderedLetters != visibleLetters) RenderLine();
-        AnimatePortrait(Time.deltaTime);
+        AnimateMouth(Time.deltaTime);
 
         float choicesAlpha = IsTyping ? 0f : 1f;
         if (choicesGroup.alpha != choicesAlpha) choicesGroup.alpha = choicesAlpha;
@@ -939,7 +1350,7 @@ public class PlayerDialogue : MonoBehaviour
         if (timed)
         {
             float left = 1f - (Time.time - choicesShownTime) / node.timeLimit;
-            timerBar.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(left), 1f);
+            timerBar.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(left), 0.5f);
         }
 
         if (rowsDirty) DrawRows();
@@ -948,60 +1359,47 @@ public class PlayerDialogue : MonoBehaviour
     private void RenderLine()
     {
         renderedLetters = visibleLetters;
-        lineText.text = typedLine.Render(visibleLetters, highlightTag);
+        lineText.text = namePrefix + typedLine.Render(visibleLetters, highlightTag);
     }
 
-    // An expression on the node wins, then the NPC's portrait, then the sprite the NPC shows in the world
-    private void ShowPortrait(Sprite expression)
+    // Moves the NPC's current line up into the log, in full
+    private void LogCurrentLine()
     {
-        idleSprite = null;
-        talkingSprite = null;
+        if (!lineText.gameObject.activeSelf || typedLine.Length == 0) return;
 
-        if (showPortraits)
-        {
-            idleSprite = expression != null ? expression : npc.portrait != null ? npc.portrait : WorldSprite(npc);
-            talkingSprite = expression == null ? npc.talkingPortrait : null;
-        }
-
-        portrait.sprite = idleSprite;
-        portrait.gameObject.SetActive(idleSprite != null);
-        mouthOpen = false;
+        AddLogEntry(namePrefix, node.npcText);
+        lineText.gameObject.SetActive(false);
     }
 
-    private static Sprite WorldSprite(NPCDialogue target)
+    private void AddLogEntry(string prefix, string text)
     {
-        SpriteRenderer sprite = target.GetComponentInChildren<SpriteRenderer>();
-        if (sprite == null) sprite = target.GetComponentInParent<SpriteRenderer>();
-        return sprite != null ? sprite.sprite : null;
+        Text entry;
+        if (usedLogEntries < logEntries.Count) entry = logEntries[usedLogEntries];
+        else if (logEntries.Count < MaxLogEntries) entry = CreateLogEntry();
+        else
+        {
+            // The oldest entry is reused as the newest
+            entry = logEntries[0];
+            logEntries.RemoveAt(0);
+            logEntries.Add(entry);
+            usedLogEntries--;
+        }
+
+        usedLogEntries++;
+        logLine.Set(text);
+        entry.text = prefix + logLine.Render(logLine.Length, highlightTag);
+        entry.gameObject.SetActive(true);
+
+        // Newest entry last, with the NPC's current line under it
+        entry.transform.SetAsLastSibling();
+        lineText.transform.SetAsLastSibling();
+        logScroll.ReturnToStart();
     }
 
-    // Slides the portrait in when a conversation opens, and flaps its mouth while the line types
-    private void AnimatePortrait(float dt)
+    private void ClearLog()
     {
-        if (idleSprite == null) return;
-
-        if (portraitTime < 1f)
-        {
-            portraitTime = Mathf.Min(1f, portraitTime + dt / PortraitSlideTime);
-            float eased = Mathf.SmoothStep(0f, 1f, portraitTime);
-            portrait.color = new Color(1f, 1f, 1f, eased);
-            portrait.rectTransform.anchoredPosition = new Vector2((1f - eased) * PortraitSlideDistance, portraitRaise);
-        }
-
-        if (talkingSprite == null) return;
-
-        bool open = false;
-        if (IsTyping)
-        {
-            flapTimer += dt;
-            if (flapTimer >= flapInterval)
-            {
-                flapTimer = 0f;
-                mouthOpen = !mouthOpen;
-            }
-            open = mouthOpen;
-        }
-        portrait.sprite = open ? talkingSprite : idleSprite;
+        foreach (Text entry in logEntries) entry.gameObject.SetActive(false);
+        usedLogEntries = 0;
     }
 
     // Rows are pooled and reused between screens instead of being destroyed and rebuilt
@@ -1029,10 +1427,16 @@ public class PlayerDialogue : MonoBehaviour
             bool isSelected = i == selected;
 
             row.Back.color = isSelected ? selectedBackColor : Color.clear;
-            row.Label.color = isSelected ? selectedTextColor : options[i].Picked ? saidChoiceColor : choiceColor;
+            row.Label.color = isSelected ? selectedTextColor : RowColor(options[i]);
             row.Shadow.enabled = !isSelected;
             row.Shadow.effectColor = shadowColor;
         }
+    }
+
+    private Color RowColor(Option option)
+    {
+        if (option.Kind == OptionKind.Present) return presentColor;
+        return option.Picked ? saidChoiceColor : choiceTextColor;
     }
 
     private void BuildUI()
@@ -1062,67 +1466,118 @@ public class PlayerDialogue : MonoBehaviour
         dimImage = RuntimeUI.CreateImage("Dim", dialogueRect, screenDimColor);
         RuntimeUI.Stretch(dimImage.rectTransform);
 
-        // Stands behind the boxes at the bottom of the screen, like the intro cutscene
-        portrait = RuntimeUI.CreateImage("Portrait", dialogueRect, Color.white);
-        portrait.preserveAspect = true;
-        RectTransform portraitRect = portrait.rectTransform;
-        portraitRect.anchorMin = portraitRect.anchorMax = new Vector2(0.5f, 0f);
-        portraitRect.pivot = new Vector2(0.5f, 0f);
-        portraitRect.sizeDelta = new Vector2(portraitHeight * 1.2f, portraitHeight);
-        portraitRect.anchoredPosition = new Vector2(0f, portraitRaise);
-        portrait.gameObject.SetActive(false);
+        BuildBoxes(dialogueRect);
 
-        Transform stack = BuildBoxStack(dialogueRect);
-
-        npcBox = RuntimeUI.CreateBox("NPC Box", stack, boxWidth, boxColor, borderColor, NpcBoxPadding, NpcBoxSpacing, npcBoxBorders);
-        nameText = RuntimeUI.CreateText("Name", npcBox.transform, font, nameSize, nameColor, TextAnchor.UpperLeft, shadowColor, out nameShadow);
-        lineText = RuntimeUI.CreateText("Line", npcBox.transform, font, lineSize, lineColor, TextAnchor.UpperLeft, shadowColor, out lineShadow);
+        // The NPC's current line sits at the bottom of the log
+        lineText = RuntimeUI.CreateText("Line", logColumn, font, lineSize, lineColor, TextAnchor.UpperLeft, shadowColor, out lineShadow);
         lineText.supportRichText = true;
-
-        choicesBox = RuntimeUI.CreateBox("Choices Box", stack, choicesBoxWidth, choicesBoxColor, choicesBorderColor, ChoicesBoxPadding, 2f, choicesBoxBorders);
-        choicesGroup = choicesBox.gameObject.AddComponent<CanvasGroup>();
-        choicesGroup.blocksRaycasts = false;
-
-        // A thin bar along the top of the choices box that drains on quick-time screens
-        timerBar = RuntimeUI.CreateImage("Timer", choicesBox.transform, highlightColor);
-        timerBar.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
-        RectTransform barRect = timerBar.rectTransform;
-        barRect.anchorMin = new Vector2(0f, 1f);
-        barRect.anchorMax = Vector2.one;
-        barRect.pivot = new Vector2(0f, 1f);
-        barRect.sizeDelta = new Vector2(0f, 6f);
-        barRect.anchoredPosition = Vector2.zero;
-        timerBar.gameObject.SetActive(false);
+        lineText.lineSpacing = WrappedLineSpacing;
 
         highlightTag = TypedLine.ColorTag(highlightColor);
         dialogueRoot.SetActive(false);
     }
 
-    // Bottom-centered column with the NPC box above the choices box
-    private Transform BuildBoxStack(Transform parent)
+    // One box down the right side: the log fills the top, with the choices under a thin line at the bottom
+    private void BuildBoxes(Transform parent)
     {
-        RectTransform rect = RuntimeUI.CreateRect("Boxes", parent);
-        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0f);
-        rect.pivot = new Vector2(0.5f, 0f);
-        rect.anchoredPosition = new Vector2(0f, 40f);
-        rect.sizeDelta = new Vector2(Mathf.Max(boxWidth, choicesBoxWidth), 0f);
+        boxes = RuntimeUI.CreateRect("Boxes", parent);
+        boxes.anchorMin = new Vector2(1f, 0f);
+        boxes.anchorMax = Vector2.one;
+        boxes.pivot = new Vector2(1f, 0.5f);
+        boxes.sizeDelta = new Vector2(panelWidth, -2f * ScreenMargin);
+        boxes.anchoredPosition = new Vector2(-ScreenMargin, 0f);
 
+        var boxesLayout = boxes.gameObject.AddComponent<VerticalLayoutGroup>();
+        boxesLayout.childControlWidth = true;
+        boxesLayout.childControlHeight = true;
+        boxesLayout.childForceExpandWidth = true;
+        boxesLayout.childForceExpandHeight = true;
+
+        dialogueBox = RuntimeUI.CreateBox("Dialogue Box", boxes, panelWidth, boxColor, borderColor, BoxPadding, choicesGap * 0.5f, boxBorders);
+        boxLayout = dialogueBox.GetComponent<VerticalLayoutGroup>();
+
+        BuildLog();
+        BuildDivider();
+        BuildChoices();
+    }
+
+    // The log is pinned to the bottom of a clipped window and grows upward, so the oldest lines slide off the top
+    private void BuildLog()
+    {
+        logWindow = RuntimeUI.CreateRect("Window", dialogueBox.transform);
+        logWindow.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
+        logWindow.gameObject.AddComponent<RectMask2D>();
+
+        logColumn = CreateColumn("Log", logWindow, logSpacing);
+        logLayout = logColumn.GetComponent<VerticalLayoutGroup>();
+        logColumn.anchorMin = Vector2.zero;
+        logColumn.anchorMax = new Vector2(1f, 0f);
+        logColumn.pivot = new Vector2(0.5f, 0f);
+        logColumn.sizeDelta = Vector2.zero;
+        logColumn.anchoredPosition = Vector2.zero;
+        logColumn.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // The wheel scrolls back through earlier lines; anything new brings the log back down
+        logScroll = new WheelScroll(logWindow, logColumn, true, ScrollTrackColor(), lineColor);
+    }
+
+    // The quick-time timer drains along this line
+    private void BuildDivider()
+    {
+        divider = RuntimeUI.CreateImage("Divider", dialogueBox.transform, ScrollTrackColor());
+        var size = divider.gameObject.AddComponent<LayoutElement>();
+        size.minHeight = 1f;
+        size.preferredHeight = 1f;
+
+        timerBar = RuntimeUI.CreateImage("Timer", divider.transform, highlightColor);
+        RectTransform barRect = timerBar.rectTransform;
+        barRect.anchorMin = new Vector2(0f, 0.5f);
+        barRect.anchorMax = new Vector2(1f, 0.5f);
+        barRect.pivot = new Vector2(0f, 0.5f);
+        barRect.sizeDelta = new Vector2(0f, 4f);
+        barRect.anchoredPosition = Vector2.zero;
+        timerBar.gameObject.SetActive(false);
+    }
+
+    // The choices keep their space while a line types, so the log doesn't jump; they only fade in
+    private void BuildChoices()
+    {
+        choicesColumn = CreateColumn("Choices", dialogueBox.transform, choiceSpacing);
+        choicesLayout = choicesColumn.GetComponent<VerticalLayoutGroup>();
+        choicesGroup = choicesColumn.gameObject.AddComponent<CanvasGroup>();
+        choicesGroup.blocksRaycasts = false;
+    }
+
+    private Color ScrollTrackColor() => new Color(borderColor.r, borderColor.g, borderColor.b, borderColor.a * 0.35f);
+
+    private static RectTransform CreateColumn(string name, Transform parent, float spacing)
+    {
+        RectTransform rect = RuntimeUI.CreateRect(name, parent);
         var layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = boxGap;
-        layout.childAlignment = TextAnchor.LowerCenter;
-        layout.childControlWidth = false;
+        layout.spacing = spacing;
+        layout.childAlignment = TextAnchor.LowerLeft;
+        layout.childControlWidth = true;
         layout.childControlHeight = true;
-        layout.childForceExpandWidth = false;
+        layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
-
-        rect.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         return rect;
+    }
+
+    private Text CreateLogEntry()
+    {
+        Text entry = RuntimeUI.CreateText("Log Entry", logColumn, font, lineSize, lineColor, TextAnchor.UpperLeft, shadowColor, out Shadow shadow);
+        entry.supportRichText = true;
+        entry.lineSpacing = WrappedLineSpacing;
+        logEntries.Add(entry);
+        logShadows.Add(shadow);
+        return entry;
     }
 
     private ChoiceRow CreateRow()
     {
-        var row = new ChoiceRow { Back = RuntimeUI.CreateRow("Choice", choicesBox.transform, choiceSize + 16f, RowPadding, 0f) };
-        row.Label = RuntimeUI.CreateText("Text", row.Back.transform, font, choiceSize, choiceColor, TextAnchor.MiddleLeft, shadowColor, out row.Shadow);
+        var row = new ChoiceRow { Back = RuntimeUI.CreateRow("Choice", choicesColumn, choiceSize + 8f, RowPadding, 0f) };
+        row.Label = RuntimeUI.CreateText("Text", row.Back.transform, font, choiceSize, choiceTextColor, TextAnchor.MiddleLeft, shadowColor, out row.Shadow);
+        row.Label.lineSpacing = WrappedLineSpacing;
         RuntimeUI.FillWidth(row.Label);
 
         rows.Add(row);
@@ -1132,25 +1587,32 @@ public class PlayerDialogue : MonoBehaviour
     private void ApplyLook()
     {
         dimImage.color = screenDimColor;
-        npcBox.color = boxColor;
-        choicesBox.color = choicesBoxColor;
-        foreach (Image edge in npcBoxBorders) edge.color = borderColor;
-        foreach (Image edge in choicesBoxBorders) edge.color = choicesBorderColor;
+        dialogueBox.color = boxColor;
+        foreach (Image edge in boxBorders) edge.color = borderColor;
+        divider.color = ScrollTrackColor();
+        boxes.sizeDelta = new Vector2(panelWidth, -2f * ScreenMargin);
+        boxLayout.spacing = choicesGap * 0.5f;
+        logLayout.spacing = logSpacing;
+        choicesLayout.spacing = choiceSpacing;
+        logScroll.SetColors(ScrollTrackColor(), lineColor);
 
-        nameText.color = nameColor;
         lineText.color = lineColor;
+        lineText.fontSize = lineSize;
+        foreach (Text entry in logEntries)
+        {
+            entry.color = lineColor;
+            entry.fontSize = lineSize;
+        }
+        foreach (Shadow shadow in logShadows) shadow.effectColor = shadowColor;
         highlightTag = TypedLine.ColorTag(highlightColor);
         timerBar.color = highlightColor;
         foreach (Marker marker in markers)
         {
             if (marker.Object != null) StyleMarker(marker);
         }
-        portrait.rectTransform.sizeDelta = new Vector2(portraitHeight * 1.2f, portraitHeight);
-        if (portraitTime >= 1f) portrait.rectTransform.anchoredPosition = new Vector2(0f, portraitRaise);
         promptText.color = lineColor;
         promptBox.color = boxColor;
         foreach (Image edge in promptBorders) edge.color = borderColor;
-        nameShadow.effectColor = shadowColor;
         lineShadow.effectColor = shadowColor;
         promptShadow.effectColor = shadowColor;
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -10,6 +11,24 @@ using UnityEngine.Events;
 [RequireComponent(typeof(Rigidbody))]
 public class Grabbable : MonoBehaviour
 {
+    // One recipe: this item combined with another makes a third. It works from either item's side,
+    // so it only needs setting up on one of them
+    [Serializable]
+    public class Combination
+    {
+        [DisplayAs("Combine With")]
+        public Grabbable other;
+
+        // An object waiting hidden in the scene; it's added to the inventory when the two are combined
+        [DisplayAs("Makes")]
+        public Grabbable result;
+
+        [DisplayAs("Salem Thinks (optional)", Lines = 2)]
+        public string salemThinks = "";
+
+        public UnityEvent onCombined;
+    }
+
     private static readonly WaitForFixedUpdate WaitForPhysics = new WaitForFixedUpdate();
 
     [Header("Basics")]
@@ -52,6 +71,22 @@ public class Grabbable : MonoBehaviour
     [DisplayAs("Movement Curve")]
     public AnimationCurve returnCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
+    // Items an NPC asks to be shown always go in the inventory; tick this for anything else that should
+    [Header("Inventory")]
+    [DisplayAs("Goes In Inventory")]
+    public bool inventoryItem;
+
+    [DisplayAs("Item Name (blank = object's name)")]
+    public string itemName = "";
+
+    [DisplayAs("Item Description", Lines = 3)]
+    public string itemDescription = "";
+
+    [DisplayAs("Item Picture (optional)")]
+    public Sprite itemPicture;
+
+    public List<Combination> combinations = new List<Combination>();
+
     [Foldout("Events")]
     public UnityEvent onGrabbed;
 
@@ -73,6 +108,16 @@ public class Grabbable : MonoBehaviour
     private bool kinematicBeforeGlide;
 
     public bool IsHeld { get; private set; }
+
+    // Item Name, then a clue's inventory name, then the object's own name
+    public string DisplayName
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(itemName)) return itemName.Trim();
+            return TryGetComponent(out Clue clue) ? clue.InventoryName : name;
+        }
+    }
 
     // True while the object is gliding somewhere, home or into a placement zone
     public bool IsGliding => glideRoutine != null;
@@ -188,6 +233,9 @@ public class Grabbable : MonoBehaviour
         IsHeld = true;
         onGrabbed?.Invoke();
     }
+
+    // Put in the inventory rather than dropped, so nothing that listens for a drop reacts
+    internal void NotifyPutAway() => IsHeld = false;
 
     internal void NotifyDropped()
     {

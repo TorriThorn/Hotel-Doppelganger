@@ -63,18 +63,22 @@ public class MainMenu : MonoBehaviour
     [DisplayAs("Page Title")]
     [SerializeField] private string tutorialTitle = "How To Play";
 
-    [DisplayAs("Page Text", Lines = 8)]
+    [DisplayAs("Page Text", Lines = 13)]
     [SerializeField]
     private string tutorialText =
         "WASD  -  Walk\n" +
         "Shift  -  Sprint\n" +
         "Mouse  -  Look around\n" +
-        "Left click  -  Talk to people\n" +
-        "Hold left click  -  Pick up and carry things\n" +
+        "E or left click  -  Talk to someone\n" +
+        "E while carrying something  -  Show it to them\n" +
+        "Left click  -  Pick up or put down things\n" +
         "Right click while carrying  -  Rotate what you're holding\n" +
         "Scroll while carrying  -  Move it closer or further away\n" +
-        "Mouse, number keys or W/S + E  -  Pick what to say\n" +
-        "Tab  -  Leave a conversation";
+        "Let go of a clue or quest item  -  Put it in your inventory\n" +
+        "Click, number keys or W/S + E  -  Pick what to say\n" +
+        "Click or Space  -  Skip to the end of a line\n" +
+        "Tab  -  Leave a conversation\n" +
+        "J  -  Open or close the journal and inventory";
 
     [DisplayAs("Back Button Text")]
     [SerializeField] private string backText = "Back";
@@ -266,19 +270,13 @@ public class MainMenu : MonoBehaviour
         HoldGameplay();
         if (mouse == null || StartupNotice.IsShowing) return;
 
-        if (keyboard.escapeKey.wasPressedThisFrame && page != Page.Main)
-        {
-            GoBack();
-            return;
-        }
-
         if (keyboard.f1Key.wasPressedThisFrame && openedInGame)
         {
             Close();
             return;
         }
 
-        CurrentList.HandleInput(keyboard, mouse);
+        CurrentList.HandleInput(mouse);
         if (IsOpen) CurrentList.Refresh();
     }
 
@@ -449,6 +447,7 @@ public class MainMenu : MonoBehaviour
             section.Settings.Add(MenuSetting.Slider("Closest Hold Distance", 0.25f, 5f, 0.25f, "0.00", () => g.ClosestHold, v => g.ClosestHold = v));
             section.Settings.Add(MenuSetting.Slider("Farthest Hold Distance", 0.5f, 8f, 0.25f, "0.00", () => g.FarthestHold, v => g.FarthestHold = v));
             section.Settings.Add(MenuSetting.Slider("Carry Strength", 1f, 40f, 1f, "0", () => g.FollowStrength, v => g.FollowStrength = v));
+            section.Settings.Add(MenuSetting.Toggle("Click Again To Drop", () => g.ToggleHold, v => g.ToggleHold = v));
             section.Settings.Add(MenuSetting.Toggle("Glow On Grabbable Objects", () => g.ShowGlow, v => g.ShowGlow = v));
         }
 

@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// A piece of evidence the player can pick up. The first pick-up counts as finding it: Salem can comment,
-// and On Found can unlock dialogue or start other events. A note's text shows on screen while it's held
+// A piece of evidence the player can pick up. The first pick-up counts as finding it: it joins the inventory,
+// Salem can comment, and On Found can unlock dialogue or start other events. A note's text shows on screen
+// while it's held, and its inventory page shows the note and what Salem thought
 [AddComponentMenu("Game/Puzzle/Clue")]
 [RequireComponent(typeof(Grabbable))]
 public class Clue : MonoBehaviour
@@ -19,25 +21,34 @@ public class Clue : MonoBehaviour
     [DisplayAs("Note Text (shown while held)", Lines = 5)]
     [SerializeField] private string noteText = "";
 
-    [Header("Journal")]
-    [DisplayAs("Add To Journal")]
+    [Header("Inventory")]
+    [DisplayAs("Add To Inventory")]
     [SerializeField] private bool addToJournal = true;
 
-    [DisplayAs("Journal Title (blank = note title)", ShowIf = nameof(addToJournal))]
+    // Only used if the Grabbable's own Item Name is blank
+    [DisplayAs("Inventory Name (blank = note title)", ShowIf = nameof(addToJournal))]
     [SerializeField] private string journalTitle = "";
 
     [Foldout("Events")]
     public UnityEvent onFound;
 
+    private readonly List<string> conclusions = new List<string>();
     private Grabbable grabbable;
 
     public bool Found { get; private set; }
+    public bool AddsToInventory => addToJournal;
+    public string NoteTitle => noteTitle;
+    public string NoteText => noteText;
+    public string Thought => thought;
+
+    // What Salem worked out once a Clue Set this belongs to was complete
+    public IReadOnlyList<string> Conclusions => conclusions;
 
     // For Clue Sets, which count how many pieces have been found
     public event Action<Clue> FoundChanged;
 
-    // Falls back to the note's title, then the object's name, so every entry has something to show in the list
-    private string JournalTitle =>
+    // Falls back to the note's title, then the object's name, so every item has something to show in the list
+    public string InventoryName =>
         !string.IsNullOrWhiteSpace(journalTitle) ? journalTitle.Trim()
         : !string.IsNullOrWhiteSpace(noteTitle) ? noteTitle.Trim()
         : gameObject.name;
@@ -63,10 +74,15 @@ public class Clue : MonoBehaviour
         if (Found) return;
 
         Found = true;
-        if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Think(thought, false);
-        if (addToJournal) Journal.Get().Add(JournalTitle, noteText, thought);
+        if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Say(thought);
+        if (addToJournal) Journal.Get().AddItem(grabbable);
         onFound?.Invoke();
         FoundChanged?.Invoke(this);
+    }
+
+    public void AddConclusion(string line)
+    {
+        if (!string.IsNullOrWhiteSpace(line)) conclusions.Add(line.Trim());
     }
 
     private void OnGrabbed()

@@ -3,7 +3,8 @@ using UnityEngine;
 using UnityEngine.Events;
 
 // Groups clues that only mean something together, like the pieces of Geno's notes.
-// Once enough of them are found, Salem can put it together and On Complete fires
+// Once enough of them are found, Salem can put it together and On Complete fires. What he worked out is added
+// to each piece's inventory page
 [AddComponentMenu("Game/Puzzle/Clue Set")]
 public class ClueSet : MonoBehaviour
 {
@@ -16,9 +17,6 @@ public class ClueSet : MonoBehaviour
     [Header("When Enough Are Found")]
     [DisplayAs("Salem Thinks (optional)", Lines = 2)]
     [SerializeField] private string thought = "";
-
-    [DisplayAs("Journal Title (blank = this object's name)")]
-    [SerializeField] private string journalTitle = "";
 
     [Foldout("Events")]
     public UnityEvent onComplete;
@@ -61,8 +59,11 @@ public class ClueSet : MonoBehaviour
         IsComplete = true;
         if (!string.IsNullOrWhiteSpace(thought))
         {
-            DetectiveThoughts.Get().Think(thought, false);
-            Journal.Get().Add(string.IsNullOrWhiteSpace(journalTitle) ? gameObject.name : journalTitle.Trim(), "", thought);
+            DetectiveThoughts.Get().Say(thought);
+            foreach (Clue clue in clues)
+            {
+                if (clue != null) clue.AddConclusion(thought);
+            }
         }
         onComplete?.Invoke();
     }

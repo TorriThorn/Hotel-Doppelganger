@@ -79,6 +79,26 @@ public class PlayerBody : MonoBehaviour
     private bool hasGrounded;
     private RuntimeAnimatorController cachedController;
     private Vector3 lastPosition;
+    private Renderer[] bodyParts = new Renderer[0];
+    private ShadowCastingMode[] normalShadowModes = new ShadowCastingMode[0];
+    private bool hiddenFromView;
+
+    // Set by the dialogue while the conversation camera is away from the player, so the body never blocks the shot.
+    // It still casts its shadow
+    public bool HiddenFromView
+    {
+        get => hiddenFromView;
+        set
+        {
+            if (value == hiddenFromView) return;
+
+            hiddenFromView = value;
+            for (int i = 0; i < bodyParts.Length; i++)
+            {
+                if (bodyParts[i] != null) bodyParts[i].shadowCastingMode = value ? ShadowCastingMode.ShadowsOnly : normalShadowModes[i];
+            }
+        }
+    }
 
     private void Awake()
     {
@@ -173,6 +193,11 @@ public class PlayerBody : MonoBehaviour
                 if (part != null) part.shadowCastingMode = ShadowCastingMode.ShadowsOnly;
             }
         }
+
+        // Remembered so HiddenFromView can put each part back the way it was
+        bodyParts = body.GetComponentsInChildren<Renderer>();
+        normalShadowModes = new ShadowCastingMode[bodyParts.Length];
+        for (int i = 0; i < bodyParts.Length; i++) normalShadowModes[i] = bodyParts[i].shadowCastingMode;
     }
 
     private void CacheBones()

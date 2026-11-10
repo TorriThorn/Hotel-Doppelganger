@@ -54,7 +54,7 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("NPC Says", Lines = 3)]
         public string npcText = "...";
 
-        [DisplayAs("Expression (optional)")]
+        [DisplayAs("Expression Sprite (optional)")]
         public Sprite expression;
 
         public List<Choice> choices = new List<Choice>();
@@ -80,8 +80,9 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Player Says")]
         public string text = "...";
 
-        // Set this to make it a "show the item" line: it only appears while the player is carrying that object
-        [DisplayAs("Only While Holding (optional)")]
+        // Set this to make it a "present the item" line. It's never listed as a choice; the player reaches it by
+        // presenting the item from their inventory, and Player Says is logged as what they say while showing it
+        [DisplayAs("Present This Item (optional)")]
         public Grabbable requiredItem;
 
         [DisplayAs("NPC Says", Lines = 3)]
@@ -91,7 +92,7 @@ public class NPCDialogue : MonoBehaviour
         public List<Choice> choices = new List<Choice>();
 
         [MoreOptions]
-        [DisplayAs("Expression (optional)")]
+        [DisplayAs("Expression Sprite (optional)")]
         public Sprite expression;
 
         [MoreOptions]
@@ -130,13 +131,23 @@ public class NPCDialogue : MonoBehaviour
     [DisplayAs("Add Goodbye Option")]
     public bool addGoodbye = true;
 
-    // Left empty, the conversation shows the NPC's own world sprite, so a sprite swap (like a monster reveal) shows up too
-    [Header("Portrait")]
-    [DisplayAs("Portrait (optional)")]
+    [Header("Presenting Items")]
+    [DisplayAs("Reply To Unhelpful Items", Lines = 2)]
+    public string wrongItemReply = "I don't see what that has to do with anything.";
+
+    // Shown on the NPC itself while they talk. Left empty, Idle Sprite is whatever the NPC already shows.
+    // Both should match the NPC's normal sprite in size and pivot so nothing jumps when they swap
+    [Header("Talking Sprites")]
+    [DisplayAs("Idle Sprite (optional)")]
     public Sprite portrait;
 
-    [DisplayAs("Talking Portrait (optional)")]
+    [DisplayAs("Talking Sprite (optional)")]
     public Sprite talkingPortrait;
+
+    // Moves the spot the conversation camera zooms in on up or down for this NPC, in meters
+    [Header("Conversation Camera")]
+    [DisplayAs("Face Height Adjust (meters)")]
+    public float faceHeightAdjust;
 
     // Nudges the floating ! and overheard lines up or down for this NPC, in meters
     [Header("Over Their Head")]
@@ -261,7 +272,24 @@ public class NPCDialogue : MonoBehaviour
         if (visited.Add(entry)) Version++;
     }
 
-    // Whether this NPC has an unheard "show the item" line for this object, so a marker can say "show me that"
+    // The "present the item" line for this object, if its event has happened (or it has none). -1 if there isn't one
+    public int FindItemEntry(Grabbable item)
+    {
+        if (item == null) return -1;
+
+        for (int i = 0; i < eventDialogue.Count; i++)
+        {
+            EventDialogue entry = eventDialogue[i];
+            if (entry == null || entry.requiredItem != item) continue;
+
+            bool needsId = !string.IsNullOrWhiteSpace(entry.unlockId);
+            if (!needsId || unlockedIds.Contains(entry.unlockId.Trim())) return i;
+        }
+
+        return -1;
+    }
+
+    // Whether this NPC has an unheard "present the item" line for this object, so a marker can say "show me that"
     public bool WantsItem(Grabbable item)
     {
         if (item == null) return false;

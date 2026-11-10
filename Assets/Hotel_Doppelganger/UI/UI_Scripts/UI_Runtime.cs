@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using Component = UnityEngine.Component;
 using Image = UnityEngine.UI.Image;
@@ -178,5 +179,183 @@ public static class RuntimeUI
         rect.sizeDelta = size;
         rect.anchoredPosition = Vector2.zero;
         return edge;
+    }
+}
+
+// Scrolling for a column inside a clipped area, with the mouse wheel or a slim scroll bar down the right edge.
+// The column is pinned to the top or bottom of the area and slides to show what has run off the other end.
+// The bar only shows when there's more than fits, and its handle can be dragged or the track clicked to jump
+public sealed class WheelScroll
+{
+    private const float StepPerNotch = 70f;
+    private const float Smoothing = 14f;
+    private const float BarWidth = 6f;
+    private const float BarGap = 12f;
+    private const float MinHandleFraction = 0.08f;
+
+    private readonly RectTransform viewport;
+    private readonly RectTransform content;
+    private readonly bool pinnedToBottom;
+    private readonly float restingY;
+    private readonly Image track;
+    private readonly Image handle;
+
+    private float target;
+    private float current;
+    private float overflow;
+    private bool dragging;
+    private float grabOffset;
+
+    // The column is narrowed to leave room for the bar, so text never runs underneath it
+    public WheelScroll(RectTransform viewport, RectTransform content, bool pinnedToBottom, Color trackColor, Color handleColor)
+    {
+        this.viewport = viewport;
+        this.content = content;
+        this.pinnedToBottom = pinnedToBottom;
+        restingY = content.anchoredPosition.y;
+
+        float room = BarWidth + BarGap;
+        content.sizeDelta = new Vector2(content.sizeDelta.x - room, content.sizeDelta.y);
+        content.anchoredPosition = new Vector2(content.anchoredPosition.x - room * content.pivot.x, restingY);
+
+        track = RuntimeUI.CreateImage("Scroll Bar", viewport, trackColor);
+        RectTransform trackRect = track.rectTransform;
+        trackRect.anchorMin = new Vector2(1f, 0f);
+        trackRect.anchorMax = Vector2.one;
+        trackRect.pivot = new Vector2(1f, 0.5f);
+        trackRect.sizeDelta = new Vector2(BarWidth, 0f);
+        trackRect.anchoredPosition = Vector2.zero;
+
+        handle = RuntimeUI.CreateImage("Handle", trackRect, handleColor);
+        RectTransform handleRect = handle.rectTransform;
+        handleRect.offsetMin = Vector2.zero;
+        handleRect.offsetMax = Vector2.zero;
+        track.gameObject.SetActive(false);
+    }
+
+    public bool IsDragging => dragging;
+
+    public void SetColors(Color trackColor, Color handleColor)
+    {
+        track.color = trackColor;
+        handle.color = handleColor;
+    }
+
+    // True while the mouse is on the bar, so a click there isn't also taken as a click on what's behind it
+    public bool IsOver(Mouse mouse) =>
+        dragging || (mouse != null && track.gameObject.activeSelf && RuntimeUI.Contains(track.rectTransform, mouse.position.ReadValue()));
+
+    // Back to the pinned end at once
+    public void Reset()
+    {
+        target = 0f;
+        current = 0f;
+        dragging = false;
+        Apply();
+    }
+
+    // Back to the pinned end, gliding there
+    public void ReturnToStart() => target = 0f;
+
+    // Takes unscaled time, so it still scrolls while the game is paused
+    public void Update(Mouse mouse, float dt)
+    {
+        overflow = Mathf.Max(0f, content.rect.height - viewport.rect.height);
+
+        if (mouse != null)
+        {
+            Vector2 point = mouse.position.ReadValue();
+            if (overflow > 0f) UpdateDrag(mouse, point);
+            else dragging = false;
+
+            float wheel = mouse.scroll.ReadValue().y;
+
+            // Wheel up shows older lines in a bottom-pinned log, and the start of a top-pinned page
+            if (wheel != 0f && RuntimeUI.Contains(viewport, point)) target += Mathf.Sign(wheel) * StepPerNotch * (pinnedToBottom ? 1f : -1f);
+        }
+
+        target = Mathf.Clamp(target, 0f, overflow);
+        if (dragging) current = target;
+        else if (!Mathf.Approximately(current, target))
+        {
+            current = Mathf.Lerp(current, target, 1f - Mathf.Exp(-Smoothing * dt));
+            if (Mathf.Abs(current - target) < 0.5f) current = target;
+        }
+
+        current = Mathf.Clamp(current, 0f, overflow);
+        Apply();
+        UpdateBar();
+    }
+
+    // Grabbing the handle keeps the same spot under the mouse; clicking the track centers the handle there
+    private void UpdateDrag(Mouse mouse, Vector2 point)
+    {
+        if (!mouse.leftButton.isPressed)
+        {
+            dragging = false;
+            return;
+        }
+
+        float pointFromTop = FractionFromTop(point);
+        if (mouse.leftButton.wasPressedThisFrame)
+        {
+            if (!RuntimeUI.Contains(track.rectTransform, point)) return;
+
+            dragging = true;
+            float handleTop = HandleTop();
+            bool onHandle = pointFromTop >= handleTop && pointFromTop <= handleTop + VisibleFraction();
+            grabOffset = onHandle ? pointFromTop - handleTop : VisibleFraction() * 0.5f;
+        }
+
+        if (!dragging) return;
+
+        float top = Mathf.Clamp(pointFromTop - grabOffset, 0f, 1f - VisibleFraction());
+        float shownFromTop = top * content.rect.height;
+        target = pinnedToBottom ? overflow - shownFromTop : shownFromTop;
+    }
+
+    private float FractionFromTop(Vector2 point)
+    {
+        RectTransform trackRect = track.rectTransform;
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(trackRect, point, null, out Vector2 local);
+        Rect rect = trackRect.rect;
+        return rect.height > 0f ? Mathf.Clamp01((rect.yMax - local.y) / rect.height) : 0f;
+    }
+
+    private float VisibleFraction()
+    {
+        float height = content.rect.height;
+        return height > 0f ? Mathf.Clamp01(viewport.rect.height / height) : 1f;
+    }
+
+    // Where the top of the visible part is, as a fraction of the whole column from its top
+    private float HandleTop()
+    {
+        float height = content.rect.height;
+        if (height <= 0f) return 0f;
+
+        float shownFromTop = pinnedToBottom ? overflow - current : current;
+        return shownFromTop / height;
+    }
+
+    private void UpdateBar()
+    {
+        bool show = overflow > 0f;
+        if (track.gameObject.activeSelf != show) track.gameObject.SetActive(show);
+        if (!show) return;
+
+        // A minimum size keeps the handle easy to grab in a very long log
+        float size = Mathf.Max(VisibleFraction(), MinHandleFraction);
+        float top = 1f - HandleTop() * (1f - size) / Mathf.Max(0.0001f, 1f - VisibleFraction());
+        RectTransform handleRect = handle.rectTransform;
+        handleRect.anchorMin = new Vector2(0f, top - size);
+        handleRect.anchorMax = new Vector2(1f, top);
+    }
+
+    private void Apply()
+    {
+        Vector2 position = content.anchoredPosition;
+        position.y = pinnedToBottom ? restingY - current : restingY + current;
+        content.anchoredPosition = position;
     }
 }
