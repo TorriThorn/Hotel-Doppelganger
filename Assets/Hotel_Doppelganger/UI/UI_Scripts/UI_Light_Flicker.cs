@@ -2,15 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
+using Random = UnityEngine.Random;
 
 // The lights stutter a few times, then go out completely for a moment. While it's dark, On Dark runs: the place to
 // make objects appear, move characters and unlock things, so the room has changed when the lights come back.
-// A dark overlay makes sure the room really goes black, since switching lights off still leaves ambient light
+// A black overlay makes sure the screen really goes black, since switching lights off still leaves ambient light
 [AddComponentMenu("Game/Puzzle/Light Flicker")]
 public class LightFlicker : MonoBehaviour
 {
     private const int SortingOrder = 95;
-    private const float FlickerDarkness = 0.55f;
 
     [Header("Lights")]
     [DisplayAs("Lights (empty = every light in the scene)")]
@@ -28,9 +28,6 @@ public class LightFlicker : MonoBehaviour
 
     [DisplayAs("Time Fully Dark (seconds)", Min = 0f)]
     [SerializeField] private float darkTime = 1.2f;
-
-    [DisplayAs("How Dark (0-1)", Min = 0f, Max = 1f)]
-    [SerializeField] private float darkness = 0.92f;
 
     [Header("Afterwards")]
     [DisplayAs("Salem Thinks (optional)", Lines = 2)]
@@ -85,13 +82,13 @@ public class LightFlicker : MonoBehaviour
 
         for (int i = 0; i < flickers; i++)
         {
-            SetDark(FlickerDarkness * darkness);
+            SetDark(1f);
             yield return new WaitForSeconds(Random.Range(shortestBlink, longestBlink));
             SetDark(0f);
             yield return new WaitForSeconds(Random.Range(shortestBlink, longestBlink) * 1.5f);
         }
 
-        SetDark(darkness);
+        SetDark(1f);
         onDark?.Invoke();
         yield return new WaitForSeconds(darkTime);
 

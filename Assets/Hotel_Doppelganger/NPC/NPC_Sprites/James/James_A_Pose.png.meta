@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: a6d90bace2f8e9445a9b77b2d9050168
+guid: 9ffc0ee56d9c83349914af0f6d7a7fed
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -8451752369490405339
-    second: Firefly_0
+      213: -5308522880529598166
+    second: James_A_Pose_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -115,13 +115,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Firefly_0
+      name: James_A_Pose_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 0
-        width: 683
-        height: 1024
+        y: 327
+        width: 1536
+        height: 2425
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,8 +130,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 52855fecff755ba80800000000000000
-      internalID: -8451752369490405339
+      spriteID: a29ffffd0965456b0800000000000000
+      internalID: -5308522880529598166
       vertices: []
       indices: 
       edges: []
@@ -140,7 +140,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: f993e773e30a46a4c89b24fdb2fa0e02
+    spriteID: b31b205e971180c4596a79ee771ecdf3
     internalID: 0
     vertices: []
     indices: 
@@ -150,7 +150,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Firefly_0: -8451752369490405339
+      James_A_Pose_0: -5308522880529598166
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

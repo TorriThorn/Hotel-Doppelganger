@@ -119,6 +119,7 @@ public class IntroCutscene : MonoBehaviour
 
     // Above the dialogue box and menu, below Game Complete
     private const int SortingOrder = 250;
+    private const int AsideSortingOrder = 300;
 
     private const float FadeInTime = 0.6f;
     private const float FadeOutTime = 0.5f;
@@ -273,6 +274,10 @@ public class IntroCutscene : MonoBehaviour
 
     public static bool IsPlaying { get; private set; }
 
+    private bool showingAside;
+    private bool asideWaits;
+    private Canvas boxLayer;
+
     private bool IsTyping => visibleLetters < typedLine.Length;
 
     private void Awake()
@@ -315,6 +320,11 @@ public class IntroCutscene : MonoBehaviour
         float dt = Time.unscaledDeltaTime;
         UpdateEffects(dt);
 
+        if (state == State.Waiting && showingAside)
+        {
+            UpdateAside(dt);
+            return;
+        }
         if (state != State.Reading) return;
 
         Keyboard keyboard = Keyboard.current;
@@ -391,6 +401,7 @@ public class IntroCutscene : MonoBehaviour
     {
         if (state != State.Waiting) return;
 
+        EndAside();
         state = State.Reading;
         readyTime = Time.unscaledTime + InputDelay;
         lineIndex++;
@@ -398,13 +409,69 @@ public class IntroCutscene : MonoBehaviour
         else ShowLine(lines[lineIndex]);
     }
 
-    // Lets something shown over the cutscene, like a Contradiction, take the screen without the text box showing
-    // through. The portrait comes back with the next line
-    public void HideTextBox(bool hide)
+    public bool AsideTyping => showingAside && IsTyping;
+
+    // While the scene waits, something shown over it (like a Contradiction) can use the text box for its own lines,
+    // e.g. Salem's thoughts. A blank line hides the box, so the line the scene stopped on doesn't sit underneath.
+    // Waiting For Click shows the next arrow and hint once it's typed, for whatever is waiting on a click
+    public void ShowAside(string speakerName, string text, bool waitingForClick = false)
     {
-        box.gameObject.SetActive(!hide);
-        hintText.gameObject.SetActive(!hide);
-        if (hide) portrait.gameObject.SetActive(false);
+        if (state != State.Waiting) return;
+
+        bool show = !string.IsNullOrWhiteSpace(text);
+        showingAside = true;
+
+        // Lifted above whatever is covering the scene, so its screen shade doesn't darken the box
+        if (boxLayer == null) boxLayer = box.gameObject.AddComponent<Canvas>();
+        boxLayer.overrideSorting = true;
+        boxLayer.sortingOrder = AsideSortingOrder;
+
+        asideWaits = show && waitingForClick;
+        box.gameObject.SetActive(show);
+        hintText.gameObject.SetActive(false);
+        nextArrow.gameObject.SetActive(false);
+        portrait.gameObject.SetActive(false);
+        if (!show) return;
+
+        Character character = FindCharacter(speakerName);
+        nameText.gameObject.SetActive(true);
+        nameText.text = (character != null ? character.name : speakerName.Trim()).ToUpper();
+        lineText.color = activeTextColor;
+
+        typedLine.Set(text);
+        visibleLetters = 0;
+        renderedLetters = -1;
+        letterTimer = 0f;
+        RenderLine();
+    }
+
+    public void FinishAsideTyping()
+    {
+        if (showingAside) visibleLetters = typedLine.Length;
+    }
+
+    // Puts the text box back how the scene had it. The next line resets the name and portrait
+    public void EndAside()
+    {
+        if (!showingAside) return;
+
+        showingAside = false;
+        asideWaits = false;
+        nextArrow.gameObject.SetActive(false);
+        if (boxLayer != null) boxLayer.overrideSorting = false;
+        box.gameObject.SetActive(true);
+        hintText.gameObject.SetActive(true);
+    }
+
+    private void UpdateAside(float dt)
+    {
+        if (IsTyping) TypeLetters(dt);
+        if (visibleLetters != renderedLetters) RenderLine();
+
+        bool ready = asideWaits && !IsTyping;
+        if (nextArrow.gameObject.activeSelf != ready) nextArrow.gameObject.SetActive(ready);
+        if (hintText.gameObject.activeSelf != ready) hintText.gameObject.SetActive(ready);
+        if (ready) nextArrow.rectTransform.anchoredPosition = new Vector2(-24f, 22f + Mathf.Sin(Time.unscaledTime * 6f) * 3f);
     }
 
     private void Advance()

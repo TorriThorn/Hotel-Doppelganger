@@ -78,6 +78,7 @@ public class Contradiction : MonoBehaviour
     }
 
     private const int SortingOrder = 260;
+    private const string SalemName = "Salem";
     private const float SideWidth = 760f;
     private const float SideGap = 80f;
     private const float WordsWidth = SideWidth - 60f;
@@ -97,7 +98,8 @@ public class Contradiction : MonoBehaviour
     private const float StampAngle = -8f;
     private const float StampStartScale = 2.6f;
     private const int StampTextSize = 96;
-    private const float SolvedPause = 3.2f;
+    private const float ContinueDelay = 0.3f;
+    private const string ContinueHint = "Click to continue";
 
     private const float PopDelay = 0.35f;
     private const float PopStagger = 0.09f;
@@ -306,9 +308,10 @@ public class Contradiction : MonoBehaviour
         IsOpen = true;
         ApplyLook();
 
-        // Salem's thoughts here would land on top of the cutscene's text box, so it steps aside until this closes
+        // Inside the intro cutscene, Salem's thoughts go in its text box, which starts empty instead of
+        // still showing the line it stopped on
         coveredCutscene = IntroCutscene.IsPlaying ? FindAnyObjectByType<IntroCutscene>() : null;
-        if (coveredCutscene != null) coveredCutscene.HideTextBox(true);
+        if (coveredCutscene != null) coveredCutscene.ShowAside(SalemName, string.Empty);
 
         phase = Phase.Picking;
         pinnedSide = hoverSide = targetSide = null;
@@ -335,7 +338,7 @@ public class Contradiction : MonoBehaviour
         IsOpen = false;
         canvas.gameObject.SetActive(false);
 
-        if (coveredCutscene != null) coveredCutscene.HideTextBox(false);
+        if (coveredCutscene != null) coveredCutscene.EndAside();
         coveredCutscene = null;
 
         // On its own (not inside the intro cutscene) it hands the controls back itself
@@ -459,11 +462,15 @@ public class Contradiction : MonoBehaviour
             {
                 stampLanded = true;
                 Shake(StampShake);
-                Say(realisation);
+                Say(realisation, true);
             }
         }
 
-        if (phaseTime >= StampDelay + StampTime + SolvedPause) Finish();
+        // Waits for a click like the rest of the intro; the first click finishes Salem's line if it's still typing
+        if (!stampLanded || phaseTime < StampDelay + StampTime + ContinueDelay || !ContinuePressed()) return;
+
+        if (coveredCutscene != null && coveredCutscene.AsideTyping) coveredCutscene.FinishAsideTyping();
+        else Finish();
     }
 
     private void UpdateDrop(float dt)
@@ -492,12 +499,29 @@ public class Contradiction : MonoBehaviour
         Say(line.Replace("{0}", leftPick).Replace("{1}", rightPick));
     }
 
-    private void Say(string line)
+    // Salem's line for the solve stays up until the player clicks on
+    private void Say(string line, bool waitForClick = false)
     {
+        if (waitForClick && coveredCutscene == null) instructionsText.text = ContinueHint;
         if (string.IsNullOrWhiteSpace(line)) return;
 
+        if (coveredCutscene != null)
+        {
+            coveredCutscene.ShowAside(SalemName, line, waitForClick);
+            return;
+        }
+
         feedbackText.text = line;
-        feedbackLeft = FeedbackTime;
+        feedbackLeft = waitForClick ? float.MaxValue : FeedbackTime;
+    }
+
+    private static bool ContinuePressed()
+    {
+        Mouse mouse = Mouse.current;
+        Keyboard keyboard = Keyboard.current;
+        return (mouse != null && mouse.leftButton.wasPressedThisFrame)
+               || (keyboard != null && (keyboard.spaceKey.wasPressedThisFrame || keyboard.enterKey.wasPressedThisFrame
+                                        || keyboard.numpadEnterKey.wasPressedThisFrame || keyboard.eKey.wasPressedThisFrame));
     }
 
     private void Shake(float strength)

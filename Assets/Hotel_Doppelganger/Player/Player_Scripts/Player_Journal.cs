@@ -373,6 +373,19 @@ public class Journal : MonoBehaviour
         Announce(item.DisplayName + " " + itemAddedText);
     }
 
+    // Takes it out of the inventory for good, e.g. something used up or stolen. Rows show whatever item is at
+    // their place, so dropping the last row is enough to shorten the list
+    public void RemoveItem(Grabbable item)
+    {
+        if (item == null || !items.Remove(item)) return;
+
+        putAway.Remove(item);
+        item.gameObject.SetActive(false);
+        itemsList.RemoveLast();
+        itemsList.MarkDirty();
+        if (newestItem == item) newestItem = null;
+    }
+
     // Opens on the Items tab with a Present button. The callback gets the chosen item, or null if the player backs out
     public void OpenToPresent(Action<Grabbable> picked)
     {
@@ -639,18 +652,6 @@ public class Journal : MonoBehaviour
         shownIndex = -1;
         if (!string.IsNullOrWhiteSpace(recipe.salemThinks)) DetectiveThoughts.Get().Say(recipe.salemThinks);
         recipe.onCombined?.Invoke();
-    }
-
-    // Rows show whatever item is at their place, so dropping the last row is enough to shorten the list
-    private void RemoveItem(Grabbable item)
-    {
-        if (item == null || !items.Remove(item)) return;
-
-        putAway.Remove(item);
-        item.gameObject.SetActive(false);
-        itemsList.RemoveLast();
-        itemsList.MarkDirty();
-        if (newestItem == item) newestItem = null;
     }
 
     private void PressActionButton()

@@ -29,6 +29,10 @@ public class OverheardConversation : MonoBehaviour
 
         [DisplayAs("Seconds On Screen (0 = auto)", Min = 0f)]
         public float seconds;
+
+        // Played from the speaker, so it can be heard from across the room
+        [DisplayAs("Sound (optional)")]
+        public AudioClip sound;
     }
 
     private const float PixelsPerMeter = 100f;
@@ -36,6 +40,7 @@ public class OverheardConversation : MonoBehaviour
     private const float AutoTimePerLetter = 0.06f;
     private const float FallbackHeight = 2f;
     private const string OutOfEarshot = "...";
+    private const float HopSpeed = 9f;
 
     [Header("Lines")]
     [SerializeField] private List<Line> lines = new List<Line>();
@@ -58,6 +63,17 @@ public class OverheardConversation : MonoBehaviour
 
     [DisplayAs("Speakers Stop Walking While Talking")]
     [SerializeField] private bool holdSpeakers = true;
+
+    // The one talking bounces on the spot, like two people butting heads. Only works when the sprite sits
+    // on a child of the NPC, not on the NPC object itself
+    [DisplayAs("Speaker Hops While Talking")]
+    [SerializeField] private bool hop;
+
+    [DisplayAs("Hop Height (meters)", ShowIf = nameof(hop), Min = 0f)]
+    [SerializeField] private float hopHeight = 0.12f;
+
+    [DisplayAs("Sound Volume", Min = 0f, Max = 1f)]
+    [SerializeField] private float soundVolume = 1f;
 
     [Foldout("Events")]
     [DisplayAs("On Finished, Player Heard It")]
@@ -92,6 +108,8 @@ public class OverheardConversation : MonoBehaviour
     private Renderer currentBody;
     private string currentLine;
     private bool heardAny;
+    private Transform hopping;
+    private Vector3 hopRest;
 
     public bool IsPlaying => playing != null;
 
@@ -128,6 +146,7 @@ public class OverheardConversation : MonoBehaviour
         if (playing != null) StopCoroutine(playing);
         playing = null;
         HoldSpeakers(false);
+        SetHopping(null);
         currentSpeaker = null;
         if (bubble != null) bubble.gameObject.SetActive(false);
     }
@@ -147,6 +166,8 @@ public class OverheardConversation : MonoBehaviour
 
                 currentSpeaker = line.speaker;
                 currentBody = FindBody(line.speaker);
+                SetHopping(hop ? HopTarget(line.speaker, currentBody) : null);
+                if (line.sound != null) AudioSource.PlayClipAtPoint(line.sound, line.speaker.transform.position, soundVolume);
                 // Floating text is plain, so highlight markers are just dropped
                 currentLine = line.text.Replace("*", string.Empty).Trim();
 
@@ -155,6 +176,7 @@ public class OverheardConversation : MonoBehaviour
             }
 
             currentSpeaker = null;
+            SetHopping(null);
             bubble.gameObject.SetActive(false);
             HoldSpeakers(false);
 
@@ -180,6 +202,8 @@ public class OverheardConversation : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (hopping != null) hopping.localPosition = hopRest + Vector3.up * (Mathf.Abs(Mathf.Sin(Time.time * HopSpeed)) * hopHeight);
+
         bool show = currentSpeaker != null && viewer != null && (dialogue == null || !dialogue.IsTalking);
         if (bubble.gameObject.activeSelf != show) bubble.gameObject.SetActive(show);
         if (!show) return;
@@ -192,6 +216,25 @@ public class OverheardConversation : MonoBehaviour
         if (bubbleText.text != shown) bubbleText.text = shown;
 
         bubble.transform.SetPositionAndRotation(top + Vector3.up * heightAboveHead, viewer.rotation);
+    }
+
+    // Moving the NPC object itself would fight its walking, so only a sprite on a child can hop
+    private static Transform HopTarget(NPCDialogue speaker, Renderer body)
+    {
+        if (body == null) return null;
+
+        NPCPatrol patrol = speaker.GetComponentInParent<NPCPatrol>();
+        Transform root = patrol != null ? patrol.transform : speaker.transform;
+        return body.transform != root ? body.transform : null;
+    }
+
+    private void SetHopping(Transform body)
+    {
+        if (hopping == body) return;
+
+        if (hopping != null) hopping.localPosition = hopRest;
+        hopping = body;
+        if (hopping != null) hopRest = hopping.localPosition;
     }
 
     private Vector3 HeadPosition() => currentSpeaker.HeadPosition(currentBody, FallbackHeight);
@@ -241,6 +284,40 @@ public class OverheardConversation : MonoBehaviour
         bubbleText.fontSize = textSize;
         bubbleShadow.effectColor = shadowColor;
     }
+
+#if UNITY_EDITOR
+    // Fills in Carmela and Yaroslava's fireplace argument from Level 1, finding both by NPC Name
+    [ContextMenu("Add Level 1 Fireplace Argument")]
+    private void AddFireplaceArgument()
+    {
+        NPCDialogue carmela = FindNpc("Carmela");
+        NPCDialogue yaroslava = FindNpc("Yaroslava");
+
+        UnityEditor.Undo.RecordObject(this, "Add Level 1 Fireplace Argument");
+        lines.Add(new Line { speaker = carmela, text = "Leave me alone, you hag!" });
+        lines.Add(new Line { speaker = yaroslava, text = "You're the hag, with your fake credentials and fake tonics?" });
+        lines.Add(new Line { speaker = carmela, text = "Fake?! Look who's talking, miss \"poison master\"! There's a reason the society rebuked your application." });
+        lines.Add(new Line { speaker = yaroslava, text = "Those ancient kooks can tell the difference between useful and pointless! They only care about \"not damaging the reputation\" and other bullshit." });
+        lines.Add(new Line { speaker = carmela, text = "Do you hear yourself? You will never get a certification with that attitude!" });
+        lines.Add(new Line { speaker = yaroslava, text = "And you will never know true hard work and appreciation for the craft!" });
+        lines.Add(new Line { speaker = carmela, text = "Keep your thoughts to yourself!" });
+        lines.Add(new Line { speaker = yaroslava, text = "And what's that you're keeping behind your back, missy?" });
+
+        loop = true;
+        loopPause = 2f;
+        hop = true;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    private static NPCDialogue FindNpc(string npcName)
+    {
+        foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        {
+            if (string.Equals(npc.npcName?.Trim(), npcName, StringComparison.OrdinalIgnoreCase)) return npc;
+        }
+        return null;
+    }
+#endif
 
     private void OnDrawGizmosSelected()
     {

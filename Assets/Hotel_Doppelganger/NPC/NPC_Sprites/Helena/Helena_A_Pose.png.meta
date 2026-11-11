@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: deb14f9535641334e961751fa801c045
+guid: 069627b1a6391ee458caa2f4a5615b0a
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3160117112878298474
-    second: character_1-removebg-preview_0
+      213: 5613535729135371899
+    second: Helena_A_Pose_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -115,13 +115,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: character_1-removebg-preview_0
+      name: Helena_A_Pose_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 242
-        height: 1031
+        width: 1536
+        height: 2752
       alignment: 7
       pivot: {x: 0.5, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -130,8 +130,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: a657eb965cdfadb20800000000000000
-      internalID: 3160117112878298474
+      spriteID: b76c31df00947ed40800000000000000
+      internalID: 5613535729135371899
       vertices: []
       indices: 
       edges: []
@@ -140,7 +140,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: f9569946ff14f474b9408286f829e019
+    spriteID: ced7968241ce9b248b3b7be725dce7b8
     internalID: 0
     vertices: []
     indices: 
@@ -150,7 +150,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      character_1-removebg-preview_0: 3160117112878298474
+      Helena_A_Pose_0: 5613535729135371899
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

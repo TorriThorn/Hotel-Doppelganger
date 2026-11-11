@@ -333,6 +333,18 @@ public class ContradictionEditor : FoldoutInspector { }
 [CustomEditor(typeof(LightFlicker))]
 public class LightFlickerEditor : FoldoutInspector { }
 
+[CanEditMultipleObjects]
+[CustomEditor(typeof(NPCFollowPlayer))]
+public class NPCFollowPlayerEditor : FoldoutInspector { }
+
+[CanEditMultipleObjects]
+[CustomEditor(typeof(ItemTheft))]
+public class ItemTheftEditor : FoldoutInspector { }
+
+[CanEditMultipleObjects]
+[CustomEditor(typeof(GameCondition))]
+public class GameConditionEditor : FoldoutInspector { }
+
 // Draws a dialogue choice or event entry labelled by its text (or Event Id), with [MoreOptions] fields in a closed section
 [CustomPropertyDrawer(typeof(NPCDialogue.Choice))]
 [CustomPropertyDrawer(typeof(NPCDialogue.EventDialogue))]

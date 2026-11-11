@@ -65,6 +65,15 @@ public class NPCDialogue : MonoBehaviour
 
         [DisplayAs("If Time Runs Out, Go To (blank = end)")]
         public string timeoutNode = "";
+
+        // Someone else saying this line, e.g. a person shouting from across the room
+        [DisplayAs("Said By (blank = this NPC)")]
+        public string speaker = "";
+
+        // For lines that follow each other with nothing for Salem to say in between: the screen shows only a
+        // Continue option, which goes on to this node
+        [DisplayAs("Then Go To (for back-to-back lines)")]
+        public string thenNode = "";
     }
 
     // Laid out like a Node: the line the player picks, the NPC's answer, and the replies under that
@@ -137,6 +146,16 @@ public class NPCDialogue : MonoBehaviour
 
     // Shown on the NPC itself while they talk. Left empty, Idle Sprite is whatever the NPC already shows.
     // Both should match the NPC's normal sprite in size and pivot so nothing jumps when they swap
+    // The first time a conversation closes with nothing new left to ask, e.g. Salem summing someone up
+    [Header("Once Everything's Asked")]
+    [DisplayAs("Only Counts While First Node Is (blank = any)")]
+    public string allAskedNode = "";
+
+    [DisplayAs("Salem Thinks (optional)", Lines = 2)]
+    public string allAskedThought = "";
+
+    public UnityEvent onAllAsked;
+
     [Header("Talking Sprites")]
     [DisplayAs("Idle Sprite (optional)")]
     public Sprite portrait;
@@ -174,6 +193,7 @@ public class NPCDialogue : MonoBehaviour
     private readonly List<float> appearTimes = new List<float>();
     private Dictionary<string, Node> nodeLookup;
     private bool talkedTo;
+    private bool allAskedDone;
     private PlayerDialogue playerDialogue;
     private float playTime;
     private int nextAppear;
@@ -196,6 +216,20 @@ public class NPCDialogue : MonoBehaviour
         nodeLookup = null;
         Version++;
         if (MoveEventChoicesOutOfNodes()) UnityEditor.EditorUtility.SetDirty(this);
+    }
+#endif
+
+#if UNITY_EDITOR
+    // Fills in this NPC's Level 1 lines from the puzzle sequence, picked by NPC Name
+    [ContextMenu("Add Level 1 Lines")]
+    private void AddLevelOneLines()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Level 1 Lines");
+        if (!LevelOneLines.AddTo(this)) return;
+
+        nodeLookup = null;
+        Version++;
+        UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif
 
@@ -329,7 +363,9 @@ public class NPCDialogue : MonoBehaviour
 
         while (toScan.Count > 0)
         {
-            if (HasNewChoice(toScan.Dequeue().choices)) return true;
+            Node next = toScan.Dequeue();
+            if (HasNewChoice(next.choices)) return true;
+            QueueScan(GetNode(next.thenNode));
         }
 
         return false;
@@ -344,6 +380,19 @@ public class NPCDialogue : MonoBehaviour
     public void LockChoice(string unlockId)
     {
         if (!string.IsNullOrWhiteSpace(unlockId) && unlockedIds.Remove(unlockId.Trim())) Version++;
+    }
+
+    // Checked as a conversation closes. Only happens once, and only while the NPC opens on the named node
+    public void CheckAllAsked()
+    {
+        if (allAskedDone || HasNewDialogue()) return;
+
+        bool anyNode = string.IsNullOrWhiteSpace(allAskedNode);
+        if (!anyNode && !string.Equals(allAskedNode.Trim(), startNode?.Trim(), StringComparison.OrdinalIgnoreCase)) return;
+
+        allAskedDone = true;
+        if (!string.IsNullOrWhiteSpace(allAskedThought)) DetectiveThoughts.Get().Say(allAskedThought);
+        onAllAsked?.Invoke();
     }
 
     public void SetStartNode(string nodeId)

@@ -34,6 +34,7 @@ public class NPCPatrol : MonoBehaviour
     }
 
     private const float MovingSpeedThreshold = 0.05f;
+    private const float RetargetDistance = 0.75f;
     private const float StuckSpeedThreshold = 0.1f;
     private const float FlipDeadZone = 0.1f;
 
@@ -125,6 +126,7 @@ public class NPCPatrol : MonoBehaviour
     private bool isFinished;
     private bool isStopped;
     private bool stopOnArrival;
+    private Waypoint movingSpot;
 
     private int walkingHash;
     private bool hasWalkingBool;
@@ -277,6 +279,30 @@ public class NPCPatrol : MonoBehaviour
 
         Teleport(UsingAgent ? point.position : Flatten(point.position));
         StopAtWaypoint(point);
+    }
+
+    // Walks toward a spot that can keep changing, e.g. somewhere near the player, and stands there on arrival.
+    // Small changes are ignored so the NPC isn't constantly re-planning. StopPatrol or ResumePatrol ends it
+    public void WalkTowards(Vector3 position)
+    {
+        if (movingSpot == null) movingSpot = new Waypoint { cached = true };
+
+        float retarget = RetargetDistance * RetargetDistance;
+        bool sameSpot = target == movingSpot && (movingSpot.position - position).sqrMagnitude < retarget;
+        if (sameSpot && !isStopped) return;
+
+        // Already standing close enough to it
+        Vector3 gap = position - transform.position;
+        gap.y = 0f;
+        if (isStopped && gap.sqrMagnitude < retarget) return;
+
+        movingSpot.position = position;
+        target = movingSpot;
+        isStopped = false;
+        stopOnArrival = true;
+        isFinished = false;
+        waitTimer = 0f;
+        destinationSet = false;
     }
 
     public void ResumePatrol()

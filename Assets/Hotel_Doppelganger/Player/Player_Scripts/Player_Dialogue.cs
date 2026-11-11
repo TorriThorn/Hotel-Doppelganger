@@ -17,6 +17,7 @@ public class PlayerDialogue : MonoBehaviour
         Choice,
         Event,
         Present,
+        Continue,
         Goodbye
     }
 
@@ -63,6 +64,7 @@ public class PlayerDialogue : MonoBehaviour
     private const string GoodbyeText = "Goodbye.";
     private const string FallbackBackText = "Back.";
     private const string NeverMindText = "Never mind.";
+    private const string ContinueText = "(Continue)";
     private const string WrongItemNodeId = "present:none";
     private const string EventReplyIdPrefix = "event:";
 
@@ -701,7 +703,17 @@ public class PlayerDialogue : MonoBehaviour
         if (show) promptText.text = "Talk to " + lookingAt.npcName;
     }
 
-    private void Open(NPCDialogue target)
+    // Starts talking to an NPC without the player walking up, e.g. someone coming over to tell Salem something.
+    // Returns false while that can't happen yet: another conversation, the journal or the intro is up
+    public bool StartConversation(NPCDialogue target, string firstNode = null)
+    {
+        if (target == null || IsTalking || returning || IntroCutscene.IsPlaying || Journal.Get().IsOpen) return false;
+
+        Open(target, firstNode);
+        return true;
+    }
+
+    private void Open(NPCDialogue target, string firstNode = null)
     {
         SetLookingAt(null);
         npc = target;
@@ -729,11 +741,12 @@ public class PlayerDialogue : MonoBehaviour
         ClearLog();
         logScroll.Reset();
         dialogueRoot.SetActive(true);
-        GoTo(npc.startNode);
+        GoTo(string.IsNullOrWhiteSpace(firstNode) ? npc.startNode : firstNode);
     }
 
     private void Close()
     {
+        npc.CheckAllAsked();
         SetPatrolPaused(false);
         RestoreNpcSprite();
         FaceCamera(false);
@@ -1063,7 +1076,7 @@ public class PlayerDialogue : MonoBehaviour
     // Flaps between idle and talking while the line types, and rests closed after
     private void AnimateMouth(float dt)
     {
-        if (!IsTyping)
+        if (!IsTyping || SaidBySomeoneElse)
         {
             mouthOpen = false;
             return;
@@ -1134,6 +1147,13 @@ public class PlayerDialogue : MonoBehaviour
     {
         options.Clear();
 
+        // Back-to-back lines: the only way on is to continue
+        if (!string.IsNullOrWhiteSpace(node.thenNode))
+        {
+            options.Add(new Option(OptionKind.Continue, -1, false));
+            return;
+        }
+
         List<NPCDialogue.Choice> choices = node.choices;
         for (int i = 0; i < choices.Count; i++)
         {
@@ -1169,6 +1189,14 @@ public class PlayerDialogue : MonoBehaviour
         if (option.Kind == OptionKind.Present)
         {
             Journal.Get().OpenToPresent(Present);
+            return;
+        }
+
+        // Nothing is said, the next line just follows on
+        if (option.Kind == OptionKind.Continue)
+        {
+            LogCurrentLine();
+            GoTo(node.thenNode);
             return;
         }
 
@@ -1284,6 +1312,7 @@ public class PlayerDialogue : MonoBehaviour
         {
             case OptionKind.Goodbye: return GoodbyeText;
             case OptionKind.Present: return presentOptionText;
+            case OptionKind.Continue: return ContinueText;
             case OptionKind.Event: return npc.eventDialogue[option.Index].text;
             default: return node.choices[option.Index].text;
         }
@@ -1329,15 +1358,21 @@ public class PlayerDialogue : MonoBehaviour
     private void RenderLine()
     {
         renderedLetters = visibleLetters;
-        lineText.text = namePrefix + typedLine.Render(visibleLetters, highlightTag);
+        lineText.text = LinePrefix() + typedLine.Render(visibleLetters, highlightTag);
     }
+
+    private bool SaidBySomeoneElse => node != null && !string.IsNullOrWhiteSpace(node.speaker);
+
+    // The NPC's name, or whoever else the line is marked as said by
+    private string LinePrefix() =>
+        SaidBySomeoneElse ? TypedLine.ColorTag(nameColor) + node.speaker.Trim().ToUpper() + NameSeparator : namePrefix;
 
     // Moves the NPC's current line up into the log, in full
     private void LogCurrentLine()
     {
         if (!lineText.gameObject.activeSelf || typedLine.Length == 0) return;
 
-        AddLogEntry(namePrefix, node.npcText);
+        AddLogEntry(LinePrefix(), node.npcText);
         lineText.gameObject.SetActive(false);
     }
 
