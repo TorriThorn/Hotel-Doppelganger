@@ -483,7 +483,8 @@ public class PlayerDialogue : MonoBehaviour
                     StyleMarker(marker);
                 }
 
-                if (marker.HasNew || wantsItem)
+                // Hidden while the NPC's overheard-conversation bubble is up, since it would sit right on top of it
+                if ((marker.HasNew || wantsItem) && !OverheardConversation.IsSpeaking(marker.Npc))
                 {
                     top = MarkerAnchor(marker);
                     show = (top - cameraPosition).sqrMagnitude <= rangeSqr;

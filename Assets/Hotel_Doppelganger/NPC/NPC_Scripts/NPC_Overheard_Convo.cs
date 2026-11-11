@@ -98,6 +98,8 @@ public class OverheardConversation : MonoBehaviour
     [DisplayAs("Height Above Head")]
     [SerializeField] private float heightAboveHead = 0.6f;
 
+    private static readonly List<OverheardConversation> Active = new List<OverheardConversation>();
+
     private Transform viewer;
     private PlayerDialogue dialogue;
     private Canvas bubble;
@@ -118,7 +120,13 @@ public class OverheardConversation : MonoBehaviour
         if (bubble != null) ApplyLook();
     }
 
-    private void OnDisable() => Stop();
+    private void OnEnable() => Active.Add(this);
+
+    private void OnDisable()
+    {
+        Active.Remove(this);
+        Stop();
+    }
 
     private void Start()
     {
@@ -216,6 +224,19 @@ public class OverheardConversation : MonoBehaviour
         if (bubbleText.text != shown) bubbleText.text = shown;
 
         bubble.transform.SetPositionAndRotation(top + Vector3.up * heightAboveHead, viewer.rotation);
+    }
+
+    // True while this NPC's speech bubble is up, so other things drawn over their head (like the new dialogue
+    // marker) can make way for it
+    public static bool IsSpeaking(NPCDialogue npc)
+    {
+        if (npc == null) return false;
+
+        foreach (OverheardConversation conversation in Active)
+        {
+            if (conversation.currentSpeaker == npc && conversation.bubble != null && conversation.bubble.gameObject.activeSelf) return true;
+        }
+        return false;
     }
 
     // Moving the NPC object itself would fight its walking, so only a sprite on a child can hop
