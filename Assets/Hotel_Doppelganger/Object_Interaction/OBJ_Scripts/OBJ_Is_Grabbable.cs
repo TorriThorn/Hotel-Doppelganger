@@ -162,6 +162,9 @@ public class Grabbable : MonoBehaviour
 
     private void Start() => SetHomeHere();
 
+    // For UnityEvents, e.g. letting an item be picked up once a scene is over
+    public void SetCanGrab(bool value) => canGrab = value;
+
     public void SetHomeHere() => SetHome(transform.position, transform.rotation);
 
     public void SetHome(Vector3 position, Quaternion rotation)

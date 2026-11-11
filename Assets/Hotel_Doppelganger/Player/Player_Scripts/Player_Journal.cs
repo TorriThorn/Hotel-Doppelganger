@@ -19,7 +19,33 @@ public class Journal : MonoBehaviour
     private enum Tab
     {
         Items,
+        People,
         Bestiary
+    }
+
+    [Serializable]
+    public class Person
+    {
+        [DisplayAs("Name")]
+        public string name;
+
+        [DisplayAs("Role")]
+        public string role;
+
+        [DisplayAs("Description", Lines = 3)]
+        public string description;
+
+        [DisplayAs("Picture (optional)")]
+        public Sprite picture;
+
+        public Person() { }
+
+        public Person(string name, string role, string description)
+        {
+            this.name = name;
+            this.role = role;
+            this.description = description;
+        }
     }
 
     [Serializable]
@@ -64,6 +90,9 @@ public class Journal : MonoBehaviour
     private const string UnknownName = "???";
     private const string ThoughtHeading = "WHAT SALEM THOUGHT";
     private const string WeaknessHeading = "WEAKNESS";
+    private const string NotesHeading = "NOTES";
+    private const string Bullet = "\u2022  ";
+    private const string NoNotesText = "Nothing yet.";
     private const string PresentButtonText = "Present";
     private const string TakeOutButtonText = "Take Out";
     private const string InspectButtonText = "Inspect";
@@ -98,6 +127,16 @@ public class Journal : MonoBehaviour
 
     [DisplayAs("Item Put Away Message")]
     [SerializeField] private string itemPutAwayText = "put away";
+
+    [Header("People")]
+    [DisplayAs("People Tab Title")]
+    [SerializeField] private string peopleTitle = "People";
+
+    // Followed by the person's name, e.g. "Notes updated: James"
+    [DisplayAs("Notes Updated Message")]
+    [SerializeField] private string notesUpdatedText = "Notes updated:";
+
+    [SerializeField] private List<Person> people = DefaultPeople();
 
     [Header("Bestiary")]
     [DisplayAs("Bestiary Tab Title")]
@@ -164,12 +203,15 @@ public class Journal : MonoBehaviour
     private readonly TypedLine typedLine = new TypedLine();
     private readonly HashSet<Creature> knownCreatures = new HashSet<Creature>();
     private readonly List<Creature> bestiaryOrder = new List<Creature>();
+    private readonly List<Person> peopleOrder = new List<Person>();
+    private readonly Dictionary<Person, List<string>> personNotes = new Dictionary<Person, List<string>>();
     private readonly List<Grabbable> items = new List<Grabbable>();
     private readonly HashSet<Grabbable> putAway = new HashSet<Grabbable>();
     private readonly HashSet<Grabbable> questItems = new HashSet<Grabbable>();
     private readonly HashSet<Grabbable> zonePieces = new HashSet<Grabbable>();
 
     private MenuList itemsList;
+    private MenuList peopleList;
     private MenuList bestiaryList;
     private MenuList actionList;
     private MenuItem actionButton;
@@ -199,8 +241,10 @@ public class Journal : MonoBehaviour
     private Image dim;
     private Image box;
     private RectTransform itemsColumn;
+    private RectTransform peopleColumn;
     private RectTransform bestiaryColumn;
     private Text itemsTabText;
+    private Text peopleTabText;
     private Text bestiaryTabText;
     private Text pageTitle;
     private Text pageBody;
@@ -230,7 +274,18 @@ public class Journal : MonoBehaviour
 
     public static bool IsPresenting => instance != null && instance.presenting;
 
-    private MenuList CurrentList => tab == Tab.Bestiary ? bestiaryList : itemsList;
+    private MenuList CurrentList
+    {
+        get
+        {
+            switch (tab)
+            {
+                case Tab.People: return peopleList;
+                case Tab.Bestiary: return bestiaryList;
+                default: return itemsList;
+            }
+        }
+    }
 
     private Grabbable SelectedItem => tab == Tab.Items && items.Count > 0 ? items[Mathf.Clamp(itemsList.Selected, 0, items.Count - 1)] : null;
 
@@ -327,6 +382,32 @@ public class Journal : MonoBehaviour
         presentCallback = picked;
         OpenPanel();
         ShowTab(Tab.Items);
+    }
+
+    // For UnityEvents, written as "Name: what Salem learned", e.g. "James: Working on a corporate project
+    // involving security drones." Someone who isn't in the People list yet gets added
+    public void AddPersonNote(string entry)
+    {
+        if (string.IsNullOrWhiteSpace(entry)) return;
+
+        int split = entry.IndexOf(':');
+        if (split <= 0) return;
+
+        string personName = entry.Substring(0, split).Trim();
+        string note = entry.Substring(split + 1).Trim();
+        if (note.Length == 0) return;
+
+        Person person = FindPerson(personName) ?? AddPerson(new Person(personName, string.Empty, string.Empty));
+        if (!personNotes.TryGetValue(person, out List<string> notes))
+        {
+            notes = new List<string>();
+            personNotes[person] = notes;
+        }
+        if (notes.Contains(note)) return;
+
+        notes.Add(note);
+        if (isOpen && tab == Tab.People) shownIndex = -1;
+        Announce(notesUpdatedText + " " + person.name);
     }
 
     // For UnityEvents, e.g. a dialogue choice's On Chosen once Salem learns what a suspect really is
@@ -680,6 +761,7 @@ public class Journal : MonoBehaviour
 
         Vector2 position = mouse.position.ReadValue();
         if (RuntimeUI.Contains(itemsTabText.rectTransform, position)) pressed = Tab.Items;
+        else if (RuntimeUI.Contains(peopleTabText.rectTransform, position)) pressed = Tab.People;
         else if (RuntimeUI.Contains(bestiaryTabText.rectTransform, position)) pressed = Tab.Bestiary;
 
         return pressed != tab;
@@ -725,6 +807,7 @@ public class Journal : MonoBehaviour
     {
         tab = newTab;
         itemsColumn.gameObject.SetActive(tab == Tab.Items);
+        peopleColumn.gameObject.SetActive(tab == Tab.People);
         bestiaryColumn.gameObject.SetActive(tab == Tab.Bestiary);
         StyleTabs();
 
@@ -766,6 +849,7 @@ public class Journal : MonoBehaviour
         pageScroll.Reset();
         actionList.MarkDirty();
         if (tab == Tab.Bestiary) ShowCreature(index);
+        else if (tab == Tab.People) ShowPerson(index);
         else ShowItem(index);
     }
 
@@ -800,6 +884,25 @@ public class Journal : MonoBehaviour
         selectedCanInspect = ItemInspector.CanInspect(item);
         FindPartners(item);
         SetPage(item.DisplayName, body, ThoughtHeading, thought, item.itemPicture);
+    }
+
+    // Who they are, then everything Salem has noted about them
+    private void ShowPerson(int index)
+    {
+        if (peopleOrder.Count == 0)
+        {
+            SetPage(string.Empty, NoNotesText, NotesHeading, string.Empty, null);
+            return;
+        }
+
+        Person person = peopleOrder[Mathf.Clamp(index, 0, peopleOrder.Count - 1)];
+        string body = string.IsNullOrWhiteSpace(person.role) ? person.description : "*" + person.role.Trim() + "*\n\n" + person.description;
+
+        string notes = NoNotesText;
+        if (personNotes.TryGetValue(person, out List<string> list) && list.Count > 0)
+            notes = Bullet + string.Join("\n\n" + Bullet, list);
+
+        SetPage(person.name, body, NotesHeading, notes, person.picture);
     }
 
     // Unknown creatures keep their name, picture and weakness hidden
@@ -877,6 +980,7 @@ public class Journal : MonoBehaviour
         UpdateStyle();
         // Entries only change on a click, so moving to a page's button doesn't switch the page on the way
         itemsList = new MenuList(style, true);
+        peopleList = new MenuList(style, true);
         bestiaryList = new MenuList(style, true);
         actionList = new MenuList(style);
 
@@ -899,6 +1003,7 @@ public class Journal : MonoBehaviour
 
         Image tabs = RuntimeUI.CreateRow("Tabs", box.transform, 0f, new RectOffset(0, 0, 0, 0), 40f);
         itemsTabText = CreateText("Items Tab", tabs.transform, 24, TextAnchor.MiddleLeft);
+        peopleTabText = CreateText("People Tab", tabs.transform, 24, TextAnchor.MiddleLeft);
         bestiaryTabText = CreateText("Bestiary Tab", tabs.transform, 24, TextAnchor.MiddleLeft);
 
         // List on the left, the chosen page on the right, filling everything between the tabs and the footer
@@ -910,6 +1015,14 @@ public class Journal : MonoBehaviour
 
         itemsColumn = CreateColumn("Items List", row.transform, 2f);
         RuntimeUI.FixedWidth(itemsColumn, listWidth);
+
+        peopleColumn = CreateColumn("People List", row.transform, 2f);
+        RuntimeUI.FixedWidth(peopleColumn, listWidth);
+        foreach (Person person in people)
+        {
+            if (person != null) AddPerson(person);
+        }
+        peopleColumn.gameObject.SetActive(false);
 
         bestiaryColumn = CreateColumn("Bestiary List", row.transform, 2f);
         RuntimeUI.FixedWidth(bestiaryColumn, listWidth);
@@ -1072,11 +1185,12 @@ public class Journal : MonoBehaviour
         Color inspectBackdrop = Color.Lerp(new Color(boxShade.r, boxShade.g, boxShade.b), Color.white, 0.07f);
         inspector.ApplyLook(activeFont, line, label, style.Shadow, inspectBackdrop, highlightTag);
         foreach (Shadow shadow in shadows) shadow.effectColor = style.Shadow;
-        foreach (Text text in new[] { itemsTabText, bestiaryTabText, pageTitle, pageBody, thoughtLabel, pageThought, footerText, toastText, holdHint }) text.font = activeFont;
+        foreach (Text text in new[] { itemsTabText, peopleTabText, bestiaryTabText, pageTitle, pageBody, thoughtLabel, pageThought, footerText, toastText, holdHint }) text.font = activeFont;
 
         combineTitle.color = label;
         combineTitle.font = activeFont;
         itemsTabText.text = itemsTitle.ToUpper();
+        peopleTabText.text = peopleTitle.ToUpper();
         bestiaryTabText.text = bestiaryTitle.ToUpper();
         StyleTabs();
         pageTitle.color = highlight;
@@ -1093,6 +1207,7 @@ public class Journal : MonoBehaviour
 
         box.rectTransform.sizeDelta = new Vector2(boxWidth, -2f * screenMargin);
         itemsList.MarkDirty();
+        peopleList.MarkDirty();
         bestiaryList.MarkDirty();
         actionList.MarkDirty();
         combineList.MarkDirty();
@@ -1113,7 +1228,31 @@ public class Journal : MonoBehaviour
         Color label = match ? dialogue.NameColor : labelColor;
         Color highlight = match ? dialogue.HighlightColor : highlightColor;
         itemsTabText.color = tab == Tab.Items ? highlight : label;
+        peopleTabText.color = tab == Tab.People ? highlight : label;
         bestiaryTabText.color = tab == Tab.Bestiary ? highlight : label;
+    }
+
+    // Rows show whoever is at their place in the A to Z list, so adding someone only needs one more row
+    private Person AddPerson(Person person)
+    {
+        Person selected = tab == Tab.People && peopleOrder.Count > 0 ? peopleOrder[Mathf.Clamp(peopleList.Selected, 0, peopleOrder.Count - 1)] : null;
+        peopleOrder.Add(person);
+        peopleOrder.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.CurrentCultureIgnoreCase));
+
+        int place = peopleOrder.Count - 1;
+        peopleList.AddButton(peopleColumn, () => peopleOrder[place].name, null);
+        KeepSelection(peopleList, peopleOrder.IndexOf(selected), tab == Tab.People);
+        return person;
+    }
+
+    private Person FindPerson(string personName)
+    {
+        string key = personName.Trim();
+        foreach (Person person in peopleOrder)
+        {
+            if (string.Equals(person.name?.Trim(), key, StringComparison.OrdinalIgnoreCase)) return person;
+        }
+        return null;
     }
 
     private Creature FindCreature(string creatureName)
@@ -1127,6 +1266,23 @@ public class Journal : MonoBehaviour
         }
         return null;
     }
+
+    // The six suspects, as the Police Chief describes them
+    private static List<Person> DefaultPeople() => new List<Person>
+    {
+        new Person("Helena", "James's girlfriend  \u00b7  Socialite",
+            "Here with James on his business trip. Dramatic and tearful. Wants James to buy her a penthouse in the city."),
+        new Person("James", "Tech billionaire  \u00b7  Helena's boyfriend",
+            "In town for an important business meeting. Cold, logical and dismissive. Geno was one of his loudest critics."),
+        new Person("Carmela", "Certified witch  \u00b7  Potion maker",
+            "Called to the hotel to deliver a sobering tonic to a drunk guest. Paranoid and avoids confrontation."),
+        new Person("Zain", "Hotel guest",
+            "Drinking heavily. Lost his job at James's company and seems to be running from someone."),
+        new Person("Murray", "Businessman  \u00b7  Caviar distributor",
+            "Ships expensive caviar in signature tins. Keeps a close eye on Zain."),
+        new Person("Yaroslava", "Potion and amulet seller",
+            "Uncertified magic practitioner. Bitter toward certified witches, especially Carmela.")
+    };
 
     // Placeholder entries until the real write-ups are ready
     private static List<Creature> DefaultCreatures() => new List<Creature>

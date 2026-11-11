@@ -2239,11 +2239,12 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 2116396216}
+  - {fileID: 1128950937}
   - {fileID: 514267736}
   - {fileID: 1012264496}
   - {fileID: 1333084724}
   - {fileID: 101083542}
+  - {fileID: 134421835}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &75275407
@@ -2311,7 +2312,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Yaroslava
-  startNode: start
+  startNode: yaroslavaLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -2319,6 +2320,22 @@ MonoBehaviour:
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
+  - id: yaroslavaLevel0
+    npcText: Not now, detective.
+    expression: {fileID: 0}
+    choices:
+    - text: Okay.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
   - id: start
     npcText: Ah, the detective. Come to stare at the old woman like everyone else? Go on, then.
     expression: {fileID: 0}
@@ -2747,6 +2764,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Fish_Scale
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1e5ddcc27ded7b545b33c67ca30aaae8, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -2839,7 +2860,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b32ba76b57938354a9463458081220e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Grabbable
-  canGrab: 1
+  canGrab: 0
   canRotate: 1
   highlight: 1
   weightFromMass: 1
@@ -3297,6 +3318,275 @@ Transform:
   - {fileID: 338006462}
   m_Father: {fileID: 1078841860}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &129705093
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 129705094}
+  m_Layer: 0
+  m_Name: James_Intro_POS
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &129705094
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 129705093}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -3, y: -0.3330202, z: -3}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1966688899}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &134421834
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 134421835}
+  - component: {fileID: 134421837}
+  - component: {fileID: 134421836}
+  m_Layer: 0
+  m_Name: Flicker_Trigger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &134421835
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 134421834}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 64407326}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &134421836
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 134421834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8606292e8a9b7724abbf25dfaa14196d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LightFlicker
+  lights: []
+  flickers: 3
+  shortestBlink: 0.05
+  longestBlink: 0.2
+  darkTime: 1.2
+  darkness: 0.92
+  thought: It's going to be an interesting night.
+  onlyOnce: 1
+  onDark:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1012264497}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 101083543}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1012264499}
+        m_TargetAssemblyTypeName: Grabbable, Assembly-CSharp
+        m_MethodName: SetCanGrab
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 101083546}
+        m_TargetAssemblyTypeName: Grabbable, Assembly-CSharp
+        m_MethodName: SetCanGrab
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1299698502}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 75275410}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 413268095}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 2061500260}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1983400528}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 204179138}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: start
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 1012264497}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 101083543}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+  onFinished:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &134421837
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 134421834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7e8a4f69e8289b419bd77fe2fc19fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
+  when: 3
+  distance: 3
+  lookAngle: 15
+  holdTime: 0.5
+  delay: 4
+  startArmed: 0
+  onlyOnce: 1
+  thought: 
+  onTriggered:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 134421836}
+        m_TargetAssemblyTypeName: LightFlicker, Assembly-CSharp
+        m_MethodName: Flicker
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &159210952
 GameObject:
   m_ObjectHideFlags: 0
@@ -3550,6 +3840,33 @@ MonoBehaviour:
   combinedText: made by combining
   itemAddedText: added to inventory
   itemPutAwayText: put away
+  peopleTitle: People
+  notesUpdatedText: 'Notes updated:'
+  people:
+  - name: Helena
+    role: "James's girlfriend  \xB7  Socialite"
+    description: Here with James on his business trip. Dramatic and tearful. Wants James to buy her a penthouse in the city.
+    picture: {fileID: 0}
+  - name: James
+    role: "Tech billionaire  \xB7  Helena's boyfriend"
+    description: In town for an important business meeting. Cold, logical and dismissive. Geno was one of his loudest critics.
+    picture: {fileID: 0}
+  - name: Carmela
+    role: "Certified witch  \xB7  Potion maker"
+    description: Called to the hotel to deliver a sobering tonic to a drunk guest. Paranoid and avoids confrontation.
+    picture: {fileID: 0}
+  - name: Zain
+    role: Hotel guest
+    description: Drinking heavily. Lost his job at James's company and seems to be running from someone.
+    picture: {fileID: 0}
+  - name: Murray
+    role: "Businessman  \xB7  Caviar distributor"
+    description: Ships expensive caviar in signature tins. Keeps a close eye on Zain.
+    picture: {fileID: 0}
+  - name: Yaroslava
+    role: Potion and amulet seller
+    description: Uncertified magic practitioner. Bitter toward certified witches, especially Carmela.
+    picture: {fileID: 0}
   bestiaryTitle: Bestiary
   unknownCreatureText: Salem hasn't come across this one yet.
   bestiaryUpdatedText: Bestiary updated
@@ -3835,14 +4152,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 204179135}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.0073795, y: -2.297, z: -4.5232086}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 7.6599903, y: -2.297, z: -4.5232086}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1597054644}
   m_Father: {fileID: 1928903803}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &204179137
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3873,7 +4190,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Helena
-  startNode: start
+  startNode: helenaLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -3881,6 +4198,22 @@ MonoBehaviour:
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
+  - id: helenaLevel0
+    npcText: Not now, detective.
+    expression: {fileID: 0}
+    choices:
+    - text: okay.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
   - id: Start
     npcText: Oh, Detective! Thank goodness. You have to get me out of here. I can't bear another minute in this horrible place.
     expression: {fileID: 0}
@@ -8149,7 +8482,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Zain
-  startNode: start
+  startNode: zainLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -8157,6 +8490,22 @@ MonoBehaviour:
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
+  - id: zainLevel0
+    npcText: Not now, detective.
+    expression: {fileID: 0}
+    choices:
+    - text: Okay.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
   - id: Start
     npcText: Detective. Whatever it is, I didn't do it. I've been right here all night.
     expression: {fileID: 0}
@@ -8568,6 +8917,12 @@ MonoBehaviour:
   - name: Salem
     portrait: {fileID: 2449090133660841456, guid: 9358f7fe58ad18c4aa6f44d83eb18505, type: 3}
     talkingPortrait: {fileID: 9213819040481710246, guid: 7c0819f092bdba14391835f486dc89ab, type: 3}
+  - name: Helena
+    portrait: {fileID: 0}
+    talkingPortrait: {fileID: 0}
+  - name: James
+    portrait: {fileID: 0}
+    talkingPortrait: {fileID: 0}
   lines:
   - text: Hotel Eclipse. Late Thursday night.
     speaker: 
@@ -8575,120 +8930,231 @@ MonoBehaviour:
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: Salem. Good, you're here. We have another one.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: The victim is *Geno Jones*. Found right here in this Hotel, nearly split in two.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 1
+    waitHere: 0
   - text: Geno was a *master inventor of supernatural tools*. Half the protective charms in this city came out of his workshop.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: Not exactly a saint, though. He sold to whoever paid and made plenty of enemies doing it.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: Time of death was *10:00 pm*. The wounds point to *large claws*. Whatever did this wasn't human.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: I pieced together what I could from *multiple staff accounts*. Nobody saw the attack itself.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: But they all agree on one thing. At 10:00, *six guests* were in this lounge.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: So whoever did this is still in the room.
     speaker: Salem
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: Exactly. Six suspects. Here's what I have on each of them.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: '*James*. Tech billionaire, in town for a business meeting. Cold as ice, and not happy we''re keeping him here.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: James
     effect: 0
+    waitHere: 0
   - text: '*Helena*. James''s girlfriend. She hasn''t stopped crying since we got here.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: Helena
     effect: 0
+    waitHere: 0
   - text: '*Carmela*. A certified witch who brews healing potions. Says she was called here to deliver a sobering tonic.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: Carmela
     effect: 0
+    waitHere: 0
   - text: '*Zain*. Been drinking since before we arrived. Used to work for James''s company.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: Zain
     effect: 0
+    waitHere: 0
   - text: '*Murray*. Says he''s a businessman. Sells fancy caviar.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: Murray
     effect: 0
+    waitHere: 0
   - text: '*Yaroslava*. Sells potions and amulets. Not certified, and she''ll tell you what she thinks of witches who are.'
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: Yaroslava
     effect: 0
+    waitHere: 0
   - text: One more thing. Trust no one. And from the early reports, there may be *more than one monster*.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 2
+    waitHere: 0
   - text: Talk to them, find the evidence, and only accuse someone when you're sure. *One wrong guess*, and you'll end up like Geno.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 1
+    waitHere: 0
   - text: I'll be outside. Good luck, Detective.
     speaker: Police Chief
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
   - text: Time to get to work.
     speaker: Salem
     expression: {fileID: 0}
     background: {fileID: 0}
     profile: 
     effect: 0
+    waitHere: 0
+  - text: Before Salem can take a step into the lobby, a woman rushes up to him in tears.
+    speaker: 
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Detective! You must help me!
+    speaker: Helena
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 1
+    waitHere: 0
+  - text: What's wrong?
+    speaker: Salem
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: My boyfriend doesn't want to buy me the new private island for sale! When it opened at 7 pm today, I made a fool of myself, screaming for joy at the bar. But now he won't get it!
+    speaker: Helena
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Helena, you're forgetting that my money can't be used right now. And I wasn't going to get it after all the pool guests heard your screaming. It was too embarrassing.
+    speaker: James
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Do you see, Detective? He's so mean to me!
+    speaker: Helena
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: A private estate in the city's high suburbs should be fine!
+    speaker: James
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: (Wait a minute...)
+    speaker: Salem
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 1
+  - text: (There's a murder case happening; I'm here to investigate, and one of them has already *lied* about something.)
+    speaker: Salem
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Detective?
+    speaker: Helena
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Sorry about your private island, ma'am. But move back, will you? Where's the body?
+    speaker: Salem
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: Helena goes back to crying while James points to the elevator in a huff.
+    speaker: 
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
+  - text: (I doubt catching their lies will be that easy going forward.)
+    speaker: Salem
+    expression: {fileID: 0}
+    background: {fileID: 0}
+    profile: 
+    effect: 0
+    waitHere: 0
   profiles:
   - name: Helena
     role: "James's girlfriend  \xB7  Socialite"
@@ -8721,6 +9187,21 @@ MonoBehaviour:
   onFinished:
     m_PersistentCalls:
       m_Calls: []
+  onWaiting:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1097881654}
+        m_TargetAssemblyTypeName: Contradiction, Assembly-CSharp
+        m_MethodName: Open
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   matchDialogueBox: 1
   font: {fileID: 0}
   boxColor: {r: 0, g: 0, b: 0, a: 0.92}
@@ -15226,6 +15707,7 @@ Transform:
   - {fileID: 1658047869}
   - {fileID: 433625672}
   - {fileID: 878203338}
+  - {fileID: 1097881653}
   m_Father: {fileID: 1290253585}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &610700116
@@ -16464,13 +16946,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 765010910}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.38268343, z: 0, w: 0.92387956}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.44, y: 0.44, z: 0.44}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1983400526}
-  m_LocalEulerAnglesHint: {x: 0, y: 45, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &765010912
 SpriteRenderer:
   serializedVersion: 3
@@ -33121,6 +33603,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Tin_Can
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: eba5358f7024a904d8fb1755e0f8888e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -33181,7 +33667,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b32ba76b57938354a9463458081220e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Grabbable
-  canGrab: 1
+  canGrab: 0
   canRotate: 1
   highlight: 1
   weightFromMass: 1
@@ -35885,6 +36371,101 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 4dd6e18b9cc348a4892a5dd2cc259906, type: 3}
   m_PrefabInstance: {fileID: 2111515910}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1097881652
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1097881653}
+  - component: {fileID: 1097881654}
+  m_Layer: 0
+  m_Name: UI_Contradiction
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1097881653
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097881652}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 609882616}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1097881654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1097881652}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39849309f07671d4ca9d6543a8418d29, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Contradiction
+  left:
+    speaker: Helena
+    portrait: {fileID: 0}
+    text: My boyfriend doesn't want to buy me the new private island for sale! When it opened at [7 pm today], I made a fool of myself, screaming for joy [at the bar]. But now [he won't get it]!
+    answer: at the bar
+  right:
+    speaker: James
+    portrait: {fileID: 0}
+    text: Helena, you're forgetting that [my money can't be used right now]. And I wasn't going to get it after all the [pool guests] heard your screaming. It was [too embarrassing].
+    answer: pool guests
+  title: Something doesn't add up
+  howTo: Click a detail to pin the string to it, then click the detail in the other statement that can't also be true.
+  stampText: CONTRADICTION
+  realisation: (She was screaming at the bar... so how did the guests at the pool hear her?)
+  doubts:
+  - ("{0}"... and "{1}"? No. Both of those could be true.)
+  - (That doesn't prove anything. Think, Salem.)
+  - (No... those fit together fine. Something else doesn't.)
+  onSolved:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 433625671}
+        m_TargetAssemblyTypeName: IntroCutscene, Assembly-CSharp
+        m_MethodName: Continue
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  onWrong:
+    m_PersistentCalls:
+      m_Calls: []
+  matchDialogueBox: 1
+  font: {fileID: 0}
+  boxColor: {r: 0, g: 0, b: 0, a: 0.92}
+  borderColor: {r: 0.85, g: 0.83, b: 0.78, a: 0.5}
+  nameColor: {r: 0.45, g: 0.44, b: 0.41, a: 1}
+  textColor: {r: 0.85, g: 0.83, b: 0.78, a: 1}
+  detailColor: {r: 0.82, g: 0.45, b: 0.32, a: 1}
+  pickedColor: {r: 1, g: 0.45, b: 0.35, a: 1}
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.9}
+  shadeColor: {r: 0, g: 0, b: 0, a: 0.6}
+  stringColor: {r: 0.78, g: 0.1, b: 0.1, a: 1}
+  portraitHeight: 440
+  textSize: 26
+  player: {fileID: 0}
+  dialogue: {fileID: 0}
 --- !u!1 &1103959866
 GameObject:
   m_ObjectHideFlags: 0
@@ -36010,7 +36591,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 2116396216}
+    m_TransformParent: {fileID: 64407326}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
       propertyPath: m_LocalScale.x
@@ -36026,15 +36607,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.3244495
+      value: 1.9749999
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 2.4650002
+      value: 0.13100004
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 12.404331
+      value: -5.318001
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
       propertyPath: m_LocalRotation.w
@@ -36224,9 +36805,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1dbba2a0be8c1334fa17d76b85791336, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Clue
-  thought: '*Nobody* complains about twenty-hour shifts? Either James pays very well, or someone''s making them say yes.'
+  thought: James... and drones. Worth asking him about
   noteTitle: Geno's notes, 1
-  noteText: "...third complaint this month and still nothing in the papers. *J.*'s people work twenty-hour shifts and not one of them objects. Not one. That isn't loyalty. Find out who sealed the turnover records and wh\u2014"
+  noteText: "\u2026to launch this year. The drone service will provide heightened security to customers and protect neighborhoods with a watchful eye (maybe too watchful). James is set to sign off with government contracts before release, but I wonder\u2026"
   addToJournal: 1
   journalTitle: 
   onFound:
@@ -36268,6 +36849,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1167772084}
   - component: {fileID: 1167772083}
+  - component: {fileID: 1167772085}
   m_Layer: 0
   m_Name: Genos_Body
   m_TagString: Untagged
@@ -36350,6 +36932,29 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2145400453}
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+--- !u!114 &1167772085
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1167772082}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7e8a4f69e8289b419bd77fe2fc19fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
+  when: 1
+  distance: 3
+  lookAngle: 15
+  holdTime: 0.5
+  delay: 10
+  startArmed: 0
+  onlyOnce: 1
+  thought: Nearly split in two... the Chief wasn't exaggerating.
+  onTriggered:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &1169370519 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ad74c525efc330e488960c6737838444, type: 3}
@@ -37946,70 +38551,6 @@ Transform:
   - {fileID: 323021307}
   m_Father: {fileID: 1290253585}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1297173067
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1297173069}
-  - component: {fileID: 1297173068}
-  m_Layer: 0
-  m_Name: Geno's_Notes_Complete
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1297173068
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1297173067}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a27c4f384abd9004e9241d0f3e4e34c1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ClueSet
-  clues:
-  - {fileID: 1128950938}
-  - {fileID: 1928498117}
-  needed: 0
-  thought: Geno was building a case against *James*. Whatever he found, someone didn't want it found.
-  onComplete:
-    m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 1983400528}
-        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
-        m_MethodName: UnlockChoice
-        m_Mode: 5
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: GenoNotes
-          m_BoolArgument: 0
-        m_CallState: 2
---- !u!4 &1297173069
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1297173067}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 31.16122, y: 1.98351, z: 14.004332}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2116396216}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1299698499
 GameObject:
   m_ObjectHideFlags: 0
@@ -38081,7 +38622,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Murray
-  startNode: start
+  startNode: murrayLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -38089,6 +38630,22 @@ MonoBehaviour:
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
+  - id: murrayLevel0
+    npcText: So I move a little product. I didn't touch the inventor. Whatever split him in half had claws, Detective. Not fins.
+    expression: {fileID: 0}
+    choices:
+    - text: Okay.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
   - id: start
     npcText: Im Murray. I export caviar and fine tinned goods. Anything I can do, you just ask.
     expression: {fileID: 0}
@@ -45766,13 +46323,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1597054643}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.38268343, z: 0, w: 0.92387956}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0.42, y: 0.42, z: 0.42}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 204179136}
-  m_LocalEulerAnglesHint: {x: 0, y: 45, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!212 &1597054645
 SpriteRenderer:
   serializedVersion: 3
@@ -53921,234 +54478,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 88.09564, y: 102.084946, z: 59.584076}
   m_Center: {x: -0.0696234, y: 50.542477, z: 1.4004915}
---- !u!1001 &1928498115
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 2116396216}
-    m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 0.2
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 20.03569
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -0.050330162
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 9.904331
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_ConstrainProportionsScale
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -7635826562936255635, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: e7b3778990c2acb4a837f29c97ca4b9e, type: 2}
-    - target: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      propertyPath: m_Name
-      value: Genos_Note_2
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1928498120}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1928498119}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1928498118}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1928498117}
-  m_SourcePrefab: {fileID: 100100000, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
---- !u!1 &1928498116 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-  m_PrefabInstance: {fileID: 1928498115}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &1928498117
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1928498116}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1dbba2a0be8c1334fa17d76b85791336, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Clue
-  thought: Geno's daughter worked for James. This wasn't business for him. It was *personal*.
-  noteTitle: Geno's notes, 2
-  noteText: "\u2014she wasn't weak. She was worked until the bottle was the only thing that let her sleep, and *J.* signed every one of those schedules. The hospital said one more night and I'd have lost her. I'll make him answ\u2014"
-  addToJournal: 1
-  journalTitle: 
-  onFound:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!65 &1928498118
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1928498116}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 1
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1928498119
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1928498116}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b32ba76b57938354a9463458081220e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Grabbable
-  canGrab: 1
-  canRotate: 1
-  highlight: 1
-  weightFromMass: 1
-  customWeight: 0
-  holdDistance: 0
-  useHoldRotation: 0
-  holdRotation: {x: 0, y: 0, z: 0}
-  returnOnDrop: 1
-  returnDelay: 0
-  returnDuration: 0.4
-  returnCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  inventoryItem: 0
-  itemName: 
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations: []
-  onGrabbed:
-    m_PersistentCalls:
-      m_Calls: []
-  onDropped:
-    m_PersistentCalls:
-      m_Calls: []
-  onReturned:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!54 &1928498120
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1928498116}
-  serializedVersion: 5
-  m_Mass: 1
-  m_LinearDamping: 0
-  m_AngularDamping: 0.05
-  m_CenterOfMass: {x: 0, y: 0, z: 0}
-  m_InertiaTensor: {x: 1, y: 1, z: 1}
-  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ImplicitCom: 1
-  m_ImplicitTensor: 1
-  m_UseGravity: 1
-  m_IsKinematic: 0
-  m_Interpolate: 1
-  m_Constraints: 0
-  m_CollisionDetection: 2
---- !u!4 &1928498121 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0ed6a72c5e1aa284cb636115d58f7e6d, type: 3}
-  m_PrefabInstance: {fileID: 1928498115}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1928903802
 GameObject:
   m_ObjectHideFlags: 0
@@ -56497,6 +56826,7 @@ Transform:
   m_Children:
   - {fileID: 1265505265}
   - {fileID: 933341416}
+  - {fileID: 129705094}
   m_Father: {fileID: 1928903803}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1983400525
@@ -56511,6 +56841,7 @@ GameObject:
   - component: {fileID: 1983400529}
   - component: {fileID: 1983400528}
   - component: {fileID: 1983400527}
+  - component: {fileID: 1983400530}
   m_Layer: 0
   m_Name: James
   m_TagString: Untagged
@@ -56526,14 +56857,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1983400525}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -3.0073795, y: -2.297, z: -3.0232086}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 7.6599903, y: -2.297, z: -3.0232086}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 765010911}
   m_Father: {fileID: 1928903803}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!114 &1983400527
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -56564,7 +56895,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: James
-  startNode: start
+  startNode: jamesLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -56572,6 +56903,22 @@ MonoBehaviour:
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
+  - id: jamesLevel0
+    npcText: What now, detective? The body's over there.
+    expression: {fileID: 0}
+    choices:
+    - text: Never mind.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
   - id: Start
     npcText: Detective. I assume you'll be quick. Some of us have actual work to do.
     expression: {fileID: 0}
@@ -56714,6 +57061,74 @@ MonoBehaviour:
           m_Calls: []
     timeLimit: 0
     timeoutNode: 
+  - id: jamesDrones
+    npcText: Security drones. To keep the citizens safe. Which was much needed tonight, as you can see.
+    expression: {fileID: 0}
+    choices:
+    - text: Or needed to spy on people.
+      nextNode: jamesSpy
+      endConversation: 0
+      greyAfterChosen: 1
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
+  - id: jamesSpy
+    npcText: Trust me, detective. No one cares enough to spy on you.
+    expression: {fileID: 0}
+    choices:
+    - text: We'll see
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls:
+          - m_Target: {fileID: 1983400530}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: StopAtWaypoint
+            m_Mode: 2
+            m_Arguments:
+              m_ObjectArgument: {fileID: 129705094}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 183165696}
+            m_TargetAssemblyTypeName: Journal, Assembly-CSharp
+            m_MethodName: AddPersonNote
+            m_Mode: 5
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 'James: Working on a corporate project involving security drones.'
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 134421837}
+            m_TargetAssemblyTypeName: GameTrigger, Assembly-CSharp
+            m_MethodName: Arm
+            m_Mode: 1
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+    timeLimit: 0
+    timeoutNode: 
   eventDialogue:
   - unlockId: GenoNotes
     showInNode: 
@@ -56765,6 +57180,31 @@ MonoBehaviour:
     onChosen:
       m_PersistentCalls:
         m_Calls: []
+  - unlockId: 
+    showInNode: 
+    text: Geno had notes about you. What's this about?
+    requiredItem: {fileID: 1128950935}
+    npcReply: He did? Guess he was researching my new business initiative.
+    choices:
+    - text: Launching drones?
+      nextNode: jamesDrones
+      endConversation: 0
+      greyAfterChosen: 1
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    expression: {fileID: 0}
+    backText: 
+    greyAfterChosen: 1
+    nextNode: 
+    endConversation: 0
+    salemThinks: 
+    onChosen:
+      m_PersistentCalls:
+        m_Calls: []
 --- !u!65 &1983400529
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -56786,6 +57226,40 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.5960402, y: 3.7397676, z: 0.04844284}
   m_Center: {x: 0.18249011, y: 2.1391356, z: -0.0010108948}
+--- !u!114 &1983400530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983400525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99c67b6898f5ac1459bd6f5c7d32dd03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCPatrol
+  waypoints: []
+  mode: 0
+  startAtFirstPoint: 1
+  defaultWaitTime: 2
+  randomWait: 0
+  minRandomWait: 1
+  maxRandomWait: 10
+  walkSpeed: 1.5
+  acceleration: 4
+  arriveDistance: 0.1
+  keepHeight: 1
+  useNavMesh: 1
+  giveUpTime: 4
+  addColliderIfMissing: 1
+  stopForPlayer: 1
+  stopRange: 2
+  player: {fileID: 0}
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
 --- !u!43 &1992040570
 Mesh:
   m_ObjectHideFlags: 0
@@ -57645,7 +58119,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Carmela
-  startNode: start
+  startNode: carmelaLevel0
   addGoodbye: 1
   wrongItemReply: I don't see what that has to do with anything.
   portrait: {fileID: 0}
@@ -57703,6 +58177,22 @@ MonoBehaviour:
       nextNode: start
       endConversation: 0
       greyAfterChosen: 1
+      appearAfter: 0
+      unlockId: 
+      salemThinks: 
+      onChosen:
+        m_PersistentCalls:
+          m_Calls: []
+    timeLimit: 0
+    timeoutNode: 
+  - id: carmelaLevel0
+    npcText: Not now, detective.
+    expression: {fileID: 0}
+    choices:
+    - text: Okay.
+      nextNode: 
+      endConversation: 1
+      greyAfterChosen: 0
       appearAfter: 0
       unlockId: 
       salemThinks: 
@@ -58130,40 +58620,6 @@ MeshCollider:
   m_Convex: 1
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
---- !u!1 &2116396215
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2116396216}
-  m_Layer: 0
-  m_Name: Paper_Quest
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2116396216
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2116396215}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1297173069}
-  - {fileID: 1128950937}
-  - {fileID: 1928498121}
-  m_Father: {fileID: 64407326}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2122431661
 GameObject:
   m_ObjectHideFlags: 0

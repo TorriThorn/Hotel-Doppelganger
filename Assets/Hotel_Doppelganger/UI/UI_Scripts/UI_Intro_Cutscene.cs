@@ -10,7 +10,8 @@ using Text = UnityEngine.UI.Text;
 
 // A 2D visual-novel scene that plays when the game starts: a full-screen background, a talking portrait,
 // a name plate and a typed text box, with suspect profile cards along the way.
-// Words wrapped in *asterisks* are highlighted. Click, Space, E or Enter moves on, and Tab skips
+// Words wrapped in *asterisks* are highlighted. Click, Space, E or Enter moves on, and Tab skips.
+// A line can hold the scene until something else (like a Contradiction) calls Continue
 [AddComponentMenu("Game/UI/Intro Cutscene")]
 public class IntroCutscene : MonoBehaviour
 {
@@ -34,6 +35,7 @@ public class IntroCutscene : MonoBehaviour
         Idle,
         FadingIn,
         Reading,
+        Waiting,
         Ending
     }
 
@@ -74,6 +76,10 @@ public class IntroCutscene : MonoBehaviour
 
         [DisplayAs("Effect")]
         public Effect effect;
+
+        // The scene stops after this line and fires On Waiting, then carries on when Continue is called
+        [DisplayAs("Wait Here For An Event")]
+        public bool waitHere;
 
         public Line() { }
 
@@ -162,6 +168,9 @@ public class IntroCutscene : MonoBehaviour
 
     [Foldout("Events")]
     public UnityEvent onFinished;
+
+    // Fires when a Wait Here line is reached, e.g. to open a Contradiction
+    public UnityEvent onWaiting;
 
     [Foldout("Look")]
     [DisplayAs("Match NPC Dialogue Box")]
@@ -314,7 +323,7 @@ public class IntroCutscene : MonoBehaviour
 
         if (canSkip && keyboard.tabKey.wasPressedThisFrame)
         {
-            state = State.Ending;
+            SkipToWait();
             return;
         }
 
@@ -358,7 +367,7 @@ public class IntroCutscene : MonoBehaviour
 
         readyTime = Time.unscaledTime + InputDelay;
         state = State.Reading;
-        while (state == State.Reading) yield return null;
+        while (state == State.Reading || state == State.Waiting) yield return null;
 
         // Fade to black, swap the cutscene out for the game, then fade back in on the lounge
         yield return Animate(FadeOutTime, SetFade);
@@ -377,11 +386,66 @@ public class IntroCutscene : MonoBehaviour
         FirstPersonController.SetCursorLocked(true);
     }
 
-    private void Advance()
+    // Picks up after a Wait Here line, e.g. once a Contradiction has been solved
+    public void Continue()
     {
+        if (state != State.Waiting) return;
+
+        state = State.Reading;
+        readyTime = Time.unscaledTime + InputDelay;
         lineIndex++;
         if (lineIndex >= lines.Count) state = State.Ending;
         else ShowLine(lines[lineIndex]);
+    }
+
+    // Lets something shown over the cutscene, like a Contradiction, take the screen without the text box showing
+    // through. The portrait comes back with the next line
+    public void HideTextBox(bool hide)
+    {
+        box.gameObject.SetActive(!hide);
+        hintText.gameObject.SetActive(!hide);
+        if (hide) portrait.gameObject.SetActive(false);
+    }
+
+    private void Advance()
+    {
+        if (lines[lineIndex].waitHere)
+        {
+            BeginWaiting();
+            return;
+        }
+
+        lineIndex++;
+        if (lineIndex >= lines.Count) state = State.Ending;
+        else ShowLine(lines[lineIndex]);
+    }
+
+    private void BeginWaiting()
+    {
+        state = State.Waiting;
+        nextArrow.gameObject.SetActive(false);
+        onWaiting?.Invoke();
+    }
+
+    // Skipping stops at the next Wait Here line, so nothing the story needs is skipped past
+    private void SkipToWait()
+    {
+        for (int i = lineIndex; i < lines.Count; i++)
+        {
+            if (!lines[i].waitHere) continue;
+
+            if (i != lineIndex)
+            {
+                lineIndex = i;
+                ShowLine(lines[i]);
+            }
+            visibleLetters = typedLine.Length;
+            RenderLine();
+            BeginWaiting();
+            return;
+        }
+
+        state = State.Ending;
     }
 
     private void ShowLine(Line line)
@@ -710,6 +774,40 @@ public class IntroCutscene : MonoBehaviour
 
         renderedLetters = -1;
     }
+
+#if UNITY_EDITOR
+    // Adds Level 0's opening after the existing lines: Helena and James's argument, the pause for catching
+    // their lie, and Salem heading in. Helena and James are added to the cast if they aren't there yet
+    [ContextMenu("Add Level 0 Opening Lines")]
+    private void AddLevelZeroOpening()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Level 0 Opening Lines");
+        foreach (string name in new[] { "Helena", "James", "Salem" })
+        {
+            if (FindCharacter(name) == null) cast.Add(new Character(name));
+        }
+
+        lines.AddRange(LevelZeroLines());
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    private static List<Line> LevelZeroLines() => new List<Line>
+    {
+        new Line("", "Before Salem can take a step into the lobby, a woman rushes up to him in tears."),
+        new Line("Helena", "Detective! You must help me!", null, Effect.Shake),
+        new Line("Salem", "What's wrong?"),
+        new Line("Helena", "My boyfriend doesn't want to buy me the new private island for sale! When it opened at 7 pm today, I made a fool of myself, screaming for joy at the bar. But now he won't get it!"),
+        new Line("James", "Helena, you're forgetting that my money can't be used right now. And I wasn't going to get it after all the pool guests heard your screaming. It was too embarrassing."),
+        new Line("Helena", "Do you see, Detective? He's so mean to me!"),
+        new Line("James", "A private estate in the city's high suburbs should be fine!"),
+        new Line("Salem", "(Wait a minute...)") { waitHere = true },
+        new Line("Salem", "(There's a murder case happening; I'm here to investigate, and one of them has already *lied* about something.)"),
+        new Line("Helena", "Detective?"),
+        new Line("Salem", "Sorry about your private island, ma'am. But move back, will you? Where's the body?"),
+        new Line("", "Helena goes back to crying while James points to the elevator in a huff."),
+        new Line("Salem", "(I doubt catching their lies will be that easy going forward.)")
+    };
+#endif
 
     private static List<Character> DefaultCast() => new List<Character>
     {

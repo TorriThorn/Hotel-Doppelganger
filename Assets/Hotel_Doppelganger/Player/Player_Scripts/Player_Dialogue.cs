@@ -355,6 +355,7 @@ public class PlayerDialogue : MonoBehaviour
     public int NameSize => nameSize;
     public int LineSize => lineSize;
     public Color HighlightColor => highlightColor;
+    public Color ChoiceColor => choiceTextColor;
 
     public float TalkRange { get => talkRange; set => talkRange = Mathf.Max(0f, value); }
     public float LettersPerSecond { get => lettersPerSecond; set => lettersPerSecond = Mathf.Max(1f, value); }
@@ -1223,10 +1224,14 @@ public class PlayerDialogue : MonoBehaviour
         if (item == null || !IsTalking) return;
 
         LogCurrentLine();
-        AddLogEntry(TypedLine.ColorTag(playerNameColor) + playerName + NameSeparator, presentLogText.Replace("{0}", item.DisplayName));
         npc.ShownItem = item;
 
+        // What Salem says while showing it goes in the same log line, e.g. "(Shows Geno's Note.) Geno had notes about you."
         int index = npc.FindItemEntry(item);
+        string said = presentLogText.Replace("{0}", item.DisplayName);
+        if (index >= 0 && !string.IsNullOrWhiteSpace(npc.eventDialogue[index].text)) said += " " + npc.eventDialogue[index].text.Trim();
+        AddLogEntry(TypedLine.ColorTag(playerNameColor) + playerName + NameSeparator, said);
+
         if (index >= 0) ChooseEvent(npc.eventDialogue[index], index);
         else ShowNode(BuildWrongItemReply(), true);
     }

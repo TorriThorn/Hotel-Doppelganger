@@ -270,6 +270,15 @@ public class NPCPatrol : MonoBehaviour
         StopAgent();
     }
 
+    // Moves the NPC to this point at once and keeps them there until ResumePatrol, e.g. while the lights are out
+    public void WarpTo(Transform point)
+    {
+        if (point == null) return;
+
+        Teleport(UsingAgent ? point.position : Flatten(point.position));
+        StopAtWaypoint(point);
+    }
+
     public void ResumePatrol()
     {
         isStopped = false;

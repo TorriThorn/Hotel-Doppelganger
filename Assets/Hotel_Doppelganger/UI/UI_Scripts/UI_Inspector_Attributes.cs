@@ -325,6 +325,14 @@ public class OverheardConversationEditor : FoldoutInspector { }
 [CustomEditor(typeof(Journal))]
 public class JournalEditor : FoldoutInspector { }
 
+[CanEditMultipleObjects]
+[CustomEditor(typeof(Contradiction))]
+public class ContradictionEditor : FoldoutInspector { }
+
+[CanEditMultipleObjects]
+[CustomEditor(typeof(LightFlicker))]
+public class LightFlickerEditor : FoldoutInspector { }
+
 // Draws a dialogue choice or event entry labelled by its text (or Event Id), with [MoreOptions] fields in a closed section
 [CustomPropertyDrawer(typeof(NPCDialogue.Choice))]
 [CustomPropertyDrawer(typeof(NPCDialogue.EventDialogue))]
