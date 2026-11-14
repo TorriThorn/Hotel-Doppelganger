@@ -6,7 +6,7 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Colors, font and sizes shared by every row in a MenuList. The owning menu fills this in from its Inspector values
+// Colors, font and sizes shared by every row in a MenuList, filled in by the owning menu
 public sealed class MenuStyle
 {
     public Font Font;
@@ -20,8 +20,7 @@ public sealed class MenuStyle
     public Color Shadow = Color.black;
 }
 
-// A value a menu row can change: a slider that snaps to its step, an on/off switch,
-// or a choice that cycles through a list of named options
+// A value a row can change: a stepped slider, an on/off switch, or a choice that cycles through names
 public sealed class MenuSetting
 {
     public readonly string Label;
@@ -62,7 +61,6 @@ public sealed class MenuSetting
 
     public bool IsChoice => choices != null;
 
-    // Toggles and choices change in fixed steps, so they get no slider track
     public bool HasTrack => !IsToggle && !IsChoice;
 
     public float Value => get();
@@ -118,9 +116,8 @@ public sealed class MenuItem
     public bool IsSlider => Setting != null && Setting.HasTrack;
 }
 
-// A column of rows driven by the mouse alone: hover to highlight, click to press. Sliders drag or scroll,
-// and toggles and choices step forward on a left click and back on a right click. A list made with selectOnClick
-// ignores hovering and only changes selection on a click. Rows only redraw when something on them changes
+// A mouse-only column of rows: hover to highlight, click to press. Sliders drag or scroll; toggles and choices
+// step forward on left click and back on right click. With selectOnClick, hovering doesn't select
 public sealed class MenuList
 {
     private const float MouseMoveThresholdSqr = 1f;
@@ -177,7 +174,7 @@ public sealed class MenuList
         item.Label.text = setting.Label;
         RuntimeUI.FillWidth(item.Label);
 
-        // Rows without a track hand some of its space to the value, so names like "1920 x 1080" fit on one line
+        // Rows without a track give its space to the value, so "1920 x 1080" fits
         float valueWidth = setting.HasTrack ? ValueWidth : ValueWidth + WideValueExtra;
 
         if (!setting.HasTrack)
@@ -223,7 +220,7 @@ public sealed class MenuList
         selected = 0;
     }
 
-    // Call when the list comes on screen so a mouse that's already resting there doesn't count as a hover
+    // Call when the list appears, so a resting mouse doesn't count as a hover
     public void Reset(Vector2 mousePosition)
     {
         selected = 0;
@@ -266,8 +263,7 @@ public sealed class MenuList
             return;
         }
 
-        // Hover only moves the selection when the mouse actually moves, so a mouse resting on a row as the list opens
-        // doesn't steal the starting selection
+        // Only an actual mouse move changes the selection
         bool moved = (position - lastMousePosition).sqrMagnitude > MouseMoveThresholdSqr;
         if (moved) lastMousePosition = position;
 
@@ -321,7 +317,7 @@ public sealed class MenuList
     {
         for (int i = 0; i < items.Count; i++)
         {
-            // A hidden row keeps its old rectangle, so it would otherwise still catch clicks
+            // Hidden rows keep their old rectangle, so skip them
             if (items[i].Back.gameObject.activeInHierarchy && RuntimeUI.Contains(items[i].Rect, screenPoint)) return i;
         }
 

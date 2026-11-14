@@ -345,7 +345,8 @@ public class ItemTheftEditor : FoldoutInspector { }
 [CustomEditor(typeof(GameCondition))]
 public class GameConditionEditor : FoldoutInspector { }
 
-// Draws a dialogue choice or event entry labelled by its text (or Event Id), with [MoreOptions] fields in a closed section
+// Draws a dialogue node, choice or event entry under a short name, with [MoreOptions] fields in a closed section
+[CustomPropertyDrawer(typeof(NPCDialogue.Node))]
 [CustomPropertyDrawer(typeof(NPCDialogue.Choice))]
 [CustomPropertyDrawer(typeof(NPCDialogue.EventDialogue))]
 public class DialogueEntryDrawer : PropertyDrawer
@@ -462,13 +463,22 @@ public class DialogueEntryDrawer : PropertyDrawer
         return type;
     }
 
+    // Nodes by their id, choices by what the player says, and event entries by their Event Id, or by what the
+    // player says for present-the-item lines that don't need one
     private string EntryName(SerializedProperty property)
     {
-        bool isEvent = EntryType() == typeof(NPCDialogue.EventDialogue);
-        string value = property.FindPropertyRelative(isEvent ? "unlockId" : "text")?.stringValue;
+        Type type = EntryType();
+        if (type == typeof(NPCDialogue.Node)) return Named(property, "id", "(node with no id)");
+        if (type == typeof(NPCDialogue.Choice)) return Named(property, "text", "(empty choice)");
 
-        if (!string.IsNullOrWhiteSpace(value)) return value.Trim();
-        return isEvent ? "(no Event Id yet)" : "(empty choice)";
+        string id = property.FindPropertyRelative("unlockId")?.stringValue;
+        return !string.IsNullOrWhiteSpace(id) ? id.Trim() : Named(property, "text", "(no Event Id yet)");
+    }
+
+    private static string Named(SerializedProperty property, string field, string fallback)
+    {
+        string value = property.FindPropertyRelative(field)?.stringValue;
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
     }
 
     private static bool HasEvents(SerializedProperty property)

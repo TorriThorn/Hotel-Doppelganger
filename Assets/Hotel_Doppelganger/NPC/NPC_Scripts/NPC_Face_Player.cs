@@ -1,18 +1,12 @@
 using UnityEngine;
 
-// Turns a sprite NPC to face the player's camera once they're close enough.
-// While the NPC is walking or in a conversation it always faces the camera, so the sprite never turns edge-on
+// Turns a sprite NPC to face the camera when the player is close, and always while walking or talking
 [AddComponentMenu("Game/NPC/NPC Face Player")]
 public class NPCFacePlayer : MonoBehaviour
 {
     private const float MinFacingDistanceSqr = 0.001f;
 
-    // Fast enough to be facing the camera before the conversation zoom lands
     private const float ConversationTurnSpeed = 10f;
-
-    [Foldout("References (filled in automatically)")]
-    [DisplayAs("Player (optional)")]
-    [SerializeField] private Transform player;
 
     [Header("Facing")]
     [DisplayAs("Notice Distance", Min = 0f)]
@@ -24,9 +18,13 @@ public class NPCFacePlayer : MonoBehaviour
     [DisplayAs("Turn Back When Player Leaves")]
     [SerializeField] private bool returnWhenFar = true;
 
-    // A flat sprite looks the same from either side, so it only ever needs to turn the short way
+    // A flat sprite looks the same from either side, so it only turns the short way
     [DisplayAs("Flat Sprite (never turn more than 90\u00b0)")]
     [SerializeField] private bool flatSprite = true;
+
+    [Foldout("References (filled in automatically)")]
+    [DisplayAs("Player (optional)")]
+    [SerializeField] private Transform player;
 
     private NPCPatrol patrol;
     private Transform viewer;
@@ -36,7 +34,6 @@ public class NPCFacePlayer : MonoBehaviour
     public float NoticeRange { get => noticeRange; set => noticeRange = Mathf.Max(0f, value); }
     public float TurnSpeed { get => turnSpeed; set => turnSpeed = Mathf.Max(0f, value); }
 
-    // Set by the dialogue while this NPC is being talked to
     public bool InConversation { get; set; }
 
     private void Start()
@@ -66,7 +63,6 @@ public class NPCFacePlayer : MonoBehaviour
         transform.rotation = Quaternion.Euler(0f, currentYaw, 0f);
     }
 
-    // Facing the player and facing directly away put the sprite in the same plane, so take whichever is closer
     private static float ShortestFacing(float from, float target)
     {
         float flipped = target + 180f;

@@ -2,9 +2,7 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// SOMA-style physical carrying: click to pick up and click again to drop (or hold the button, if set),
-// right mouse to rotate, scroll to push or pull.
-// Works on any non-kinematic Rigidbody. A Grabbable on the object adds per-object settings
+// SOMA-style carrying: click to pick up and drop, right mouse to rotate, scroll to push or pull
 [AddComponentMenu("Game/Player/Object Grabber")]
 public class ObjectGrabber : MonoBehaviour
 {
@@ -22,13 +20,6 @@ public class ObjectGrabber : MonoBehaviour
     private static readonly int RimPowerId = Shader.PropertyToID("_RimPower");
     private static readonly int PulseId = Shader.PropertyToID("_Pulse");
 
-    [Foldout("References (filled in automatically)")]
-    [DisplayAs("Camera (optional)")]
-    [SerializeField] private Transform cameraTransform;
-
-    [DisplayAs("Player (optional)")]
-    [SerializeField] private FirstPersonController player;
-
     [Header("Picking Up")]
     [DisplayAs("Reach", Min = 0f)]
     [SerializeField] private float reach = 3f;
@@ -36,6 +27,10 @@ public class ObjectGrabber : MonoBehaviour
     [DisplayAs("Heaviest Liftable Mass", Min = 0f)]
     [SerializeField] private float maxMass = 20f;
 
+    [DisplayAs("Click To Pick Up, Click Again To Drop")]
+    [SerializeField] private bool toggleHold = true;
+
+    [Foldout("Aiming")]
     [DisplayAs("Grabbable Layers")]
     [SerializeField] private LayerMask grabLayers = ~0;
 
@@ -45,11 +40,7 @@ public class ObjectGrabber : MonoBehaviour
     [DisplayAs("Only Grabbable Objects")]
     [SerializeField] private bool requireGrabbable;
 
-    // Off, the object is only carried while the button is held down
-    [Header("Holding")]
-    [DisplayAs("Click To Pick Up, Click Again To Drop")]
-    [SerializeField] private bool toggleHold = true;
-
+    [Foldout("Hold Distance")]
     [DisplayAs("Closest Hold Distance", Min = 0f)]
     [SerializeField] private float minHoldDistance = 1f;
 
@@ -78,7 +69,7 @@ public class ObjectGrabber : MonoBehaviour
     [DisplayAs("Rotate Strength", Min = 0f)]
     [SerializeField] private float rotateStrength = 15f;
 
-    // "At Max" values are for objects at Heaviest Liftable Mass and blend out toward Weightless Below Mass
+    // "At Max" is for objects at Heaviest Liftable Mass
     [Foldout("Heavy Objects (advanced)")]
     [DisplayAs("Weightless Below Mass", Min = 0f)]
     [SerializeField] private float lightMass = 1f;
@@ -129,6 +120,13 @@ public class ObjectGrabber : MonoBehaviour
     [DisplayAs("Glow Pulse", ShowIf = nameof(highlightTarget), Min = 0f, Max = 1f)]
     [SerializeField] private float highlightPulse = 0.3f;
 
+    [Foldout("References (filled in automatically)")]
+    [DisplayAs("Camera (optional)")]
+    [SerializeField] private Transform cameraTransform;
+
+    [DisplayAs("Player (optional)")]
+    [SerializeField] private FirstPersonController player;
+
     private readonly RaycastHit[] rayHits = new RaycastHit[16];
     private readonly RaycastHit[] sphereHits = new RaycastHit[32];
 
@@ -153,7 +151,7 @@ public class ObjectGrabber : MonoBehaviour
     public bool IsHolding { get; private set; }
     public Rigidbody HeldObject => held;
 
-    // Set by the journal: called when the player lets go, and returns true if it put the object away instead
+    // Set by the journal: returns true if it put the object away instead of dropping it
     public Func<Grabbable, bool> PutAwayOnRelease { get; set; }
 
     public float Reach { get => reach; set => reach = Mathf.Max(0f, value); }
@@ -165,6 +163,7 @@ public class ObjectGrabber : MonoBehaviour
     public float RotateSpeed { get => rotateSpeed; set => rotateSpeed = Mathf.Max(0f, value); }
     public float FollowStrength { get => followStrength; set => followStrength = Mathf.Max(0f, value); }
     public bool ShowGlow { get => highlightTarget; set => highlightTarget = value; }
+    public Shader GlowShader => highlightShader;
     public bool ToggleHold { get => toggleHold; set => toggleHold = value; }
 
     private void Awake()
@@ -214,7 +213,7 @@ public class ObjectGrabber : MonoBehaviour
 
         if (player != null && player.InputLocked)
         {
-            // A menu or conversation taking over counts as letting go, so an inventory item is put away
+            // A menu or conversation taking over counts as letting go
             LetGo();
             ClearHighlight();
             return;
@@ -237,7 +236,7 @@ public class ObjectGrabber : MonoBehaviour
         float liftTime = heavyLiftTime * weight;
         liftProgress = liftTime > 0f ? Mathf.MoveTowards(liftProgress, 1f, Time.fixedDeltaTime / liftTime) : 1f;
 
-        // Aim for the center of mass so props with offset pivots still sit in the middle of the view
+        // Aims the center of mass, so props with offset pivots still sit in the middle of the view
         Vector3 offset = HoldPoint() - held.worldCenterOfMass;
 
         if (StuckTooLong(offset.magnitude))
@@ -252,15 +251,14 @@ public class ObjectGrabber : MonoBehaviour
         RotateTowardHoldRotation();
     }
 
-    // Lets go as if the player had: an inventory item is put away, anything else drops
+    // An inventory item is put away, anything else drops
     public void LetGo()
     {
         if (held == null) return;
         if (heldGrabbable == null || PutAwayOnRelease == null || !PutAwayOnRelease(heldGrabbable)) Drop();
     }
 
-    // Takes the carried object out of the world for the inventory. It doesn't count as a drop, so placement zones
-    // and Return When Dropped leave it alone
+    // Doesn't count as a drop, so placement zones and Return When Dropped leave it alone
     public void PutAway()
     {
         if (held == null) return;
@@ -272,7 +270,7 @@ public class ObjectGrabber : MonoBehaviour
         body.gameObject.SetActive(false);
     }
 
-    // Sets a put-away object back down just in front of the player, or short of a wall if one is closer
+    // Sets it down in front of the player, or short of a wall
     public void TakeOut(Rigidbody body)
     {
         if (body == null || cameraTransform == null) return;
@@ -283,7 +281,8 @@ public class ObjectGrabber : MonoBehaviour
         forward.Normalize();
 
         float distance = TakeOutDistance;
-        if (Physics.Raycast(cameraTransform.position, forward, out RaycastHit wall, TakeOutDistance + TakeOutWallGap, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+        float checkDistance = TakeOutDistance + TakeOutWallGap;
+        if (Physics.Raycast(cameraTransform.position, forward, out RaycastHit wall, checkDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
             distance = Mathf.Max(0f, wall.distance - TakeOutWallGap);
 
         Vector3 spot = cameraTransform.position + forward * distance + Vector3.down * TakeOutDrop;
@@ -325,7 +324,6 @@ public class ObjectGrabber : MonoBehaviour
         if (scroll != 0f)
             holdDistance = Mathf.Clamp(holdDistance + Mathf.Sign(scroll) * scrollStep, minHoldDistance, maxHoldDistance);
 
-        // Right mouse turns the object instead of the camera
         bool rotating = mouse.rightButton.isPressed && (heldGrabbable == null || heldGrabbable.canRotate);
         if (player != null) player.LookLocked = rotating;
         if (rotating) RotateHoldWithMouse(mouse);
@@ -344,7 +342,6 @@ public class ObjectGrabber : MonoBehaviour
                + cameraTransform.rotation * shake * (heavyShake * weight * 2f);
     }
 
-    // Heavier objects get longer to catch up before they're dropped
     private bool StuckTooLong(float distanceFromHoldPoint)
     {
         if (distanceFromHoldPoint <= dropDistance)
@@ -390,18 +387,17 @@ public class ObjectGrabber : MonoBehaviour
         Vector3 origin = cameraTransform.position;
         Vector3 direction = cameraTransform.forward;
 
-        // Exact aim always wins
         if (RaycastIgnoringPlayer(origin, direction, reach, grabLayers, out RaycastHit direct))
         {
             if (CanGrab(direct.rigidbody)) return direct.rigidbody;
 
-            // Looking straight at an NPC leaves the click for dialogue instead of grabbing a prop next to them
+            // Looking straight at an NPC leaves the click for talking
             if (direct.collider.GetComponentInParent<NPCDialogue>() != null) return null;
         }
 
         if (grabRadius <= 0f) return null;
 
-        // Otherwise sweep a fatter ray and take whatever sits closest to the crosshair
+        // Otherwise take whatever sits closest to the crosshair
         int count = Physics.SphereCastNonAlloc(origin, grabRadius, direction, sphereHits, reach, grabLayers, QueryTriggerInteraction.Ignore);
         Rigidbody best = null;
         float bestScore = float.MaxValue;
@@ -413,7 +409,7 @@ public class ObjectGrabber : MonoBehaviour
             Rigidbody candidate = hit.rigidbody;
             if (candidate == best || !CanGrab(candidate)) continue;
 
-            // Colliders already inside the sphere when the cast starts report no hit point
+            // Colliders already inside the sphere report no hit point
             Vector3 point = hit.distance > 0f ? hit.point : ClosestPointOn(hit.collider, origin);
             Vector3 toPoint = point - origin;
             if (toPoint.sqrMagnitude > reachSqr) continue;
@@ -434,13 +430,12 @@ public class ObjectGrabber : MonoBehaviour
 
         bool hasGrabbable = rb.TryGetComponent(out Grabbable grabbable);
 
-        // Kinematic bodies can't be carried, except a Grabbable mid-glide, which the player can catch
+        // Kinematic bodies can't be carried, except a Grabbable mid-glide
         if (rb.isKinematic && (!hasGrabbable || !grabbable.IsGliding)) return false;
 
         if (!hasGrabbable) return !requireGrabbable && rb.mass <= maxMass;
         if (!grabbable.enabled || !grabbable.canGrab) return false;
 
-        // A custom weight ignores the mass limit
         return !grabbable.weightFromMass || rb.mass <= maxMass;
     }
 
@@ -453,7 +448,7 @@ public class ObjectGrabber : MonoBehaviour
                || blocker.rigidbody == target;
     }
 
-    // Skips the player's own colliders, which would otherwise block the ray from inside the head
+    // Skips the player's own colliders
     private bool RaycastIgnoringPlayer(Vector3 origin, Vector3 direction, float distance, int mask, out RaycastHit closest)
     {
         int count = Physics.RaycastNonAlloc(origin, direction, rayHits, distance, mask, QueryTriggerInteraction.Ignore);
@@ -473,13 +468,12 @@ public class ObjectGrabber : MonoBehaviour
         return found;
     }
 
-    // Collider.ClosestPoint doesn't work on concave mesh colliders, so use their bounds instead
+    // ClosestPoint doesn't work on concave mesh colliders
     private static Vector3 ClosestPointOn(Collider hitCollider, Vector3 position) =>
         hitCollider is MeshCollider mesh && !mesh.convex
             ? hitCollider.bounds.ClosestPoint(position)
             : hitCollider.ClosestPoint(position);
 
-    // The held object can be destroyed, disabled, made kinematic or locked by something else at any time
     private bool HeldStillValid()
     {
         if (held == null || held.isKinematic || !held.gameObject.activeInHierarchy) return false;
@@ -491,7 +485,7 @@ public class ObjectGrabber : MonoBehaviour
         held = rb;
         rb.TryGetComponent(out heldGrabbable);
 
-        // Cancel any glide first so the Rigidbody state saved below is the real one
+        // Cancel any glide first so the saved Rigidbody state is the real one
         if (heldGrabbable != null) heldGrabbable.CancelGlide();
 
         IsHolding = true;
@@ -537,7 +531,7 @@ public class ObjectGrabber : MonoBehaviour
 
         SetPlayerCollision(true);
 
-        // Clear our state before notifying, in case a listener reacts by grabbing or moving the object
+        // Cleared before notifying, in case a listener grabs or moves the object
         Grabbable dropped = heldGrabbable;
         IsHolding = false;
         held = null;
@@ -582,7 +576,7 @@ public class ObjectGrabber : MonoBehaviour
         highlightMaterial.SetFloat(PulseId, highlightPulse);
     }
 
-    // The glow is an extra material slot on the target's renderers, removed again when the target changes
+    // The glow is an extra material slot, removed when the target changes
     private void SetHighlight(Rigidbody target)
     {
         if (target != null && !ShouldHighlight(target)) target = null;

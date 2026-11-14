@@ -7,10 +7,8 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Catching a lie: two characters side by side, each with what they just said. Details in [brackets] are underlined
-// in the sentence. Clicking one pins a red string to it, and clicking the detail in the other statement that can't
-// also be true pins the other end there and stamps the screen, then fires On Solved (e.g. Intro Cutscene > Continue).
-// A wrong pair drops the string and Salem doubts himself
+// Catching a lie: two statements side by side with clickable [bracketed] details. Pin a red string to one, then
+// click the detail in the other statement that can't also be true. The right pair fires On Solved
 [AddComponentMenu("Game/Puzzle/Contradiction")]
 public class Contradiction : MonoBehaviour
 {
@@ -40,7 +38,7 @@ public class Contradiction : MonoBehaviour
         }
     }
 
-    // One laid out word, or part of one when a detail runs straight into punctuation
+    // One laid out word, or part of one when a detail runs into punctuation
     private sealed class Token
     {
         public Text Text;
@@ -49,13 +47,11 @@ public class Contradiction : MonoBehaviour
         public Vector2 Home;
     }
 
-    // How one detail moves: it pops in, drifts a little on its own rhythm, and grows when it's pointed at
     private sealed class DetailMotion
     {
         public Vector2 Center;
         public float Rhythm;
         public float Delay;
-        public float Scale = 1f;
     }
 
     private sealed class Side
@@ -104,10 +100,6 @@ public class Contradiction : MonoBehaviour
     private const float PopDelay = 0.35f;
     private const float PopStagger = 0.09f;
     private const float PopTime = 0.35f;
-    private const float HoverScale = 1.18f;
-    private const float PickedScale = 1.1f;
-    private const float ScaleSpeed = 14f;
-    private const float LiftPerScale = 30f;
     private const float DriftSpeed = 1.6f;
     private const float DriftX = 1.5f;
     private const float DriftY = 2.5f;
@@ -130,7 +122,7 @@ public class Contradiction : MonoBehaviour
         "Helena, you're forgetting that [my money can't be used right now]. And I wasn't going to get it after all the [pool guests] heard your screaming. It was [too embarrassing].",
         "pool guests");
 
-    [Header("Text")]
+    [Foldout("Text")]
     [DisplayAs("Title")]
     [SerializeField] private string title = "Something doesn't add up";
 
@@ -143,7 +135,7 @@ public class Contradiction : MonoBehaviour
     [DisplayAs("Salem Realises", Lines = 2)]
     [SerializeField] private string realisation = "(She was screaming at the bar... so how did the guests at the pool hear her?)";
 
-    // Used in turn after each wrong pair. {0} and {1} become the two details that were picked
+    // Used in turn after each wrong pair. {0} and {1} become the picked details
     [DisplayAs("Salem Doubts Himself")]
     [SerializeField]
     private List<string> doubts = new List<string>
@@ -185,6 +177,10 @@ public class Contradiction : MonoBehaviour
 
     [DisplayAs("Text Shadow Color", HideIf = nameof(matchDialogueBox))]
     [SerializeField] private Color shadowColor = new Color(0f, 0f, 0f, 0.9f);
+
+    // When matching, this is the dialogue box's "Show them something..." blue
+    [DisplayAs("Hover Color", HideIf = nameof(matchDialogueBox))]
+    [SerializeField] private Color hoverColor = new Color(0.45f, 0.85f, 1f);
 
     [DisplayAs("Screen Shade")]
     [SerializeField] private Color shadeColor = new Color(0f, 0f, 0f, 0.6f);
@@ -232,6 +228,7 @@ public class Contradiction : MonoBehaviour
     private Color wordColor;
     private Color activeDetailColor;
     private Color activePickedColor;
+    private Color activeHoverColor;
     private Color activeShadowColor;
 
     private Phase phase;
@@ -283,7 +280,7 @@ public class Contradiction : MonoBehaviour
         phaseTime += dt;
         openTime += dt;
         UpdateEffects(dt);
-        AnimateDetails(dt);
+        AnimateDetails();
 
         switch (phase)
         {
@@ -299,7 +296,7 @@ public class Contradiction : MonoBehaviour
         }
     }
 
-    // Shows the two statements with nothing picked. Hook it to Intro Cutscene > On Waiting, or any other event
+    // Hook it to Intro Cutscene > On Waiting, or any other event
     public void Open()
     {
         if (IsOpen) return;
@@ -308,8 +305,7 @@ public class Contradiction : MonoBehaviour
         IsOpen = true;
         ApplyLook();
 
-        // Inside the intro cutscene, Salem's thoughts go in its text box, which starts empty instead of
-        // still showing the line it stopped on
+        // Inside the intro, Salem's lines use its text box, cleared so the waiting line doesn't show
         coveredCutscene = IntroCutscene.IsPlaying ? FindAnyObjectByType<IntroCutscene>() : null;
         if (coveredCutscene != null) coveredCutscene.ShowAside(SalemName, string.Empty);
 
@@ -328,7 +324,7 @@ public class Contradiction : MonoBehaviour
         Prepare(rightSide, right);
         SetUpMotions();
         Recolor();
-        AnimateDetails(0f);
+        AnimateDetails();
     }
 
     public void Close()
@@ -341,7 +337,7 @@ public class Contradiction : MonoBehaviour
         if (coveredCutscene != null) coveredCutscene.EndAside();
         coveredCutscene = null;
 
-        // On its own (not inside the intro cutscene) it hands the controls back itself
+        // On its own, outside the intro, it hands the controls back itself
         if (IntroCutscene.IsPlaying) return;
         if (player != null) player.InputLocked = false;
         FirstPersonController.SetCursorLocked(true);
@@ -376,7 +372,7 @@ public class Contradiction : MonoBehaviour
         DrawString(from, to, Vector2.Distance(from, to) * Slack, 1f);
     }
 
-    // Clicking a detail pins the string to it, clicking the same one again lets go, and a detail on the other side is the guess
+    // Pins the string, lets go of it, or makes the guess when the other side is clicked
     private void Click(Side side, int detail)
     {
         if (side == null)
@@ -433,7 +429,7 @@ public class Contradiction : MonoBehaviour
         Shake(WrongShake);
         onWrong?.Invoke();
 
-        // The far end comes loose and falls, then the string is gone
+        // The far end comes loose and falls
         dropStart = DetailPoint(pinnedSide, pinnedDetail);
         dropEnd = DetailPoint(side, detail);
         dropVelocity = Vector2.zero;
@@ -443,7 +439,6 @@ public class Contradiction : MonoBehaviour
         Recolor();
     }
 
-    // The string stays pinned between the two details while the stamp slams down and Salem says what he's worked out
     private void UpdateSolved()
     {
         Vector2 from = DetailPoint(pinnedSide, pinnedDetail);
@@ -466,7 +461,7 @@ public class Contradiction : MonoBehaviour
             }
         }
 
-        // Waits for a click like the rest of the intro; the first click finishes Salem's line if it's still typing
+        // Waits for a click; the first one finishes Salem's line if it's still typing
         if (!stampLanded || phaseTime < StampDelay + StampTime + ContinueDelay || !ContinuePressed()) return;
 
         if (coveredCutscene != null && coveredCutscene.AsideTyping) coveredCutscene.FinishAsideTyping();
@@ -499,7 +494,6 @@ public class Contradiction : MonoBehaviour
         Say(line.Replace("{0}", leftPick).Replace("{1}", rightPick));
     }
 
-    // Salem's line for the solve stays up until the player clicks on
     private void Say(string line, bool waitForClick = false)
     {
         if (waitForClick && coveredCutscene == null) instructionsText.text = ContinueHint;
@@ -557,7 +551,7 @@ public class Contradiction : MonoBehaviour
         FirstPersonController.SetCursorLocked(false);
     }
 
-    // Splits out the bracketed details, then lays the statement out word by word so each detail can be clicked where it is
+    // Splits out the bracketed details and lays the statement out word by word
     private void Prepare(Side side, Statement statement)
     {
         side.Source = statement;
@@ -592,7 +586,7 @@ public class Contradiction : MonoBehaviour
         side.Name.text = (statement.speaker ?? string.Empty).ToUpper();
     }
 
-    // Wraps by whole words. A word can hold several tokens, e.g. "bar" (a detail) and the full stop after it
+    // Wraps by whole words. A word can hold several tokens, e.g. "bar" and the full stop after it
     private void LayoutWords(Side side, string plain, List<int> owners)
     {
         foreach (Token old in side.Tokens)
@@ -621,7 +615,6 @@ public class Contradiction : MonoBehaviour
             int end = start;
             while (end < plain.Length && !char.IsWhiteSpace(plain[end])) end++;
 
-            // Where the owner changes inside the word, a new token starts
             parts.Clear();
             parts.Add(start);
             for (int i = start + 1; i < end; i++)
@@ -705,7 +698,7 @@ public class Contradiction : MonoBehaviour
         return measure.preferredHeight;
     }
 
-    // Each detail scales around its own middle, and they pop in one after another, left statement first
+    // Details pop in one after another, left statement first
     private void SetUpMotions()
     {
         int order = 0;
@@ -742,26 +735,18 @@ public class Contradiction : MonoBehaviour
         }
     }
 
-    private void AnimateDetails(float dt)
+    private void AnimateDetails()
     {
-        float blend = 1f - Mathf.Exp(-ScaleSpeed * dt);
         foreach (Side side in new[] { leftSide, rightSide })
         {
-            for (int detail = 0; detail < side.Motions.Count; detail++)
-            {
-                DetailMotion motion = side.Motions[detail];
-                float goal = side == hoverSide && detail == hoverDetail ? HoverScale : IsLit(side, detail) ? PickedScale : 1f;
-                motion.Scale = Mathf.Lerp(motion.Scale, goal, blend);
-            }
-
             foreach (Token token in side.Tokens)
             {
                 if (token.Detail < 0 || token.Detail >= side.Motions.Count) continue;
 
                 DetailMotion motion = side.Motions[token.Detail];
-                float scale = motion.Scale * PopCurve((openTime - motion.Delay) / PopTime);
+                float scale = PopCurve((openTime - motion.Delay) / PopTime);
                 float time = Time.unscaledTime * DriftSpeed + motion.Rhythm;
-                Vector2 drift = new Vector2(Mathf.Cos(time * 0.8f) * DriftX, Mathf.Sin(time) * DriftY + (motion.Scale - 1f) * LiftPerScale);
+                Vector2 drift = new Vector2(Mathf.Cos(time * 0.8f) * DriftX, Mathf.Sin(time) * DriftY);
 
                 RectTransform rect = token.Text.rectTransform;
                 rect.localScale = Vector3.one * scale;
@@ -770,7 +755,7 @@ public class Contradiction : MonoBehaviour
         }
     }
 
-    // Grows past full size and settles back, so each detail pops
+    // Grows past full size and settles back
     private static float PopCurve(float t)
     {
         if (t <= 0f) return 0f;
@@ -799,7 +784,7 @@ public class Contradiction : MonoBehaviour
         detail = -1;
     }
 
-    // Under the middle of a detail, which may run over two lines, in the string layer's space
+    // Under the middle of a detail, which may run over two lines
     private Vector2 DetailPoint(Side side, int detail)
     {
         float minX = float.MaxValue;
@@ -823,12 +808,12 @@ public class Contradiction : MonoBehaviour
         return minX > maxX ? Vector2.zero : new Vector2((minX + maxX) * 0.5f, bottom + 2f);
     }
 
-    // The canvas draws over the screen, so screen points are its world points
+    // The canvas covers the screen, so screen points are its world points
     private Vector2 ToLocal(Vector2 screenPoint) => stringLayer.InverseTransformPoint(new Vector3(screenPoint.x, screenPoint.y, 0f));
 
     private void ShowString(bool show) => stringLayer.gameObject.SetActive(show);
 
-    // A sagging curve built from short straight pieces, with a pin at each end
+    // A sagging curve of short straight pieces, with a pin at each end
     private void DrawString(Vector2 from, Vector2 to, float sag, float alpha)
     {
         ShowString(true);
@@ -864,7 +849,6 @@ public class Contradiction : MonoBehaviour
         foreach (Image edge in stampBorders) edge.color = new Color(stringColor.r, stringColor.g, stringColor.b, alpha);
     }
 
-    // Details are tinted and underlined, and the one under the mouse or pinned stands out
     private void Recolor()
     {
         foreach (Side side in new[] { leftSide, rightSide })
@@ -877,8 +861,9 @@ public class Contradiction : MonoBehaviour
                     continue;
                 }
 
-                bool lit = IsLit(side, token.Detail);
-                Color color = lit ? activePickedColor : activeDetailColor;
+                bool hovered = side == hoverSide && token.Detail == hoverDetail;
+                bool lit = hovered || IsLit(side, token.Detail);
+                Color color = hovered ? activeHoverColor : lit ? activePickedColor : activeDetailColor;
                 token.Text.color = color;
                 token.Underline.color = color;
 
@@ -900,7 +885,6 @@ public class Contradiction : MonoBehaviour
         shade = RuntimeUI.CreateImage("Shade", canvas.transform, shadeColor);
         RuntimeUI.Stretch(shade.rectTransform);
 
-        // Everything that shakes
         content = RuntimeUI.CreateRect("Content", canvas.transform);
         RuntimeUI.Stretch(content);
 
@@ -912,7 +896,7 @@ public class Contradiction : MonoBehaviour
         feedbackText.fontStyle = FontStyle.Italic;
         PlaceAcross(feedbackText.rectTransform, 0f, 70f);
 
-        // Only used to measure words, so it's never seen
+        // Only used to measure words
         measure = CreateText("Measure", content, textSize, TextAnchor.MiddleLeft);
         measure.horizontalOverflow = HorizontalWrapMode.Overflow;
         measure.color = Color.clear;
@@ -935,7 +919,6 @@ public class Contradiction : MonoBehaviour
         canvas.gameObject.SetActive(false);
     }
 
-    // A portrait with a box under it holding the name and the statement
     private void BuildSide(Side side, Transform parent)
     {
         RectTransform column = RuntimeUI.CreateRect("Side", parent);
@@ -960,7 +943,6 @@ public class Contradiction : MonoBehaviour
         side.WordsSize = side.Words.gameObject.AddComponent<LayoutElement>();
     }
 
-    // Drawn above the statements, centered so its points line up with the words' positions
     private void BuildString()
     {
         stringLayer = RuntimeUI.CreateRect("String", content);
@@ -990,7 +972,6 @@ public class Contradiction : MonoBehaviour
         return pin;
     }
 
-    // A tilted, framed word in the middle of the screen, like a rubber stamp
     private void BuildStamp()
     {
         Image frame = RuntimeUI.CreateBox("Stamp", content, 0f, Color.clear, stringColor, new RectOffset(40, 40, 8, 8), 0f, stampBorders);
@@ -1022,7 +1003,6 @@ public class Contradiction : MonoBehaviour
         return text;
     }
 
-    // The NPC dialogue box's look when matching it, otherwise this component's own values
     private void ApplyLook()
     {
         bool match = matchDialogueBox && dialogue != null;
@@ -1036,6 +1016,7 @@ public class Contradiction : MonoBehaviour
         activeDetailColor = match ? dialogue.ChoiceColor : detailColor;
         activePickedColor = match ? dialogue.HighlightColor : pickedColor;
         activeShadowColor = match ? dialogue.ShadowColor : shadowColor;
+        activeHoverColor = match ? dialogue.PresentColor : hoverColor;
 
         shade.color = shadeColor;
         foreach (Image edge in borders) edge.color = border;

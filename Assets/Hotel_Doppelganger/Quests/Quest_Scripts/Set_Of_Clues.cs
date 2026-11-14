@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// Groups clues that only mean something together, like the pieces of Geno's notes.
-// Once enough of them are found, Salem can put it together and On Complete fires. What he worked out is added
-// to each piece's inventory page
+// Clues that only mean something together, like the pieces of Geno's notes. Once enough are found, Salem's
+// thought plays, is added to each piece's inventory page, and On Complete fires
 [AddComponentMenu("Game/Puzzle/Clue Set")]
 public class ClueSet : MonoBehaviour
 {

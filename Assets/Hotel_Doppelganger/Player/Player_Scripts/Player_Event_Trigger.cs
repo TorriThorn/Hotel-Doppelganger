@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-// Fires an event when something happens: the player walks close, looks at this spot, looks away from it,
-// or a timer runs out. Use it for timed sequences, Salem's comments, and NPCs acting behind the player's back
+// Fires when the player comes close, looks at or away from this spot, or after a delay
 [AddComponentMenu("Game/Puzzle/Game Trigger")]
 public class GameTrigger : MonoBehaviour
 {
@@ -22,24 +21,26 @@ public class GameTrigger : MonoBehaviour
     [DisplayAs("Distance (meters)", Min = 0f)]
     [SerializeField] private float distance = 3f;
 
+    [DisplayAs("Delay (seconds)", Min = 0f)]
+    [SerializeField] private float delay = 10f;
+
+    // Off, it waits for Arm
+    [DisplayAs("Start Armed")]
+    [SerializeField] private bool startArmed = true;
+
+    [Header("Then")]
+    [DisplayAs("Salem Thinks (optional)", Lines = 2)]
+    [SerializeField] private string thought = "";
+
+    [Foldout("Advanced")]
     [DisplayAs("Looking Angle (degrees)", Min = 1f, Max = 90f)]
     [SerializeField] private float lookAngle = 15f;
 
     [DisplayAs("For How Long (seconds)", Min = 0f)]
     [SerializeField] private float holdTime = 0.5f;
 
-    [DisplayAs("Delay (seconds)", Min = 0f)]
-    [SerializeField] private float delay = 10f;
-
-    [DisplayAs("Start Armed")]
-    [SerializeField] private bool startArmed = true;
-
     [DisplayAs("Only Fire Once")]
     [SerializeField] private bool onlyOnce = true;
-
-    [Header("Then")]
-    [DisplayAs("Salem Thinks (optional)", Lines = 2)]
-    [SerializeField] private string thought = "";
 
     [Foldout("Events")]
     public UnityEvent onTriggered;
@@ -58,7 +59,21 @@ public class GameTrigger : MonoBehaviour
         if (startArmed) Arm();
     }
 
-    // Starts watching and restarts the timer. A trigger that isn't armed at start waits for this, e.g. from another event
+    private void Update()
+    {
+        if (!armed || when == When.Manually) return;
+
+        // Nothing fires mid-conversation or during a cutscene
+        if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsTalking)) return;
+
+        bool condition = when == When.AfterDelay || ConditionMet();
+        timer = condition ? timer + Time.deltaTime : 0f;
+
+        float needed = when == When.AfterDelay ? delay : holdTime;
+        if (condition && timer >= needed) Fire();
+    }
+
+    // Starts watching and restarts the timer
     public void Arm()
     {
         if (onlyOnce && fired) return;
@@ -78,20 +93,6 @@ public class GameTrigger : MonoBehaviour
 
         if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Say(thought);
         onTriggered?.Invoke();
-    }
-
-    private void Update()
-    {
-        if (!armed || when == When.Manually) return;
-
-        // Paused menus stop the clock, and nothing fires mid-conversation or during a cutscene
-        if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsTalking)) return;
-
-        bool condition = when == When.AfterDelay || ConditionMet();
-        timer = condition ? timer + Time.deltaTime : 0f;
-
-        float needed = when == When.AfterDelay ? delay : holdTime;
-        if (condition && timer >= needed) Fire();
     }
 
     private bool ConditionMet()

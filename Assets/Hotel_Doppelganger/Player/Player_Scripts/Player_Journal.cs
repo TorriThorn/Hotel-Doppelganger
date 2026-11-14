@@ -7,12 +7,8 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Salem's journal: an Items tab for the inventory and a Bestiary tab for the monsters. Opens and closes with J,
-// and is browsed with the mouse. A clue or quest item can be looked over in the hand and goes into the inventory
-// when let go, and a clue's page shows its note and what Salem thought. Placement Zone pieces drop as normal
-// so they can be set in place. Items with a recipe can be combined, like Silent Hill, and only the items that fit
-// are offered. In a conversation it also opens to present an item, like Ace Attorney.
-// If there's no Journal in the scene, one is made
+// Salem's journal: Items, People and Bestiary tabs. Opens with J, browsed with the mouse.
+// Also where items are combined, and opens to present an item in a conversation. Made if there isn't one
 [AddComponentMenu("Game/UI/Journal")]
 public class Journal : MonoBehaviour
 {
@@ -66,7 +62,7 @@ public class Journal : MonoBehaviour
         [DisplayAs("Picture (optional)")]
         public Sprite picture;
 
-        // Left off, the entry shows as ??? until something calls UnlockCreature with its name
+        // Off, it shows as ??? until UnlockCreature is called with its name
         [DisplayAs("Known From The Start")]
         public bool startsKnown = true;
 
@@ -82,7 +78,6 @@ public class Journal : MonoBehaviour
         }
     }
 
-    // Above the dialogue box, below the main menu
     private const int SortingOrder = 150;
 
     private const float ToastTime = 3f;
@@ -100,6 +95,10 @@ public class Journal : MonoBehaviour
     private const string CancelText = "Cancel";
     private const float PictureHeight = 260f;
     private const string HintGap = "        ";
+    private const float PresentGlowLow = 0.12f;
+    private const float PresentGlowHigh = 0.3f;
+    private const float PresentGlowSpeed = 2.5f;
+    private const float PresentHoverGlow = 0.45f;
 
     [Header("Journal")]
     [DisplayAs("Open Key")]
@@ -108,15 +107,24 @@ public class Journal : MonoBehaviour
     [DisplayAs("Pause Game While Open")]
     [SerializeField] private bool pauseGame = true;
 
-    [Header("Items")]
-    [DisplayAs("Items Tab Title")]
-    [SerializeField] private string itemsTitle = "Items";
-
     [DisplayAs("Show Controls While Holding")]
     [SerializeField] private bool showHoldControls = true;
 
+    [Foldout("Tab Titles And Messages")]
+    [DisplayAs("Items Tab Title")]
+    [SerializeField] private string itemsTitle = "Items";
+
+    [DisplayAs("People Tab Title")]
+    [SerializeField] private string peopleTitle = "People";
+
+    [DisplayAs("Bestiary Tab Title")]
+    [SerializeField] private string bestiaryTitle = "Bestiary";
+
     [DisplayAs("No Items Text")]
     [SerializeField] private string noItemsText = "Nothing yet. Pick up anything that looks important.";
+
+    [DisplayAs("Unknown Creature Text")]
+    [SerializeField] private string unknownCreatureText = "Salem hasn't come across this one yet.";
 
     // These follow the item's name, e.g. "Geno's Tool added to inventory"
     [DisplayAs("Item Combined Message")]
@@ -128,26 +136,16 @@ public class Journal : MonoBehaviour
     [DisplayAs("Item Put Away Message")]
     [SerializeField] private string itemPutAwayText = "put away";
 
-    [Header("People")]
-    [DisplayAs("People Tab Title")]
-    [SerializeField] private string peopleTitle = "People";
-
-    // Followed by the person's name, e.g. "Notes updated: James"
     [DisplayAs("Notes Updated Message")]
     [SerializeField] private string notesUpdatedText = "Notes updated:";
-
-    [SerializeField] private List<Person> people = DefaultPeople();
-
-    [Header("Bestiary")]
-    [DisplayAs("Bestiary Tab Title")]
-    [SerializeField] private string bestiaryTitle = "Bestiary";
-
-    [DisplayAs("Unknown Creature Text")]
-    [SerializeField] private string unknownCreatureText = "Salem hasn't come across this one yet.";
 
     [DisplayAs("Bestiary Updated Message")]
     [SerializeField] private string bestiaryUpdatedText = "Bestiary updated";
 
+    [Header("People")]
+    [SerializeField] private List<Person> people = DefaultPeople();
+
+    [Header("Bestiary")]
     [SerializeField] private List<Creature> creatures = DefaultCreatures();
 
     [Foldout("Look")]
@@ -182,7 +180,6 @@ public class Journal : MonoBehaviour
     [DisplayAs("Box Width", Min = 400f)]
     [SerializeField] private float boxWidth = 1400f;
 
-    // The box runs from near the top of the screen to near the bottom, leaving this much space at each end
     [DisplayAs("Space Above And Below", Min = 0f, Max = 400f)]
     [SerializeField] private float screenMargin = 60f;
 
@@ -269,7 +266,6 @@ public class Journal : MonoBehaviour
     public bool HasItems => items.Count > 0;
     public IReadOnlyList<Grabbable> Items => items;
 
-    // The journal if one exists, without making one
     public static Journal Current => instance;
 
     public static bool IsPresenting => instance != null && instance.presenting;
@@ -319,7 +315,7 @@ public class Journal : MonoBehaviour
         if (canvas != null) ApplyLook();
     }
 
-    // Any object an NPC asks to be shown counts as a quest item. Anything a Placement Zone takes has to be carried there
+    // Anything an NPC asks to see is a quest item; anything a Placement Zone takes has to be carried
     private void Start()
     {
         foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>())
@@ -349,123 +345,6 @@ public class Journal : MonoBehaviour
         if (canvas != null) Destroy(canvas.gameObject);
     }
 
-    public bool IsInventoryItem(Grabbable item)
-    {
-        if (item == null) return false;
-        if (item.inventoryItem || questItems.Contains(item)) return true;
-        return item.TryGetComponent(out Clue clue) && clue.AddsToInventory;
-    }
-
-    // Also usable from UnityEvents, e.g. to hand the player an item. Adding one that's already there does nothing
-    public void AddItem(Grabbable item)
-    {
-        if (item == null || items.Contains(item)) return;
-
-        // Rows show whatever item is at their place in the sorted list, so sorting moves the names, not the rows
-        Grabbable selected = SelectedItem;
-        items.Add(item);
-        items.Sort(CompareItems);
-        int place = items.Count - 1;
-        itemsList.AddButton(itemsColumn, () => items[place].DisplayName, null);
-        newestItem = item;
-
-        KeepSelection(itemsList, items.IndexOf(selected), tab == Tab.Items);
-        Announce(item.DisplayName + " " + itemAddedText);
-    }
-
-    // Takes it out of the inventory for good, e.g. something used up or stolen. Rows show whatever item is at
-    // their place, so dropping the last row is enough to shorten the list
-    public void RemoveItem(Grabbable item)
-    {
-        if (item == null || !items.Remove(item)) return;
-
-        putAway.Remove(item);
-        item.gameObject.SetActive(false);
-        itemsList.RemoveLast();
-        itemsList.MarkDirty();
-        if (newestItem == item) newestItem = null;
-    }
-
-    // Opens on the Items tab with a Present button. The callback gets the chosen item, or null if the player backs out
-    public void OpenToPresent(Action<Grabbable> picked)
-    {
-        if (isOpen) return;
-
-        presenting = true;
-        presentCallback = picked;
-        OpenPanel();
-        ShowTab(Tab.Items);
-    }
-
-    // For UnityEvents, written as "Name: what Salem learned", e.g. "James: Working on a corporate project
-    // involving security drones." Someone who isn't in the People list yet gets added
-    public void AddPersonNote(string entry)
-    {
-        if (string.IsNullOrWhiteSpace(entry)) return;
-
-        int split = entry.IndexOf(':');
-        if (split <= 0) return;
-
-        string personName = entry.Substring(0, split).Trim();
-        string note = entry.Substring(split + 1).Trim();
-        if (note.Length == 0) return;
-
-        Person person = FindPerson(personName) ?? AddPerson(new Person(personName, string.Empty, string.Empty));
-        if (!personNotes.TryGetValue(person, out List<string> notes))
-        {
-            notes = new List<string>();
-            personNotes[person] = notes;
-        }
-        if (notes.Contains(note)) return;
-
-        notes.Add(note);
-        if (isOpen && tab == Tab.People) shownIndex = -1;
-        Announce(notesUpdatedText + " " + person.name);
-    }
-
-    // For UnityEvents, e.g. a dialogue choice's On Chosen once Salem learns what a suspect really is
-    public void UnlockCreature(string creatureName)
-    {
-        Creature creature = FindCreature(creatureName);
-        if (creature == null || !knownCreatures.Add(creature)) return;
-
-        Creature selected = tab == Tab.Bestiary && bestiaryOrder.Count > 0 ? bestiaryOrder[Mathf.Clamp(bestiaryList.Selected, 0, bestiaryOrder.Count - 1)] : null;
-        SortBestiary();
-        KeepSelection(bestiaryList, bestiaryOrder.IndexOf(selected), tab == Tab.Bestiary);
-        Announce(bestiaryUpdatedText);
-    }
-
-    // After a list is re-sorted, the same entry stays selected and an open page is redrawn
-    private void KeepSelection(MenuList sorted, int index, bool onThisTab)
-    {
-        if (index >= 0) sorted.SetSelected(index);
-        sorted.MarkDirty();
-        if (isOpen && onThisTab) shownIndex = -1;
-    }
-
-    private static int CompareItems(Grabbable a, Grabbable b) =>
-        string.Compare(a.DisplayName, b.DisplayName, StringComparison.CurrentCultureIgnoreCase);
-
-    // Known creatures from A to Z, then the ??? ones in the order they're listed in the Inspector, so nothing is given away
-    private void SortBestiary()
-    {
-        bestiaryOrder.Sort((a, b) =>
-        {
-            bool aKnown = knownCreatures.Contains(a);
-            bool bKnown = knownCreatures.Contains(b);
-            if (aKnown != bKnown) return aKnown ? -1 : 1;
-            return aKnown
-                ? string.Compare(a.name, b.name, StringComparison.CurrentCultureIgnoreCase)
-                : creatures.IndexOf(a).CompareTo(creatures.IndexOf(b));
-        });
-    }
-
-    public bool IsCreatureKnown(string creatureName)
-    {
-        Creature creature = FindCreature(creatureName);
-        return creature != null && knownCreatures.Contains(creature);
-    }
-
     private void Update()
     {
         UpdateToast(Time.unscaledDeltaTime);
@@ -483,10 +362,10 @@ public class Journal : MonoBehaviour
 
         HoldGameplay();
 
-        // The click that opened it (e.g. on a dialogue choice) shouldn't also count as a click outside
+        // So the click that opened it doesn't count as a click outside
         if (Time.frameCount == openedFrame) return;
 
-        // The inspect view sits over the journal and takes the input until it's closed
+        // The inspect view and the combine menu take the input while they're open
         Mouse mouse = Mouse.current;
         if (inspector.IsOpen)
         {
@@ -495,7 +374,6 @@ public class Journal : MonoBehaviour
             return;
         }
 
-        // So does the combine menu: pick a partner, or click outside or press J to cancel
         if (combineRoot.activeSelf)
         {
             UpdateCombine(keyboard, mouse);
@@ -524,8 +402,285 @@ public class Journal : MonoBehaviour
         UpdateActionButtons(mouse);
     }
 
-    // The buttons under an item's page: Inspect for anything with a model, Combine when something in the
-    // inventory fits with it, then Take Out for something put away. While presenting, only Present shows
+    public bool IsInventoryItem(Grabbable item)
+    {
+        if (item == null) return false;
+        if (item.inventoryItem || questItems.Contains(item)) return true;
+        return item.TryGetComponent(out Clue clue) && clue.AddsToInventory;
+    }
+
+    // Also for UnityEvents, e.g. to hand the player an item
+    public void AddItem(Grabbable item)
+    {
+        if (item == null || items.Contains(item)) return;
+
+        // Rows show whatever item is at their place, so sorting moves the names, not the rows
+        Grabbable selected = SelectedItem;
+        items.Add(item);
+        items.Sort(CompareItems);
+        int place = items.Count - 1;
+        itemsList.AddButton(itemsColumn, () => items[place].DisplayName, null);
+        newestItem = item;
+
+        KeepSelection(itemsList, items.IndexOf(selected), tab == Tab.Items);
+        Announce(item.DisplayName + " " + itemAddedText);
+    }
+
+    // For good, e.g. something used up or stolen
+    public void RemoveItem(Grabbable item)
+    {
+        if (item == null || !items.Remove(item)) return;
+
+        putAway.Remove(item);
+        item.gameObject.SetActive(false);
+        itemsList.RemoveLast();
+        itemsList.MarkDirty();
+        if (newestItem == item) newestItem = null;
+    }
+
+    // The callback gets the chosen item, or null if the player backs out
+    public void OpenToPresent(Action<Grabbable> picked)
+    {
+        if (isOpen) return;
+
+        presenting = true;
+        presentCallback = picked;
+        OpenPanel();
+        ShowTab(Tab.Items);
+    }
+
+    // Written as "Name: note", e.g. "James: Working on security drones." Unknown people are added
+    public void AddPersonNote(string entry)
+    {
+        if (string.IsNullOrWhiteSpace(entry)) return;
+
+        int split = entry.IndexOf(':');
+        if (split <= 0) return;
+
+        string personName = entry.Substring(0, split).Trim();
+        string note = entry.Substring(split + 1).Trim();
+        if (note.Length == 0) return;
+
+        Person person = FindPerson(personName) ?? AddPerson(new Person(personName, string.Empty, string.Empty));
+        if (!personNotes.TryGetValue(person, out List<string> notes))
+        {
+            notes = new List<string>();
+            personNotes[person] = notes;
+        }
+        if (notes.Contains(note)) return;
+
+        notes.Add(note);
+        if (isOpen && tab == Tab.People) shownIndex = -1;
+        Announce(notesUpdatedText + " " + person.name);
+    }
+
+    public void UnlockCreature(string creatureName)
+    {
+        Creature creature = FindCreature(creatureName);
+        if (creature == null || !knownCreatures.Add(creature)) return;
+
+        bool onBestiary = tab == Tab.Bestiary && bestiaryOrder.Count > 0;
+        Creature selected = onBestiary ? bestiaryOrder[Mathf.Clamp(bestiaryList.Selected, 0, bestiaryOrder.Count - 1)] : null;
+        SortBestiary();
+        KeepSelection(bestiaryList, bestiaryOrder.IndexOf(selected), tab == Tab.Bestiary);
+        Announce(bestiaryUpdatedText);
+    }
+
+    public bool IsCreatureKnown(string creatureName)
+    {
+        Creature creature = FindCreature(creatureName);
+        return creature != null && knownCreatures.Contains(creature);
+    }
+
+    // Keeps the same entry selected after a re-sort
+    private void KeepSelection(MenuList sorted, int index, bool onThisTab)
+    {
+        if (index >= 0) sorted.SetSelected(index);
+        sorted.MarkDirty();
+        if (isOpen && onThisTab) shownIndex = -1;
+    }
+
+    private static int CompareItems(Grabbable a, Grabbable b) =>
+        string.Compare(a.DisplayName, b.DisplayName, StringComparison.CurrentCultureIgnoreCase);
+
+    // Known creatures A to Z, then the ??? ones in Inspector order
+    private void SortBestiary()
+    {
+        bestiaryOrder.Sort((a, b) =>
+        {
+            bool aKnown = knownCreatures.Contains(a);
+            bool bKnown = knownCreatures.Contains(b);
+            if (aKnown != bKnown) return aKnown ? -1 : 1;
+            return aKnown
+                ? string.Compare(a.name, b.name, StringComparison.CurrentCultureIgnoreCase)
+                : creatures.IndexOf(a).CompareTo(creatures.IndexOf(b));
+        });
+    }
+
+    // Leaves the cursor and controls alone, since the conversation still has them
+    private void FinishPresenting(Grabbable picked)
+    {
+        inspector.Close();
+        CloseCombine();
+        presenting = false;
+        actionButton.Label.fontStyle = FontStyle.Normal;
+        actionList.MarkDirty();
+        isOpen = false;
+        panel.SetActive(false);
+        Time.timeScale = previousTimeScale;
+
+        Action<Grabbable> callback = presentCallback;
+        presentCallback = null;
+        callback?.Invoke(picked);
+    }
+
+    private bool TabPressed(Mouse mouse, out Tab pressed)
+    {
+        pressed = tab;
+        if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return false;
+
+        Vector2 position = mouse.position.ReadValue();
+        if (RuntimeUI.Contains(itemsTabText.rectTransform, position)) pressed = Tab.Items;
+        else if (RuntimeUI.Contains(peopleTabText.rectTransform, position)) pressed = Tab.People;
+        else if (RuntimeUI.Contains(bestiaryTabText.rectTransform, position)) pressed = Tab.Bestiary;
+
+        return pressed != tab;
+    }
+
+    private bool ClickedOutside(Mouse mouse) =>
+        mouse != null && mouse.leftButton.wasPressedThisFrame && !RuntimeUI.Contains(box.rectTransform, mouse.position.ReadValue());
+
+    // Not over a conversation, a menu, a cutscene or the ending
+    private bool CanOpen()
+    {
+        if (Time.timeScale == 0f || IntroCutscene.IsPlaying || StartupNotice.IsShowing) return false;
+        if (dialogue != null && dialogue.IsTalking) return false;
+        if (menu != null && menu.IsOpen) return false;
+        return gameComplete == null || !gameComplete.HasEnded;
+    }
+
+    private void Open()
+    {
+        OpenPanel();
+        ShowTab(Tab.Items);
+        itemsList.SetSelected(Mathf.Max(0, items.IndexOf(newestItem)));
+        itemsList.Refresh();
+        ShowEntry(itemsList.Selected);
+    }
+
+    private void OpenPanel()
+    {
+        isOpen = true;
+        openedFrame = Time.frameCount;
+        panel.SetActive(true);
+        toastLeft = 0f;
+        UpdateFooter();
+
+        previousTimeScale = Time.timeScale;
+        if (pauseGame) Time.timeScale = 0f;
+        HoldGameplay();
+    }
+
+    private void ShowTab(Tab newTab)
+    {
+        tab = newTab;
+        itemsColumn.gameObject.SetActive(tab == Tab.Items);
+        peopleColumn.gameObject.SetActive(tab == Tab.People);
+        bestiaryColumn.gameObject.SetActive(tab == Tab.Bestiary);
+        StyleTabs();
+
+        Mouse mouse = Mouse.current;
+        CurrentList.Reset(mouse != null ? mouse.position.ReadValue() : Vector2.zero);
+        CurrentList.Refresh();
+        ShowEntry(CurrentList.Selected);
+    }
+
+    private void Close()
+    {
+        inspector.Close();
+        CloseCombine();
+        isOpen = false;
+        panel.SetActive(false);
+        Time.timeScale = previousTimeScale;
+        FirstPersonController.SetCursorLocked(true);
+        StartCoroutine(ReleaseInputNextFrame());
+    }
+
+    // So the closing key isn't also read by the game
+    private IEnumerator ReleaseInputNextFrame()
+    {
+        yield return null;
+        if (!isOpen && player != null) player.InputLocked = false;
+    }
+
+    private void HoldGameplay()
+    {
+        if (player != null) player.InputLocked = true;
+        FirstPersonController.SetCursorLocked(false);
+    }
+
+    private void Announce(string message)
+    {
+        if (isOpen) return;
+        toastText.text = message + "   [" + openKey + "]";
+        toastLeft = ToastTime;
+    }
+
+    private void UpdateToast(float dt)
+    {
+        if (toastLeft <= 0f)
+        {
+            if (toast.alpha != 0f) toast.alpha = 0f;
+            return;
+        }
+
+        // Waits out conversations and menus
+        if (!CanOpen())
+        {
+            if (toast.alpha != 0f) toast.alpha = 0f;
+            return;
+        }
+
+        toastLeft -= dt;
+        float shown = ToastTime - toastLeft;
+        toast.alpha = Mathf.Clamp01(Mathf.Min(shown, toastLeft) / ToastFade);
+    }
+
+    private Person AddPerson(Person person)
+    {
+        Person selected = tab == Tab.People && peopleOrder.Count > 0 ? peopleOrder[Mathf.Clamp(peopleList.Selected, 0, peopleOrder.Count - 1)] : null;
+        peopleOrder.Add(person);
+        peopleOrder.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.CurrentCultureIgnoreCase));
+
+        int place = peopleOrder.Count - 1;
+        peopleList.AddButton(peopleColumn, () => peopleOrder[place].name, null);
+        KeepSelection(peopleList, peopleOrder.IndexOf(selected), tab == Tab.People);
+        return person;
+    }
+
+    private Person FindPerson(string personName)
+    {
+        string key = personName.Trim();
+        foreach (Person person in peopleOrder)
+        {
+            if (string.Equals(person.name?.Trim(), key, StringComparison.OrdinalIgnoreCase)) return person;
+        }
+        return null;
+    }
+
+    private Creature FindCreature(string creatureName)
+    {
+        if (string.IsNullOrWhiteSpace(creatureName)) return null;
+
+        string key = creatureName.Trim();
+        foreach (Creature creature in creatures)
+        {
+            if (creature != null && string.Equals(creature.name?.Trim(), key, StringComparison.OrdinalIgnoreCase)) return creature;
+        }
+        return null;
+    }
+
+    // Inspect, Combine, and Take Out or Present under an item's page
     private void UpdateActionButtons(Mouse mouse)
     {
         bool showInspect = tab == Tab.Items && !presenting && selectedCanInspect;
@@ -540,6 +695,20 @@ public class Journal : MonoBehaviour
 
         if (mouse != null) actionList.HandleInput(mouse);
         actionList.Refresh();
+        if (presenting && showAction) StylePresentButton(mouse);
+    }
+
+    // Bold, in the dialogue's present blue, on a softly pulsing band that brightens on hover
+    private void StylePresentButton(Mouse mouse)
+    {
+        Color blue = dialogue != null ? dialogue.PresentColor : highlightColor;
+        bool hovered = mouse != null && RuntimeUI.Contains(actionButton.Rect, mouse.position.ReadValue());
+        float pulse = 0.5f + 0.5f * Mathf.Sin(Time.unscaledTime * PresentGlowSpeed);
+
+        actionButton.Label.fontStyle = FontStyle.Bold;
+        actionButton.Label.color = hovered ? Color.white : blue;
+        actionButton.LabelShadow.enabled = true;
+        actionButton.Back.color = new Color(blue.r, blue.g, blue.b, hovered ? PresentHoverGlow : Mathf.Lerp(PresentGlowLow, PresentGlowHigh, pulse));
     }
 
     private static bool SetShown(MenuItem button, bool show)
@@ -558,7 +727,6 @@ public class Journal : MonoBehaviour
         return putAway.Contains(item) ? TakeOutButtonText : null;
     }
 
-    // Every item in the inventory that has a recipe with this one, in list order
     private void FindPartners(Grabbable item)
     {
         partners.Clear();
@@ -623,7 +791,7 @@ public class Journal : MonoBehaviour
         combineList.Clear();
     }
 
-    // Both parts leave the inventory and the result takes their place, already put away
+    // Both parts leave the inventory and the result takes their place
     private void Combine(Grabbable a, Grabbable b)
     {
         Grabbable.Combination recipe = FindRecipe(a, b);
@@ -636,7 +804,7 @@ public class Journal : MonoBehaviour
         Grabbable result = recipe.result;
         if (result != null)
         {
-            // Made items always belong in the inventory, so letting go of one later puts it away again
+            // So letting go of it later puts it away again
             questItems.Add(result);
             result.gameObject.SetActive(false);
             AddItem(result);
@@ -644,8 +812,7 @@ public class Journal : MonoBehaviour
             itemsList.SetSelected(items.IndexOf(result));
             Announce(result.DisplayName + " " + combinedText);
 
-            // Making a clue counts as finding it, so Salem comments and its On Found events (like unlocking
-            // an NPC's Present line) run now rather than waiting for it to be taken out and picked up
+            // Making a clue counts as finding it, so its On Found events run now
             if (result.TryGetComponent(out Clue clue)) clue.MarkFound();
         }
 
@@ -672,7 +839,7 @@ public class Journal : MonoBehaviour
         else item.gameObject.SetActive(true);
     }
 
-    // Placement Zone pieces are carried rather than put away, so they're listed as soon as they're picked up
+    // Placement Zone pieces are listed as soon as they're picked up
     private void CollectHeldItem()
     {
         Rigidbody body = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
@@ -683,8 +850,7 @@ public class Journal : MonoBehaviour
         if (zonePieces.Contains(item)) AddItem(item);
     }
 
-    // A line along the bottom of the screen while something is held. It's worked out once per pick-up,
-    // since letting go is the only thing that changes what the controls do
+    // Worked out once per pick-up
     private void UpdateHoldHint()
     {
         Grabbable item = null;
@@ -716,7 +882,6 @@ public class Journal : MonoBehaviour
 
     private string HintKey(string key) => highlightTag + "[" + key + "]</color>  ";
 
-    // Letting go of an inventory item puts it away, so it can be looked over in the hand first
     private bool PutAwayIfInventoryItem(Grabbable item)
     {
         if (!IsInventoryItem(item) || zonePieces.Contains(item)) return false;
@@ -730,116 +895,12 @@ public class Journal : MonoBehaviour
         Rigidbody body = grabber != null && grabber.IsHolding ? grabber.HeldObject : null;
         if (body == null || !body.TryGetComponent(out Grabbable item) || !IsInventoryItem(item)) return;
 
-        // A new item already says "added to inventory"
         bool isNew = !items.Contains(item);
         AddItem(item);
         grabber.PutAway();
         putAway.Add(item);
         lastHeld = null;
         if (!isNew) Announce(item.DisplayName + " " + itemPutAwayText);
-    }
-
-    // Closes without touching the cursor or controls, since the conversation underneath still has them
-    private void FinishPresenting(Grabbable picked)
-    {
-        inspector.Close();
-        CloseCombine();
-        presenting = false;
-        isOpen = false;
-        panel.SetActive(false);
-        Time.timeScale = previousTimeScale;
-
-        Action<Grabbable> callback = presentCallback;
-        presentCallback = null;
-        callback?.Invoke(picked);
-    }
-
-    // Clicking a tab's name opens it
-    private bool TabPressed(Mouse mouse, out Tab pressed)
-    {
-        pressed = tab;
-        if (mouse == null || !mouse.leftButton.wasPressedThisFrame) return false;
-
-        Vector2 position = mouse.position.ReadValue();
-        if (RuntimeUI.Contains(itemsTabText.rectTransform, position)) pressed = Tab.Items;
-        else if (RuntimeUI.Contains(peopleTabText.rectTransform, position)) pressed = Tab.People;
-        else if (RuntimeUI.Contains(bestiaryTabText.rectTransform, position)) pressed = Tab.Bestiary;
-
-        return pressed != tab;
-    }
-
-    // Clicking anywhere off the journal closes it
-    private bool ClickedOutside(Mouse mouse) =>
-        mouse != null && mouse.leftButton.wasPressedThisFrame && !RuntimeUI.Contains(box.rectTransform, mouse.position.ReadValue());
-
-    // Only from normal play: not over a conversation, a menu, a cutscene or the ending
-    private bool CanOpen()
-    {
-        if (Time.timeScale == 0f || IntroCutscene.IsPlaying || StartupNotice.IsShowing) return false;
-        if (dialogue != null && dialogue.IsTalking) return false;
-        if (menu != null && menu.IsOpen) return false;
-        return gameComplete == null || !gameComplete.HasEnded;
-    }
-
-    private void Open()
-    {
-        OpenPanel();
-        // Opens on the newest item
-        ShowTab(Tab.Items);
-        itemsList.SetSelected(Mathf.Max(0, items.IndexOf(newestItem)));
-        itemsList.Refresh();
-        ShowEntry(itemsList.Selected);
-    }
-
-    private void OpenPanel()
-    {
-        isOpen = true;
-        openedFrame = Time.frameCount;
-        panel.SetActive(true);
-        toastLeft = 0f;
-        UpdateFooter();
-
-        previousTimeScale = Time.timeScale;
-        if (pauseGame) Time.timeScale = 0f;
-        HoldGameplay();
-    }
-
-    private void ShowTab(Tab newTab)
-    {
-        tab = newTab;
-        itemsColumn.gameObject.SetActive(tab == Tab.Items);
-        peopleColumn.gameObject.SetActive(tab == Tab.People);
-        bestiaryColumn.gameObject.SetActive(tab == Tab.Bestiary);
-        StyleTabs();
-
-        Mouse mouse = Mouse.current;
-        CurrentList.Reset(mouse != null ? mouse.position.ReadValue() : Vector2.zero);
-        CurrentList.Refresh();
-        ShowEntry(CurrentList.Selected);
-    }
-
-    private void Close()
-    {
-        inspector.Close();
-        CloseCombine();
-        isOpen = false;
-        panel.SetActive(false);
-        Time.timeScale = previousTimeScale;
-        FirstPersonController.SetCursorLocked(true);
-        StartCoroutine(ReleaseInputNextFrame());
-    }
-
-    // Waits a frame so the key that closed the journal isn't also read by the game
-    private IEnumerator ReleaseInputNextFrame()
-    {
-        yield return null;
-        if (!isOpen && player != null) player.InputLocked = false;
-    }
-
-    private void HoldGameplay()
-    {
-        if (player != null) player.InputLocked = true;
-        FirstPersonController.SetCursorLocked(false);
     }
 
     private void ShowEntry(int index)
@@ -854,7 +915,7 @@ public class Journal : MonoBehaviour
         else ShowItem(index);
     }
 
-    // The item's description, then a clue's note, then what Salem thought of it and anything he pieced together later
+    // Description, then a clue's note, then what Salem thought
     private void ShowItem(int index)
     {
         if (items.Count == 0)
@@ -871,7 +932,7 @@ public class Journal : MonoBehaviour
         {
             if (!string.IsNullOrWhiteSpace(clue.NoteText))
             {
-                // The note's title only goes above it when the item is called something else, so it isn't shown twice
+                // The note's title is skipped when it's the item's name
                 bool titleIsName = string.Equals(clue.NoteTitle?.Trim(), item.DisplayName, StringComparison.OrdinalIgnoreCase);
                 string note = string.IsNullOrWhiteSpace(clue.NoteTitle) || titleIsName ? clue.NoteText : "*" + clue.NoteTitle.Trim() + "*\n" + clue.NoteText;
                 body = string.IsNullOrWhiteSpace(body) ? note : body + "\n\n" + note;
@@ -887,7 +948,6 @@ public class Journal : MonoBehaviour
         SetPage(item.DisplayName, body, ThoughtHeading, thought, item.itemPicture);
     }
 
-    // Who they are, then everything Salem has noted about them
     private void ShowPerson(int index)
     {
         if (peopleOrder.Count == 0)
@@ -906,7 +966,6 @@ public class Journal : MonoBehaviour
         SetPage(person.name, body, NotesHeading, notes, person.picture);
     }
 
-    // Unknown creatures keep their name, picture and weakness hidden
     private void ShowCreature(int index)
     {
         if (bestiaryOrder.Count == 0)
@@ -949,37 +1008,46 @@ public class Journal : MonoBehaviour
         }
     }
 
-    private void Announce(string message)
+    private static List<Person> DefaultPeople() => new List<Person>
     {
-        if (isOpen) return;
-        toastText.text = message + "   [" + openKey + "]";
-        toastLeft = ToastTime;
-    }
+        new Person("Helena", "James's girlfriend  \u00b7  Socialite",
+            "Here with James on his business trip. Dramatic and tearful. Wants James to buy her a penthouse in the city."),
+        new Person("James", "Tech billionaire  \u00b7  Helena's boyfriend",
+            "In town for an important business meeting. Cold, logical and dismissive. Geno was one of his loudest critics."),
+        new Person("Carmela", "Certified witch  \u00b7  Potion maker",
+            "Called to the hotel to deliver a sobering tonic to a drunk guest. Paranoid and avoids confrontation."),
+        new Person("Zain", "Hotel guest",
+            "Drinking heavily. Lost his job at James's company and seems to be running from someone."),
+        new Person("Murray", "Businessman  \u00b7  Caviar distributor",
+            "Ships expensive caviar in signature tins. Keeps a close eye on Zain."),
+        new Person("Yaroslava", "Potion and amulet seller",
+            "Uncertified magic practitioner. Bitter toward certified witches, especially Carmela.")
+    };
 
-    private void UpdateToast(float dt)
+    // Placeholders until the real write-ups are ready
+    private static List<Creature> DefaultCreatures() => new List<Creature>
     {
-        if (toastLeft <= 0f)
-        {
-            if (toast.alpha != 0f) toast.alpha = 0f;
-            return;
-        }
-
-        // Waits out conversations and menus, so it's seen once the player is back in the lounge
-        if (!CanOpen())
-        {
-            if (toast.alpha != 0f) toast.alpha = 0f;
-            return;
-        }
-
-        toastLeft -= dt;
-        float shown = ToastTime - toastLeft;
-        toast.alpha = Mathf.Clamp01(Mathf.Min(shown, toastLeft) / ToastFade);
-    }
+        new Creature("Werewolf", "Shapeshifter",
+            "Sample text. A person cursed to take the shape of a great wolf. Leaves *deep claw marks* and is strongest under a full moon.",
+            "Sample text. *Silver*, and staying indoors on the full moon.", true),
+        new Creature("Vampire", "Undead",
+            "Sample text. Looks human, keeps to the shadows and never seems to eat. Can bend weaker minds to its will.",
+            "Sample text. *Sunlight*, garlic and a stake through the heart.", true),
+        new Creature("Thrall", "Mind controlled",
+            "Sample text. Someone under another creature's control. Glassy eyes, flat voice and *gaps in their memory*.",
+            "Sample text. Breaking the hold of whatever controls them.", true),
+        new Creature("Fishman", "Aquatic",
+            "Sample text. Passes for human on land, but sheds *scales* and is never far from water.",
+            "Sample text. *Drying out*. Keep them away from water for long enough and they weaken.", false),
+        new Creature("Doppelganger", "Mimic",
+            "Sample text. Can take the face and voice of anyone it has studied. The real person is rarely seen again.",
+            "Sample text. Questions only the real person could answer.", false)
+    };
 
     private void BuildUI()
     {
         UpdateStyle();
-        // Entries only change on a click, so moving to a page's button doesn't switch the page on the way
+        // Entries only change on a click, not on hover
         itemsList = new MenuList(style, true);
         peopleList = new MenuList(style, true);
         bestiaryList = new MenuList(style, true);
@@ -1007,7 +1075,6 @@ public class Journal : MonoBehaviour
         peopleTabText = CreateText("People Tab", tabs.transform, 24, TextAnchor.MiddleLeft);
         bestiaryTabText = CreateText("Bestiary Tab", tabs.transform, 24, TextAnchor.MiddleLeft);
 
-        // List on the left, the chosen page on the right, filling everything between the tabs and the footer
         Image row = RuntimeUI.CreateRow("Pages", box.transform, 0f, new RectOffset(0, 0, 0, 0), 48f);
         var rowLayout = row.GetComponent<HorizontalLayoutGroup>();
         rowLayout.childAlignment = TextAnchor.UpperLeft;
@@ -1042,7 +1109,6 @@ public class Journal : MonoBehaviour
         }
         bestiaryColumn.gameObject.SetActive(false);
 
-        // The page sits in a clipped window that reaches down to the footer, and only very long pages need to scroll
         RectTransform pageView = RuntimeUI.CreateRect("Page View", row.transform);
         var viewSize = pageView.gameObject.AddComponent<LayoutElement>();
         viewSize.flexibleWidth = 1f;
@@ -1074,7 +1140,6 @@ public class Journal : MonoBehaviour
         pageThought.supportRichText = true;
         pageThought.fontStyle = FontStyle.Italic;
 
-        // Inspect, Combine, then Present or Take Out, under an item's page
         inspectButton = actionList.AddButton(page, () => InspectButtonText, () => inspector.Open(SelectedItem));
         inspectButton.Back.gameObject.SetActive(false);
         combineButton = actionList.AddButton(page, () => CombineButtonText, OpenCombine);
@@ -1085,7 +1150,6 @@ public class Journal : MonoBehaviour
         footerText = CreateText("Footer", box.transform, 20, TextAnchor.LowerRight);
         BuildCombineMenu(panelRect);
 
-        // The controls reminder along the bottom of the screen while something is held
         holdHint = CreateText("Holding Controls", canvas.transform, 24, TextAnchor.MiddleCenter);
         holdHint.supportRichText = true;
         RectTransform hintRect = holdHint.rectTransform;
@@ -1094,7 +1158,6 @@ public class Journal : MonoBehaviour
         hintRect.sizeDelta = new Vector2(1600f, 40f);
         holdHint.gameObject.SetActive(false);
 
-        // A short "added to inventory" note in the corner when something new comes in
         toastText = CreateText("New Entry", canvas.transform, 24, TextAnchor.UpperRight);
         RectTransform toastRect = toastText.rectTransform;
         toastRect.anchorMin = toastRect.anchorMax = toastRect.pivot = Vector2.one;
@@ -1103,14 +1166,13 @@ public class Journal : MonoBehaviour
         toast = toastText.gameObject.AddComponent<CanvasGroup>();
         toast.alpha = 0f;
 
-        // Built last so it draws over everything else in the journal
+        // Built last so it draws over everything else
         inspector = new ItemInspector(canvas.transform, font);
 
         ApplyLook();
         panel.SetActive(false);
     }
 
-    // A small box over the journal listing only the items the chosen one combines with
     private void BuildCombineMenu(RectTransform parent)
     {
         combineList = new MenuList(style);
@@ -1181,12 +1243,13 @@ public class Journal : MonoBehaviour
         foreach (Image edge in borders) edge.color = border;
         pageScroll.SetColors(new Color(border.r, border.g, border.b, border.a * 0.35f), line);
 
-        // The inspect view's backdrop is the box color, a touch lighter so dark items still stand out
+        // A touch lighter than the box so dark items still stand out
         Color boxShade = match ? dialogue.BoxColor : boxColor;
         Color inspectBackdrop = Color.Lerp(new Color(boxShade.r, boxShade.g, boxShade.b), Color.white, 0.07f);
         inspector.ApplyLook(activeFont, line, label, style.Shadow, inspectBackdrop, highlightTag);
         foreach (Shadow shadow in shadows) shadow.effectColor = style.Shadow;
-        foreach (Text text in new[] { itemsTabText, peopleTabText, bestiaryTabText, pageTitle, pageBody, thoughtLabel, pageThought, footerText, toastText, holdHint }) text.font = activeFont;
+        Text[] texts = { itemsTabText, peopleTabText, bestiaryTabText, pageTitle, pageBody, thoughtLabel, pageThought, footerText, toastText, holdHint };
+        foreach (Text text in texts) text.font = activeFont;
 
         combineTitle.color = label;
         combineTitle.font = activeFont;
@@ -1222,7 +1285,6 @@ public class Journal : MonoBehaviour
             : "Click a tab to switch pages      Scroll to read more      Click outside or press " + openKey + " to close";
     }
 
-    // The open tab is lit like a selected row; the other matches the labels
     private void StyleTabs()
     {
         bool match = Matching;
@@ -1232,76 +1294,4 @@ public class Journal : MonoBehaviour
         peopleTabText.color = tab == Tab.People ? highlight : label;
         bestiaryTabText.color = tab == Tab.Bestiary ? highlight : label;
     }
-
-    // Rows show whoever is at their place in the A to Z list, so adding someone only needs one more row
-    private Person AddPerson(Person person)
-    {
-        Person selected = tab == Tab.People && peopleOrder.Count > 0 ? peopleOrder[Mathf.Clamp(peopleList.Selected, 0, peopleOrder.Count - 1)] : null;
-        peopleOrder.Add(person);
-        peopleOrder.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.CurrentCultureIgnoreCase));
-
-        int place = peopleOrder.Count - 1;
-        peopleList.AddButton(peopleColumn, () => peopleOrder[place].name, null);
-        KeepSelection(peopleList, peopleOrder.IndexOf(selected), tab == Tab.People);
-        return person;
-    }
-
-    private Person FindPerson(string personName)
-    {
-        string key = personName.Trim();
-        foreach (Person person in peopleOrder)
-        {
-            if (string.Equals(person.name?.Trim(), key, StringComparison.OrdinalIgnoreCase)) return person;
-        }
-        return null;
-    }
-
-    private Creature FindCreature(string creatureName)
-    {
-        if (string.IsNullOrWhiteSpace(creatureName)) return null;
-
-        string key = creatureName.Trim();
-        foreach (Creature creature in creatures)
-        {
-            if (creature != null && string.Equals(creature.name?.Trim(), key, StringComparison.OrdinalIgnoreCase)) return creature;
-        }
-        return null;
-    }
-
-    // The six suspects, as the Police Chief describes them
-    private static List<Person> DefaultPeople() => new List<Person>
-    {
-        new Person("Helena", "James's girlfriend  \u00b7  Socialite",
-            "Here with James on his business trip. Dramatic and tearful. Wants James to buy her a penthouse in the city."),
-        new Person("James", "Tech billionaire  \u00b7  Helena's boyfriend",
-            "In town for an important business meeting. Cold, logical and dismissive. Geno was one of his loudest critics."),
-        new Person("Carmela", "Certified witch  \u00b7  Potion maker",
-            "Called to the hotel to deliver a sobering tonic to a drunk guest. Paranoid and avoids confrontation."),
-        new Person("Zain", "Hotel guest",
-            "Drinking heavily. Lost his job at James's company and seems to be running from someone."),
-        new Person("Murray", "Businessman  \u00b7  Caviar distributor",
-            "Ships expensive caviar in signature tins. Keeps a close eye on Zain."),
-        new Person("Yaroslava", "Potion and amulet seller",
-            "Uncertified magic practitioner. Bitter toward certified witches, especially Carmela.")
-    };
-
-    // Placeholder entries until the real write-ups are ready
-    private static List<Creature> DefaultCreatures() => new List<Creature>
-    {
-        new Creature("Werewolf", "Shapeshifter",
-            "Sample text. A person cursed to take the shape of a great wolf. Leaves *deep claw marks* and is strongest under a full moon.",
-            "Sample text. *Silver*, and staying indoors on the full moon.", true),
-        new Creature("Vampire", "Undead",
-            "Sample text. Looks human, keeps to the shadows and never seems to eat. Can bend weaker minds to its will.",
-            "Sample text. *Sunlight*, garlic and a stake through the heart.", true),
-        new Creature("Thrall", "Mind controlled",
-            "Sample text. Someone under another creature's control. Glassy eyes, flat voice and *gaps in their memory*.",
-            "Sample text. Breaking the hold of whatever controls them.", true),
-        new Creature("Fishman", "Aquatic",
-            "Sample text. Passes for human on land, but sheds *scales* and is never far from water.",
-            "Sample text. *Drying out*. Keep them away from water for long enough and they weaken.", false),
-        new Creature("Doppelganger", "Mimic",
-            "Sample text. Can take the face and voice of anyone it has studied. The real person is rarely seen again.",
-            "Sample text. Questions only the real person could answer.", false)
-    };
 }

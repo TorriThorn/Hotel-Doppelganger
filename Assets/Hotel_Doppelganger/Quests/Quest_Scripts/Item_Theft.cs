@@ -1,21 +1,19 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-// Takes an item out of Salem's inventory without him seeing, e.g. Carmela lifting the fish scale. The next time
-// the player opens the journal, Salem notices it's gone. If they don't look for a while, On Not Noticed fires
-// instead, e.g. to have someone come over and tip him off
+// Quietly takes an item out of Salem's inventory, e.g. Carmela lifting the fish scale. He notices the next time
+// the journal opens; if it stays shut too long, On Not Noticed fires instead
 [AddComponentMenu("Game/Puzzle/Item Theft")]
 public class ItemTheft : MonoBehaviour
 {
-    [Header("Item")]
+    [Header("Theft")]
     [DisplayAs("Item To Steal")]
     [SerializeField] private Grabbable item;
 
-    [Header("Noticing")]
     [DisplayAs("Salem Notices", Lines = 2)]
     [SerializeField] private string noticeThought = "What the...? Where did it go?";
 
-    // Counts play time only, not conversations or menus
+    // Counts play time only
     [DisplayAs("If Not Noticed Within (seconds, 0 = never)", Min = 0f)]
     [SerializeField] private float noticeTimeout = 180f;
 
@@ -71,8 +69,9 @@ public class ItemTheft : MonoBehaviour
     {
         if (IsStolen || item == null) return;
 
-        // Something carried in hand is put away first, so it leaves the inventory like everything else
-        if (grabber != null && grabber.HeldObject != null && grabber.HeldObject.gameObject == item.gameObject) grabber.LetGo();
+        // Put down first if it's in hand
+        bool inHand = grabber != null && grabber.HeldObject != null && grabber.HeldObject.gameObject == item.gameObject;
+        if (inHand) grabber.LetGo();
 
         Journal.Get().RemoveItem(item);
         item.gameObject.SetActive(false);
@@ -84,7 +83,7 @@ public class ItemTheft : MonoBehaviour
         onStolen?.Invoke();
     }
 
-    // Puts the item back in the world at this spot, e.g. where the thief dropped it, for the player to pick up again
+    // Puts the item back in the world, e.g. where the thief dropped it
     public void DropAt(Transform point)
     {
         if (item == null || point == null) return;

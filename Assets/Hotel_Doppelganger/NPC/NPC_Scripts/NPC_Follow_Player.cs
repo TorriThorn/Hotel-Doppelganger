@@ -1,9 +1,8 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-// Sends an NPC after the player. Stalk keeps a distance behind them and freezes whenever the player looks their
-// way, Follow walks along after them, and Approach walks up and starts a conversation.
-// Walking is done by the NPC's NPC Patrol, so the NPC needs one
+// Sends an NPC after the player: Stalk stays behind them and freezes when looked at, Follow walks along,
+// and Approach walks up and starts talking. Needs NPC Patrol on the NPC
 [AddComponentMenu("Game/NPC/NPC Follow Player")]
 public class NPCFollowPlayer : MonoBehaviour
 {
@@ -26,19 +25,19 @@ public class NPCFollowPlayer : MonoBehaviour
     [DisplayAs("Distance From The Player (meters)", Min = 0.5f)]
     [SerializeField] private float distance = 5f;
 
-    // Counts play time only, not conversations or menus. Approach ignores it and finishes once they're talking
+    // Counts play time only. Approach ignores it
     [DisplayAs("Finish After (seconds, 0 = until Stop Following)", Min = 0f)]
     [SerializeField] private float duration = 15f;
 
+    [DisplayAs("Approach: Start Talking At Node (blank = first node)")]
+    [SerializeField] private string conversationNode = "";
+
+    [Foldout("Advanced")]
     [DisplayAs("Walk Speed (0 = their usual)", Min = 0f)]
     [SerializeField] private float walkSpeed;
 
     [DisplayAs("Start When Scene Starts")]
     [SerializeField] private bool startOnSceneStart;
-
-    [Header("Approach")]
-    [DisplayAs("Start Talking At Node (blank = their first node)")]
-    [SerializeField] private string conversationNode = "";
 
     [Foldout("Events")]
     [DisplayAs("On Finished")]
@@ -81,7 +80,6 @@ public class NPCFollowPlayer : MonoBehaviour
     {
         if (!IsFollowing) return;
 
-        // Everyone holds still while the player is talking or in a menu
         if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsTalking) || Journal.Get().IsOpen) return;
 
         elapsed += Time.deltaTime;
@@ -109,7 +107,6 @@ public class NPCFollowPlayer : MonoBehaviour
         }
     }
 
-    // For UnityEvents, e.g. a Game Condition's On All Done
     public void StartFollowing()
     {
         if (IsFollowing || patrol == null || player == null) return;
@@ -121,7 +118,7 @@ public class NPCFollowPlayer : MonoBehaviour
         if (walkSpeed > 0f) patrol.WalkSpeed = walkSpeed;
     }
 
-    // Leaves the NPC standing where they are. Call NPC Patrol > Resume Patrol to send them back to their route
+    // Leaves them standing there. NPC Patrol > Resume Patrol sends them back to their route
     public void StopFollowing()
     {
         if (!IsFollowing) return;
@@ -137,7 +134,7 @@ public class NPCFollowPlayer : MonoBehaviour
         onFinished?.Invoke();
     }
 
-    // Keeps to a spot behind the player, and stands still whenever they could be seen moving
+    // Keeps behind the player, and stands still whenever they could be seen moving
     private void Stalk()
     {
         if (InPlayersView())
@@ -161,12 +158,12 @@ public class NPCFollowPlayer : MonoBehaviour
             return;
         }
 
-        // Waits beside the player until a conversation can actually start
+        // Waits beside the player until a conversation can start
         patrol.StopPatrol();
         if (dialogue == null || npc == null || dialogue.StartConversation(npc, conversationNode)) Finish();
     }
 
-    // A spot this far from the player on the NPC's side, so they never walk into or past them
+    // A spot this far from the player on the NPC's side
     private Vector3 Beside(float gap)
     {
         Vector3 away = transform.position - PlayerPosition;

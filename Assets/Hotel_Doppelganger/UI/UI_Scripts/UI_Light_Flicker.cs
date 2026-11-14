@@ -4,9 +4,8 @@ using UnityEngine;
 using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
-// The lights stutter a few times, then go out completely for a moment. While it's dark, On Dark runs: the place to
-// make objects appear, move characters and unlock things, so the room has changed when the lights come back.
-// A black overlay makes sure the screen really goes black, since switching lights off still leaves ambient light
+// The lights stutter, then go out for a moment. On Dark is where to move things around, so the room has changed
+// when they come back. A black overlay covers the ambient light that switching lights off leaves behind
 [AddComponentMenu("Game/Puzzle/Light Flicker")]
 public class LightFlicker : MonoBehaviour
 {
@@ -16,7 +15,14 @@ public class LightFlicker : MonoBehaviour
     [DisplayAs("Lights (empty = every light in the scene)")]
     [SerializeField] private List<Light> lights = new List<Light>();
 
-    [Header("Timing")]
+    [Header("Afterwards")]
+    [DisplayAs("Salem Thinks (optional)", Lines = 2)]
+    [SerializeField] private string thought = "It's going to be an interesting night.";
+
+    [DisplayAs("Only Flicker Once")]
+    [SerializeField] private bool onlyOnce = true;
+
+    [Foldout("Timing")]
     [DisplayAs("Flickers Before Going Out", Min = 0f)]
     [SerializeField] private int flickers = 3;
 
@@ -28,13 +34,6 @@ public class LightFlicker : MonoBehaviour
 
     [DisplayAs("Time Fully Dark (seconds)", Min = 0f)]
     [SerializeField] private float darkTime = 1.2f;
-
-    [Header("Afterwards")]
-    [DisplayAs("Salem Thinks (optional)", Lines = 2)]
-    [SerializeField] private string thought = "It's going to be an interesting night.";
-
-    [DisplayAs("Only Flicker Once")]
-    [SerializeField] private bool onlyOnce = true;
 
     [Foldout("Events")]
     public UnityEvent onDark;

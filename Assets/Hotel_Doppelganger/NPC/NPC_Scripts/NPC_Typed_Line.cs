@@ -2,9 +2,8 @@ using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
 
-// One line of dialogue that types out letter by letter. Words between *asterisks* are highlighted, and
-// letters not typed yet are drawn invisible so line breaks and box size never shift while typing.
-// Shared by the NPC dialogue box and the intro cutscene so both behave the same
+// A line that types out letter by letter, with *asterisk* words highlighted. Untyped letters are drawn
+// invisible so the layout never shifts. Shared by the dialogue box and the intro cutscene
 public sealed class TypedLine
 {
     private const string HiddenTag = "<color=#00000000>";
@@ -38,7 +37,7 @@ public sealed class TypedLine
         }
     }
 
-    // Only pauses where a word ends, so times like 10:00 don't stutter
+    // Only pauses at the end of a word, so times like 10:00 don't stutter
     public float PauseAfter(int index, float sentencePause, float commaPause)
     {
         bool endsWord = index + 1 >= letters.Count || char.IsWhiteSpace(letters[index + 1]);

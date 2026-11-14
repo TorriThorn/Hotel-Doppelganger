@@ -2291,11 +2291,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &75275410
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2310,21 +2310,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Yaroslava
   startNode: yaroslavaLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 0}
+  dialoguePortraitTalking: {fileID: 0}
   allAskedNode: l1_start
   allAskedThought: 
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: yaroslavaLevel0
     npcText: Not now, detective.
-    expression: {fileID: 0}
     choices:
     - text: Okay.
       nextNode: 
@@ -2336,13 +2337,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: start
     npcText: Ah, the detective. Come to stare at the old woman like everyone else? Go on, then.
-    expression: {fileID: 0}
     choices:
     - text: What are you selling?
       nextNode: wares
@@ -2364,13 +2366,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: wares
     npcText: Charms. Tonics. Things that work, unlike that certified girl's watery nonsense.
-    expression: {fileID: 0}
     choices:
     - text: You mean Carmela?
       nextNode: carmela
@@ -2392,13 +2395,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: carmela
     npcText: A license doesn't make you a true witch, dearie.
-    expression: {fileID: 0}
     choices:
     - text: Noted
       nextNode: Start
@@ -2410,13 +2414,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: geno
     npcText: I saw a man who invented things he shouldn't have. Inventors like that always have enemies. And debts.
-    expression: {fileID: 0}
     choices:
     - text: What kind of enemies?
       nextNode: enemies
@@ -2438,13 +2443,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: enemies
     npcText: The kind that don't come to the front door. Ask around about the waterfront, if you're brave.
-    expression: {fileID: 0}
     choices:
     - text: I will.
       nextNode: start
@@ -2456,13 +2462,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: scaleMafia
     npcText: The ones who run the waterfront. You don't sell scales unless they say you can. And they never say you can.
-    expression: {fileID: 0}
     choices:
     - text: Good to know.
       nextNode: start
@@ -2474,13 +2481,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: keepBusy
     npcText: Someone who smells like low tide, dearie. Now, do me a favor. Keep Murray busy for a few minutes. Don't ask why.
-    expression: {fileID: 0}
     choices:
     - text: ...Fine.
       nextNode: 
@@ -2504,13 +2512,14 @@ MonoBehaviour:
               m_StringArgument: DistractMurray
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: handover
     npcText: Fine! Fine. It's no use to me anyway. I can't make the stupid thing work
-    expression: {fileID: 0}
     choices:
     - text: Thank you
       nextNode: 
@@ -2534,13 +2543,14 @@ MonoBehaviour:
               m_StringArgument: DistractMurray
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: What, you got nothing better to stare at?
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -2582,13 +2592,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: That's none of your business.
-    expression: {fileID: 0}
     choices:
     - text: It is now, as the leading detective of a murder investigation.
       nextNode: l1_why2
@@ -2600,13 +2611,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why2
     npcText: I didn't do it, if that's what you're wondering.
-    expression: {fileID: 0}
     choices:
     - text: I most certainly am.
       nextNode: l1_start
@@ -2618,13 +2630,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: Oh yes, I know that crafty one. Good with his hands, good with tinkering with things.
-    expression: {fileID: 0}
     choices:
     - text: How did you know him?
       nextNode: l1_geno_how
@@ -2656,13 +2669,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno_how
     npcText: He would buy my good wares from time to time.
-    expression: {fileID: 0}
     choices:
     - text: What good wares do you sell?
       nextNode: l1_geno_wares
@@ -2674,13 +2688,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno_wares
     npcText: You ask too many questions.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_geno
@@ -2692,13 +2707,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno_make
     npcText: Things only people in certain circles would know about.
-    expression: {fileID: 0}
     choices:
     - text: Like magical items?
       nextNode: l1_geno_make2
@@ -2710,13 +2726,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno_make2
     npcText: Hmph. So you know some things in that head of yours.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_geno
@@ -2728,13 +2745,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: Here and there.
-    expression: {fileID: 0}
     choices:
     - text: Ma'am, you must give me a better answer than that.
       nextNode: l1_where2
@@ -2746,13 +2764,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: I was nowhere near the body, sonny. Geno dying is bad for my business.
-    expression: {fileID: 0}
     choices:
     - text: What business?
       nextNode: l1_work
@@ -2764,13 +2783,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: I sell things.
-    expression: {fileID: 0}
     choices:
     - text: What kind of things?
       nextNode: l1_work2
@@ -2782,13 +2802,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work2
     npcText: You ask too many questions.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -2800,13 +2821,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_scale2
     npcText: (muttering to herself) This seems like a prime ingredient...
-    expression: {fileID: 0}
     choices:
     - text: For what?
       nextNode: l1_scale3
@@ -2818,13 +2840,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_scale3
     npcText: Why don't I hold onto that for you?
-    expression: {fileID: 0}
     choices:
     - text: Okay, we're done here.
       nextNode: 
@@ -2836,10 +2859,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: ToolStolen
     showInNode: 
@@ -2858,6 +2883,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 0
     nextNode: 
@@ -2883,6 +2909,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -2910,6 +2937,7 @@ MonoBehaviour:
     npcReply: She thinks she's real tricky, that one. HMPF! What does she know about the real meaning of business...
     choices: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: I had other questions.
     greyAfterChosen: 1
     nextNode: 
@@ -2953,26 +2981,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCPatrol
   waypoints: []
   mode: 0
-  startAtFirstPoint: 1
+  walkSpeed: 1.5
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 1.5
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!1001 &88489683
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3221,6 +3249,12 @@ MonoBehaviour:
   canGrab: 0
   canRotate: 1
   highlight: 1
+  glowUntilFound: 1
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   weightFromMass: 1
   customWeight: 0
   holdDistance: 0
@@ -3253,11 +3287,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  inventoryItem: 0
-  itemName: 
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -3753,12 +3782,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightFlicker
   lights: []
+  thought: It's going to be an interesting night.
+  onlyOnce: 1
   flickers: 3
   shortestBlink: 0.05
   longestBlink: 0.2
   darkTime: 1.2
-  thought: It's going to be an interesting night.
-  onlyOnce: 1
   onDark:
     m_PersistentCalls:
       m_Calls:
@@ -3906,6 +3935,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
+      - m_Target: {fileID: 1983400530}
+        m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+        m_MethodName: WarpTo
+        m_Mode: 2
+        m_Arguments:
+          m_ObjectArgument: {fileID: 129705094}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
   onFinished:
     m_PersistentCalls:
       m_Calls: []
@@ -3923,12 +3964,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
   when: 3
   distance: 3
-  lookAngle: 15
-  holdTime: 0.5
   delay: 4
   startArmed: 0
-  onlyOnce: 1
   thought: 
+  lookAngle: 15
+  holdTime: 0.5
+  onlyOnce: 1
   onTriggered:
     m_PersistentCalls:
       m_Calls:
@@ -4191,14 +4232,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Journal
   openKey: 3
   pauseGame: 1
-  itemsTitle: Items
   showHoldControls: 1
+  itemsTitle: Items
+  peopleTitle: People
+  bestiaryTitle: Bestiary
   noItemsText: Nothing in your pockets yet. Quest items are added when you pick them up.
+  unknownCreatureText: Salem hasn't come across this one yet.
   combinedText: made by combining
   itemAddedText: added to inventory
   itemPutAwayText: put away
-  peopleTitle: People
   notesUpdatedText: 'Notes updated:'
+  bestiaryUpdatedText: Bestiary updated
   people:
   - name: Helena
     role: "James's girlfriend  \xB7  Socialite"
@@ -4224,9 +4268,6 @@ MonoBehaviour:
     role: Potion and amulet seller
     description: Uncertified magic practitioner. Bitter toward certified witches, especially Carmela.
     picture: {fileID: 0}
-  bestiaryTitle: Bestiary
-  unknownCreatureText: Salem hasn't come across this one yet.
-  bestiaryUpdatedText: Bestiary updated
   creatures:
   - name: Werewolf
     kind: Shapeshifter
@@ -4532,11 +4573,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &204179138
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4551,21 +4592,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Helena
   startNode: helenaLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 0}
+  dialoguePortraitTalking: {fileID: 0}
   allAskedNode: l1_start
   allAskedThought: 
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: helenaLevel0
     npcText: Not now, detective.
-    expression: {fileID: 0}
     choices:
     - text: okay.
       nextNode: 
@@ -4577,13 +4619,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: Start
     npcText: Oh, Detective! Thank goodness. You have to get me out of here. I can't bear another minute in this horrible place.
-    expression: {fileID: 0}
     choices:
     - text: Did you see anything tonight?
       nextNode: saw
@@ -4605,13 +4648,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: saw
     npcText: Nothing! James and I were near the bar the whole time. Arguing, as usual. He never takes me anywhere nice.
-    expression: {fileID: 0}
     choices:
     - text: Arguing about what?
       nextNode: argue
@@ -4633,13 +4677,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: argue
     npcText: A penthouse! Is that so much to ask? He'd rather buy a private island and lock me away on it.
-    expression: {fileID: 0}
     choices:
     - text: I see.
       nextNode: start
@@ -4661,13 +4706,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: couple
     npcText: Over a year! Longer than anyone else ever lasted. Not that he notices.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: start
@@ -4679,13 +4725,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: (still sniffling) I just want to go back to my penthouse...
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -4727,13 +4774,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: I'm with James. He's attending a fancy business meeting for his new project. I heard wonderful things about this hotel's services and wanted to see for myself.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -4745,13 +4793,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: No? Doesn't ring a bell. But I have seen him around the hotel. Don't know why - he doesn't look the part.
-    expression: {fileID: 0}
     choices:
     - text: What do you mean?
       nextNode: l1_geno2
@@ -4763,13 +4812,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno2
     npcText: Well, this hotel is usually for a certain... type of people. People with money or big business. Geno didn't look like he had either.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -4781,13 +4831,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: After James rejected me, I holed up in my room the rest of the evening.
-    expression: {fileID: 0}
     choices:
     - text: So how did you end up in the hotel lobby?
       nextNode: l1_where2
@@ -4799,13 +4850,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: (sniffles harder) I needed something to help me sleep in my misery, so I came down here for a drink. But there was so much commotion, and the dead body-! (starts crying again)
-    expression: {fileID: 0}
     choices:
     - text: Uh, there, there.
       nextNode: l1_start
@@ -4817,13 +4869,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: Work? Me? Are you serious? I could never!
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -4835,13 +4888,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_tipoff
     npcText: Detective, that woman, with the coat? She was stalking behind you a second ago. It looks a little... creepy.
-    expression: {fileID: 0}
     choices:
     - text: Thanks for letting me know.
       nextNode: 
@@ -4853,10 +4907,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: HelenaFraming
     showInNode: 
@@ -4875,6 +4931,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 0
     nextNode: 
@@ -4890,6 +4947,7 @@ MonoBehaviour:
     npcReply: Ugh, that stinks! Get it away from me!
     choices: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: I had other questions.
     greyAfterChosen: 1
     nextNode: 
@@ -4935,26 +4993,26 @@ MonoBehaviour:
   - point: {fileID: 1810356461}
     active: 1
   mode: 0
-  startAtFirstPoint: 1
+  walkSpeed: 1.5
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 1.5
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!114 &204179141
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4970,9 +5028,9 @@ MonoBehaviour:
   style: 2
   distance: 2
   duration: 15
+  conversationNode: l1_tipoff
   walkSpeed: 0
   startOnSceneStart: 0
-  conversationNode: l1_tipoff
   onFinished:
     m_PersistentCalls:
       m_Calls:
@@ -9131,11 +9189,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &413268095
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9150,21 +9208,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Zain
   startNode: zainLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 7669897987285978684, guid: 9e342478e991b0d4da913b541c348c63, type: 3}
+  dialoguePortraitTalking: {fileID: 5569235595900218741, guid: 3beb7760ab2a85a498c1efd49c6b9e27, type: 3}
   allAskedNode: l1_start
   allAskedThought: This one will be harder to tackle.
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: zainLevel0
     npcText: Not now, detective.
-    expression: {fileID: 0}
     choices:
     - text: Okay.
       nextNode: 
@@ -9176,13 +9235,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: Start
     npcText: Detective. Whatever it is, I didn't do it. I've been right here all night.
-    expression: {fileID: 0}
     choices:
     - text: How long have you been drinking?
       nextNode: drinking
@@ -9214,13 +9274,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: drinking
     npcText: Since about... what year is it?
-    expression: {fileID: 0}
     choices:
     - text: Be serious.
       nextNode: serious
@@ -9232,13 +9293,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: serious
     npcText: Since I got to this city. You move around a lot when people want things from you.
-    expression: {fileID: 0}
     choices:
     - text: Who wants things from you?
       nextNode: debt
@@ -9260,13 +9322,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: debt
     npcText: Nobody. Forget it. I didn't say anything...
-    expression: {fileID: 0}
     choices:
     - text: Sure
       nextNode: start
@@ -9278,13 +9341,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: james
     npcText: Used to. His company chews people up. Twenty hour days. I wasn't the only one who needed a drink to sleep
-    expression: {fileID: 0}
     choices:
     - text: Sounds rough.
       nextNode: start
@@ -9296,13 +9360,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: geno
     npcText: Only that he hated James even more than I do. Good man. Probably.
-    expression: {fileID: 0}
     choices:
     - text: Probably?
       nextNode: start
@@ -9314,13 +9379,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: (drunk) 'Suuup Maaaaan?
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -9362,13 +9428,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: Just getting that gooood stuff, man.
-    expression: {fileID: 0}
     choices:
     - text: And how long have you been here getting the good stuff?
       nextNode: l1_why2
@@ -9380,13 +9447,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why2
     npcText: I don't know man... The sun was up when I walked in here. Is it gone now?
-    expression: {fileID: 0}
     choices:
     - text: It's 11 pm at night.
       nextNode: l1_why3
@@ -9398,13 +9466,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why3
     npcText: (holds his head) Shiiiiiit.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -9416,13 +9485,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: Whoooo?
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -9434,13 +9504,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: Here, drinking. Same as I was when I first got here.
-    expression: {fileID: 0}
     choices:
     - text: Did you see anything then?
       nextNode: l1_where2
@@ -9452,13 +9523,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: One minute there was drinking, then next there was screaming. That body appeared out of nowhere man. If I wasn't so drunk, I would have puked.
-    expression: {fileID: 0}
     choices:
     - text: You'll probably puke anyway.
       nextNode: l1_start
@@ -9470,13 +9542,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: (getting sad) It doesn't matter anymore...
-    expression: {fileID: 0}
     choices:
     - text: Why not?
       nextNode: l1_work2
@@ -9488,13 +9561,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work2
     npcText: ...Can I have another drink?
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -9506,13 +9580,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_scale2
     npcText: Ehhhh, must be a trick of the light.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -9524,10 +9599,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: 
     showInNode: 
@@ -9546,6 +9623,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -9583,6 +9661,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: I had other questions.
     greyAfterChosen: 1
     nextNode: 
@@ -9628,26 +9707,26 @@ MonoBehaviour:
   - point: {fileID: 933341416}
     active: 0
   mode: 2
-  startAtFirstPoint: 1
+  walkSpeed: 5
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 5
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!1 &419652940
 GameObject:
   m_ObjectHideFlags: 0
@@ -10512,6 +10591,30 @@ MonoBehaviour:
   canGrab: 1
   canRotate: 1
   highlight: 1
+  glowUntilFound: 1
+  inventoryItem: 1
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations:
+  - other: {fileID: 101083546}
+    result: {fileID: 1333084727}
+    salemThinks: 
+    onCombined:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 1299698502}
+          m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+          m_MethodName: UnlockChoice
+          m_Mode: 5
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: AccuseMurray
+            m_BoolArgument: 0
+          m_CallState: 2
   weightFromMass: 1
   customWeight: 0
   holdDistance: 0
@@ -10544,29 +10647,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  inventoryItem: 1
-  itemName: 
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations:
-  - other: {fileID: 101083546}
-    result: {fileID: 1333084727}
-    salemThinks: 
-    onCombined:
-      m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1299698502}
-          m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
-          m_MethodName: UnlockChoice
-          m_Mode: 5
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: AccuseMurray
-            m_BoolArgument: 0
-          m_CallState: 2
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -10679,12 +10759,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LightFlicker
   lights: []
+  thought: It's going to be an interesting night.
+  onlyOnce: 1
   flickers: 3
   shortestBlink: 0.05
   longestBlink: 0.2
   darkTime: 1.2
-  thought: It's going to be an interesting night.
-  onlyOnce: 1
   onDark:
     m_PersistentCalls:
       m_Calls:
@@ -17832,19 +17912,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: be3289cef39a1a745b61a88f0d269dd7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FirstPersonController
-  cameraTransform: {fileID: 0}
   walkSpeed: 5
   sprintSpeed: 8
-  gravity: -19.62
   mouseSensitivity: 0.1
-  maxLookAngle: 85
   invertY: 0
+  gravity: -19.62
+  maxLookAngle: 85
   crosshairSize: 6
   crosshairColor: {r: 1, g: 1, b: 1, a: 1}
   openHandTexture: {fileID: 0}
   closedHandTexture: {fileID: 0}
   talkTexture: {fileID: 0}
   handSize: 32
+  cameraTransform: {fileID: 0}
 --- !u!114 &755174532
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17857,16 +17937,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 916062c6f3784ff49aba3593dcc48f50, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ObjectGrabber
-  cameraTransform: {fileID: 0}
-  player: {fileID: 755174531}
   reach: 5
   maxMass: 20
+  toggleHold: 1
   grabLayers:
     serializedVersion: 2
     m_Bits: 4294967295
   grabRadius: 0.2
   requireGrabbable: 0
-  toggleHold: 1
   minHoldDistance: 1
   maxHoldDistance: 2.5
   scrollStep: 0.25
@@ -17892,6 +17970,8 @@ MonoBehaviour:
   highlightFill: 0.15
   highlightRimSharpness: 2.5
   highlightPulse: 0.3
+  cameraTransform: {fileID: 0}
+  player: {fileID: 755174531}
 --- !u!114 &755174533
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17904,14 +17984,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8dc637e5be4c924fbcf2a4aad4d0e75, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
-  cameraTransform: {fileID: 0}
-  player: {fileID: 0}
-  grabber: {fileID: 0}
   talkRange: 3
-  talkRadius: 0.3
-  talkLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
   showKeyPrompt: 1
   presentOptionText: Show them something...
   presentLogText: (Shows {0}.)
@@ -17923,10 +17996,18 @@ MonoBehaviour:
   revealZoomTime: 0.9
   revealMargin: 1.2
   faceScreenHeight: 0.5
+  portraitPushIn: 0.3
+  portraitHeight: 0.9
+  portraitSlideTime: 0.35
+  portraitSlideDistance: 240
+  portraitShade: {r: 0, g: 0, b: 0, a: 0.35}
+  blurVolume: {fileID: 0}
+  portraitBreathing: 0.006
+  portraitQuietTint: {r: 0.65, g: 0.65, b: 0.65, a: 1}
   lettersPerSecond: 35
   sentencePause: 0.35
   commaPause: 0.12
-  flapInterval: 0.2
+  flapInterval: 0.1
   font: {fileID: 0}
   highlightColor: {r: 1, g: 0.45, b: 0.35, a: 1}
   nameColor: {r: 1, g: 0, b: 0.019385934, a: 1}
@@ -17958,6 +18039,13 @@ MonoBehaviour:
   markerRange: 20
   itemMarkerText: '?'
   itemMarkerColor: {r: 0.45, g: 0.85, b: 1, a: 1}
+  talkRadius: 0.3
+  talkLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  cameraTransform: {fileID: 0}
+  player: {fileID: 0}
+  grabber: {fileID: 0}
 --- !u!114 &755174534
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19325,10 +19413,10 @@ MonoBehaviour:
     All characters, art, writing and gameplay are a work in progress
 
     and subject to change.'
+  showOnEveryLoad: 0
   buildLabel: Playtest Build
   continueText: Press any key to continue
   minimumTime: 1.5
-  showOnEveryLoad: 0
   font: {fileID: 0}
   backgroundColor: {r: 0, g: 0, b: 0, a: 1}
   titleColor: {r: 0.85, g: 0.83, b: 0.78, a: 1}
@@ -34911,6 +34999,12 @@ MonoBehaviour:
   canGrab: 0
   canRotate: 1
   highlight: 1
+  glowUntilFound: 1
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   weightFromMass: 1
   customWeight: 0
   holdDistance: 0
@@ -34943,11 +35037,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  inventoryItem: 0
-  itemName: 
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -37701,6 +37790,7 @@ MonoBehaviour:
   detailColor: {r: 0.82, g: 0.45, b: 0.32, a: 1}
   pickedColor: {r: 1, g: 0.45, b: 0.35, a: 1}
   shadowColor: {r: 0, g: 0, b: 0, a: 0.9}
+  hoverColor: {r: 0.45, g: 0.85, b: 1, a: 1}
   shadeColor: {r: 0, g: 0, b: 0, a: 0.6}
   stringColor: {r: 0.78, g: 0.1, b: 0.1, a: 1}
   portraitHeight: 440
@@ -37956,6 +38046,12 @@ MonoBehaviour:
   canGrab: 1
   canRotate: 1
   highlight: 1
+  glowUntilFound: 1
+  inventoryItem: 0
+  itemName: 
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   weightFromMass: 1
   customWeight: 0
   holdDistance: 0
@@ -37988,11 +38084,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  inventoryItem: 0
-  itemName: 
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -38223,12 +38314,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
   when: 1
   distance: 3
-  lookAngle: 15
-  holdTime: 0.5
   delay: 10
   startArmed: 0
-  onlyOnce: 1
   thought: Nearly split in two... the Chief wasn't exaggerating.
+  lookAngle: 15
+  holdTime: 0.5
+  onlyOnce: 1
   onTriggered:
     m_PersistentCalls:
       m_Calls: []
@@ -38329,10 +38420,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenu
   gameTitle: "Hotel Doppelg\xE4nger"
-  startText: Start
-  tutorialButtonText: Controls
   sceneToLoad: 
   pauseWhileOpen: 1
+  showPlaytestButton: 1
+  allowInGamePlaytest: 1
+  startText: Start
+  tutorialButtonText: Controls
+  playtestButtonText: Playtest
+  backText: Back
+  resetText: Reset To Defaults
+  resetAllText: Reset Everything
   tutorialTitle: Controls
   tutorialText: 'WASD  -  Walk
 
@@ -38363,13 +38460,7 @@ MonoBehaviour:
     !  above someone  -  They have something new to say
 
     ?  above someone  -  They want to see what you''re holding'
-  backText: Back
-  showPlaytestButton: 1
-  playtestButtonText: Playtest
-  allowInGamePlaytest: 1
   playtestTitle: Playtest
-  resetText: Reset To Defaults
-  resetAllText: Reset Everything
   font: {fileID: 0}
   backgroundImage: {fileID: -8139016381716835008, guid: 5888fc8c46eb758478fb04b8b87d6125, type: 3}
   imageDarken: 0.35
@@ -39931,21 +40022,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Murray
   startNode: murrayLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 0}
+  dialoguePortraitTalking: {fileID: 0}
   allAskedNode: l1_start
   allAskedThought: 
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: murrayLevel0
     npcText: Not now, detective.
-    expression: {fileID: 0}
     choices:
     - text: Okay.
       nextNode: 
@@ -39957,13 +40049,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: start
     npcText: Im Murray. I export caviar and fine tinned goods. Anything I can do, you just ask.
-    expression: {fileID: 0}
     choices:
     - text: What brings you to Hotel Eclipse?
       nextNode: business
@@ -39995,13 +40088,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: business
     npcText: I move product from the waterfront to the finest tables in the city. Nobody gets it there faster. Or quieter.
-    expression: {fileID: 0}
     choices:
     - text: Quieter?
       nextNode: quiet
@@ -40023,13 +40117,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: quiet
     npcText: Discretion, Detective. Rich people like their delicacies to arrive without a fuss. Nothing more to it.
-    expression: {fileID: 0}
     choices:
     - text: Of course.
       nextNode: Start
@@ -40041,13 +40136,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: geno
     npcText: Only by reputation. Clever man. Made all sorts of gadgets. I hear he poked his nose into things that weren't his business.
-    expression: {fileID: 0}
     choices:
     - text: Whose business?
       nextNode: genoPush
@@ -40069,15 +40165,16 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: genoPush
     npcText: 'Couldn''t tell you. I''m just here for the caviar.
 
 '
-    expression: {fileID: 0}
     choices:
     - text: Right
       nextNode: start
@@ -40089,13 +40186,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: fire
     npcText: Dry skin. The heat doesn't agree with me. You'd be surprised how much that matters in my line of work.
-    expression: {fileID: 0}
     choices:
     - text: Your line of work?
       nextNode: business
@@ -40117,13 +40215,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: distract1
     npcText: Caviar? Now you're speaking my language. What do you want to know?
-    expression: {fileID: 0}
     choices:
     - text: Where does the best stuff come from?
       nextNode: distract2
@@ -40155,13 +40254,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 6
     timeoutNode: lostHim
-    speaker: 
-    thenNode: 
   - id: distract2
     npcText: The waterfront, my friend. Cold water, patient men. Most people never see how it's done.
-    expression: {fileID: 0}
     choices:
     - text: Sounds like smuggling.
       nextNode: lostHim
@@ -40183,13 +40283,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 6
     timeoutNode: lostHim
-    speaker: 
-    thenNode: 
   - id: distract3
     npcText: Ha! Pull up a stool. It all starts with the tins, see. The tin is everything...
-    expression: {fileID: 0}
     choices:
     - text: Sorry, I need to check on something.
       nextNode: lostHim
@@ -40211,13 +40312,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 6
     timeoutNode: lostHim
-    speaker: 
-    thenNode: 
   - id: distracted
     npcText: ...and that's why nobody opens a sardine tin they didn't pack themselves. Listen to me, talking your ear off.
-    expression: {fileID: 0}
     choices:
     - text: Thanks for your time.
       nextNode: 
@@ -40241,13 +40343,14 @@ MonoBehaviour:
               m_StringArgument: ToolStolen
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: lostHim
     npcText: I've got business to attend to, Detective. Excuse me.
-    expression: {fileID: 0}
     choices:
     - text: Sure
       nextNode: 
@@ -40259,13 +40362,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: revealed
     npcText: Fine. You want to see what's under the suit? Look, then.
-    expression: {fileID: 0}
     choices:
     - text: You've been smuggling yourself.
       nextNode: caught
@@ -40277,13 +40381,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: caught
     npcText: So I move a little product. I didn't touch the inventor. Whatever split him in half had claws, Detective. Not fins.
-    expression: {fileID: 0}
     choices:
     - text: Then who did?
       nextNode: 
@@ -40307,13 +40412,14 @@ MonoBehaviour:
               m_StringArgument: 
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: Terrible business, all this.
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -40355,13 +40461,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: I'm here on a business venture. Some of my clients were in the area, and I was having meetings with them all day.
-    expression: {fileID: 0}
     choices:
     - text: Are any of your clients here now?
       nextNode: l1_why2
@@ -40373,13 +40480,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why2
     npcText: No, but I do know James. Respectable, though quite full of himself.
-    expression: {fileID: 0}
     choices:
     - text: You're telling me.
       nextNode: l1_start
@@ -40391,13 +40499,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: I can't say that I have. Or what he does for a living.
-    expression: {fileID: 0}
     choices:
     - text: Why would you mention that?
       nextNode: l1_geno2
@@ -40409,13 +40518,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno2
     npcText: No reason. It just seems, well, odd that he would be in such a place like this. I heard he was a blacksmith?
-    expression: {fileID: 0}
     choices:
     - text: He was a... craftsman of sorts.
       nextNode: l1_geno3
@@ -40427,13 +40537,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno3
     npcText: Right, well, again, odd that he be here.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -40445,13 +40556,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: I was meeting with one of my clients by the pool deck on the fifth floor. That restaurant's caviar is amazing, you know.
-    expression: {fileID: 0}
     choices:
     - text: So what led you down here?
       nextNode: l1_where2
@@ -40463,13 +40575,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: I was seeing the client out after such a lovely evening, only for it to turn sour when we walked into a catastrophe.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -40481,13 +40594,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: Distribution. I move product and produce to the finest tables in the cities. Nobody gets their food from a better company than mine.
-    expression: {fileID: 0}
     choices:
     - text: Is some of your product used in this hotel?
       nextNode: l1_work2
@@ -40499,13 +40613,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work2
     npcText: Why, indeed it is!
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -40517,13 +40632,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_scale2
     npcText: I don't! But what else could it belong to?
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -40535,10 +40651,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: DistractMurray
     showInNode: 
@@ -40547,6 +40665,7 @@ MonoBehaviour:
     npcReply: 
     choices: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: distract1
@@ -40608,6 +40727,7 @@ MonoBehaviour:
               m_BoolArgument: 0
             m_CallState: 2
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 0
     nextNode: 
@@ -40633,6 +40753,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: I had other questions.
     greyAfterChosen: 1
     nextNode: 
@@ -40653,11 +40774,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &1299698504
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40670,12 +40791,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9986f10bf4d9cad489216107b4b98e92, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCSpriteSwap
-  spriteRenderer: {fileID: 0}
-  disableAnimatorOnSwap: 1
   zoomOutOnSwap: 1
+  disableAnimatorOnSwap: 1
   popOnSwap: 1
   popDuration: 0.25
   popAmount: 0.15
+  spriteRenderer: {fileID: 0}
 --- !u!114 &1299698505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40696,26 +40817,26 @@ MonoBehaviour:
   - point: {fileID: 1526126732}
     active: 1
   mode: 1
-  startAtFirstPoint: 1
+  walkSpeed: 2
   defaultWaitTime: 1
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 2
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!1 &1305394965
 GameObject:
   m_ObjectHideFlags: 0
@@ -41029,6 +41150,12 @@ MonoBehaviour:
   canGrab: 1
   canRotate: 1
   highlight: 1
+  glowUntilFound: 1
+  inventoryItem: 0
+  itemName: Scale Dust
+  itemDescription: 
+  itemPicture: {fileID: 0}
+  combinations: []
   weightFromMass: 1
   customWeight: 0
   holdDistance: 0
@@ -41061,11 +41188,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  inventoryItem: 0
-  itemName: Scale Dust
-  itemDescription: 
-  itemPicture: {fileID: 0}
-  combinations: []
   onGrabbed:
     m_PersistentCalls:
       m_Calls: []
@@ -50351,8 +50473,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameComplete
   title: Game Complete
   message: Thanks for playing!
-  playAgainText: Play Again
   showQuitButton: 1
+  playAgainText: Play Again
   quitText: Quit
   delayBeforeFade: 0.2
   fadeDuration: 2
@@ -58566,11 +58688,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &1983400528
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -58585,21 +58707,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: James
   startNode: jamesLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 0}
+  dialoguePortraitTalking: {fileID: 0}
   allAskedNode: l1_start
   allAskedThought: 
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: jamesLevel0
     npcText: What now, detective? The body's over there.
-    expression: {fileID: 0}
     choices:
     - text: Never mind.
       nextNode: 
@@ -58611,169 +58734,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
     thenNode: 
-  - id: Start
-    npcText: Detective. I assume you'll be quick. Some of us have actual work to do.
+    speaker: 
     expression: {fileID: 0}
-    choices:
-    - text: You don't seem upset about Geno.
-      nextNode: upset
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    - text: Where were you at 10:00?
-      nextNode: alibi
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    - text: Tell me about Helena.
-      nextNode: helena
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: upset
-    npcText: Should I be? The man spent years calling my company a 'public health hazard'. Forgive me if I don't weep.
-    expression: {fileID: 0}
-    choices:
-    - text: That's motive.
-      nextNode: motive
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    - text: I had other questions.
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 0
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: motive
-    npcText: Motive? I have lawyers for people like Geno. I don't need to cut them in half.
-    expression: {fileID: 0}
-    choices:
-    - text: We'll see.
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: alibi
-    npcText: Right here, with Helena, listening to her cry about real estate. Riveting.
-    expression: {fileID: 0}
-    choices:
-    - text: Noted
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: helena
-    npcText: She's emotional. Exhausting, frankly. But useful. People tend to say yes to us.
-    expression: {fileID: 0}
-    choices:
-    - text: Do they.
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: daughter
-    npcText: Lots of people work for me, Detective. I can't be expected to remember all of them. Are we done?
-    expression: {fileID: 0}
-    choices:
-    - text: For now.
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
-  - id: charm
-    npcText: From the kind of people who ask too many questions. Present company included.
-    expression: {fileID: 0}
-    choices:
-    - text: Charming.
-      nextNode: start
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    timeLimit: 0
-    timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: jamesDrones
     npcText: Security drones. To keep the citizens safe. Which was much needed tonight, as you can see.
-    expression: {fileID: 0}
     choices:
     - text: Or needed to spy on people.
       nextNode: jamesSpy
@@ -58785,13 +58753,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: jamesSpy
     npcText: Trust me, detective. No one cares enough to spy on you.
-    expression: {fileID: 0}
     choices:
     - text: We'll see
       nextNode: 
@@ -58803,18 +58772,6 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls:
-          - m_Target: {fileID: 1983400530}
-            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
-            m_MethodName: StopAtWaypoint
-            m_Mode: 2
-            m_Arguments:
-              m_ObjectArgument: {fileID: 129705094}
-              m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
-              m_IntArgument: 0
-              m_FloatArgument: 0
-              m_StringArgument: 
-              m_BoolArgument: 0
-            m_CallState: 2
           - m_Target: {fileID: 183165696}
             m_TargetAssemblyTypeName: Journal, Assembly-CSharp
             m_MethodName: AddPersonNote
@@ -58839,13 +58796,14 @@ MonoBehaviour:
               m_StringArgument: 
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: Be quick, detective. Some of us have actual work to do.
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -58887,13 +58845,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: Business meeting. Only the best and most serious meet at Hotel Eclipse.
-    expression: {fileID: 0}
     choices:
     - text: Were you meeting about your new drone initiative?
       nextNode: l1_why2
@@ -58905,13 +58864,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why2
     npcText: That's none of your concern.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -58923,13 +58883,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: Never heard of him.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -58941,13 +58902,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: Getting away from Helena and all her crying. God, it's an earsore.
-    expression: {fileID: 0}
     choices:
     - text: You two don't seem to get along.
       nextNode: l1_where2
@@ -58959,13 +58921,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: Our relationship is none of your business, detective.
-    expression: {fileID: 0}
     choices:
     - text: It is when it's hindering a murder investigation.
       nextNode: l1_where3
@@ -58977,13 +58940,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where3
     npcText: (scowls) I wasn't anywhere near here at 10 pm. I was in the smoking room, taking a break. I only came down when I heard the screaming.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -58995,13 +58959,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: High-class technology and security. As you saw in the notes, I'm launching a new drone security program that can protect citizens from dangerous people.
-    expression: {fileID: 0}
     choices:
     - text: What about from monsters?
       nextNode: l1_work2
@@ -59013,13 +58978,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work2
     npcText: I don't believe in children's ghost stories, detective. I only deal with real threats.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -59031,10 +58997,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: GenoNotes
     showInNode: 
@@ -59053,6 +59021,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -59078,6 +59047,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -59103,6 +59073,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -59118,6 +59089,7 @@ MonoBehaviour:
     npcReply: I've never seen anything like it.
     choices: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: I had other questions.
     greyAfterChosen: 1
     nextNode: 
@@ -59161,26 +59133,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCPatrol
   waypoints: []
   mode: 0
-  startAtFirstPoint: 1
+  walkSpeed: 5
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 5
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!43 &1992040570
 Mesh:
   m_ObjectHideFlags: 0
@@ -60025,11 +59997,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 53969aca9d723424695e051e92c7b306, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFacePlayer
-  player: {fileID: 0}
   noticeRange: 6
   turnSpeed: 4
   returnWhenFar: 1
   flatSprite: 1
+  player: {fileID: 0}
 --- !u!114 &2061500260
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -60044,21 +60016,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Carmela
   startNode: carmelaLevel0
-  addGoodbye: 1
-  wrongItemReply: I don't see what that has to do with anything.
+  portrait: {fileID: 0}
+  talkingPortrait: {fileID: 0}
+  dialoguePortrait: {fileID: 0}
+  dialoguePortraitTalking: {fileID: 0}
   allAskedNode: l1_start
   allAskedThought: 
   onAllAsked:
     m_PersistentCalls:
       m_Calls: []
-  portrait: {fileID: 0}
-  talkingPortrait: {fileID: 0}
+  addGoodbye: 1
+  wrongItemReply: I don't see what that has to do with anything.
   faceHeightAdjust: 0
   headHeightAdjust: 0
   nodes:
   - id: carmelaLevel0
     npcText: Not now, detective.
-    expression: {fileID: 0}
     choices:
     - text: Okay.
       nextNode: 
@@ -60070,13 +60043,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_start
     npcText: (standoff-ish) I shouldn't be here.
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here at Hotel Eclipse?
       nextNode: l1_why
@@ -60118,13 +60092,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why
     npcText: I was sent here to deliver something to a client.
-    expression: {fileID: 0}
     choices:
     - text: What kind of something?
       nextNode: l1_why2
@@ -60136,13 +60111,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why2
     npcText: Medicine for inebriation and hangovers.
-    expression: {fileID: 0}
     choices:
     - text: Is the client still here?
       nextNode: l1_why3
@@ -60154,13 +60130,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_why3
     npcText: That's confidential, detective.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -60172,13 +60149,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno
     npcText: ...No.
-    expression: {fileID: 0}
     choices:
     - text: You hesitated.
       nextNode: l1_geno2
@@ -60190,13 +60168,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_geno2
     npcText: Because I was thinking, detective.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -60208,13 +60187,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where
     npcText: I wasn't even in the building! I was still on my way over here for delivery. By the time I got here, the sirens were blaring by the front door.
-    expression: {fileID: 0}
     choices:
     - text: Then why, out of all people, did the police chief keep you here?
       nextNode: l1_where2
@@ -60226,13 +60206,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_where2
     npcText: (getting angry) You're the detective. Go ask him.
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_start
@@ -60244,13 +60225,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work
     npcText: I'm a travelling doctor. Patients call me with symptoms, and I deliver their medicines.
-    expression: {fileID: 0}
     choices:
     - text: How do you know what's ailing them if you never see them first?
       nextNode: l1_work2
@@ -60262,13 +60244,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_work2
     npcText: (narrows eyes) You think I'm a hack? I make sure to properly diagnose my patients both on the phone and in person. Do you need me to show you my medical license to prove it?
-    expression: {fileID: 0}
     choices:
     - text: No, not right now.
       nextNode: l1_start
@@ -60280,13 +60263,14 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_hide
     npcText: (shows hands) I don't have anything behind my back. See?
-    expression: {fileID: 0}
     choices:
     - text: What are you doing here again?
       nextNode: l1_hide_why
@@ -60318,29 +60302,32 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_hide_why
     npcText: I already told you - I'm delivering medicine to a patient.
-    expression: {fileID: 0}
     choices: []
+    thenNode: l1_hide_why2
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: l1_hide_why2
   - id: l1_hide_why2
     npcText: And where you getting those meds, you hack?
-    expression: {fileID: 0}
     choices: []
+    thenNode: l1_hide_why3
+    speaker: Yaroslava
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: Yaroslava
-    thenNode: l1_hide_why3
   - id: l1_hide_why3
     npcText: (mad) YOU'RE the only hack here!
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_hide
@@ -60352,29 +60339,32 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_hide_scale
     npcText: Like I said, no. I'm not looking at fish like that.
-    expression: {fileID: 0}
     choices: []
+    thenNode: l1_hide_scale2
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: l1_hide_scale2
   - id: l1_hide_scale2
     npcText: How'd you know it belongs to a fish?
-    expression: {fileID: 0}
     choices: []
+    thenNode: l1_hide_scale3
+    speaker: Yaroslava
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: Yaroslava
-    thenNode: l1_hide_scale3
   - id: l1_hide_scale3
     npcText: (mad) If you say one more word-!
-    expression: {fileID: 0}
     choices:
     - text: What is it you're hiding?
       nextNode: l1_hide_scale4
@@ -60398,13 +60388,14 @@ MonoBehaviour:
               m_StringArgument: l1_tricky
               m_BoolArgument: 0
             m_CallState: 2
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   - id: l1_hide_scale4
     npcText: I'm not hiding anything. If you want secrets, ask that old lady over there!
-    expression: {fileID: 0}
     choices:
     - text: I had other questions.
       nextNode: l1_hide
@@ -60416,10 +60407,12 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls: []
+    thenNode: 
+    speaker: 
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     timeLimit: 0
     timeoutNode: 
-    speaker: 
-    thenNode: 
   eventDialogue:
   - unlockId: 
     showInNode: 
@@ -60428,6 +60421,7 @@ MonoBehaviour:
     npcReply: Is that a scale? I don't know what that could be.
     choices: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -60465,6 +60459,7 @@ MonoBehaviour:
         m_PersistentCalls:
           m_Calls: []
     expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
     backText: 
     greyAfterChosen: 1
     nextNode: 
@@ -60521,9 +60516,9 @@ MonoBehaviour:
   style: 0
   distance: 5
   duration: 15
+  conversationNode: 
   walkSpeed: 0
   startOnSceneStart: 0
-  conversationNode: 
   onFinished:
     m_PersistentCalls:
       m_Calls:
@@ -60558,26 +60553,26 @@ MonoBehaviour:
   - point: {fileID: 2101545131}
     active: 0
   mode: 0
-  startAtFirstPoint: 1
+  walkSpeed: 1.5
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
   maxRandomWait: 10
-  walkSpeed: 1.5
+  stopForPlayer: 1
+  stopRange: 2
+  animator: {fileID: 0}
+  walkingBool: IsWalking
+  sprite: {fileID: 0}
+  flipSpriteToWalkDirection: 1
+  spriteFacesRight: 1
+  startAtFirstPoint: 1
   acceleration: 4
   arriveDistance: 0.1
   keepHeight: 1
   useNavMesh: 1
   giveUpTime: 4
   addColliderIfMissing: 1
-  stopForPlayer: 1
-  stopRange: 2
   player: {fileID: 0}
-  animator: {fileID: 0}
-  walkingBool: IsWalking
-  sprite: {fileID: 0}
-  flipSpriteToWalkDirection: 1
-  spriteFacesRight: 1
 --- !u!1 &2063572669
 GameObject:
   m_ObjectHideFlags: 0

@@ -8,10 +8,9 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// A 2D visual-novel scene that plays when the game starts: a full-screen background, a talking portrait,
-// a name plate and a typed text box, with suspect profile cards along the way.
-// Words wrapped in *asterisks* are highlighted. Click, Space, E or Enter moves on, and Tab skips.
-// A line can hold the scene until something else (like a Contradiction) calls Continue
+// The visual-novel opening: background, talking portrait, typed text box and suspect profile cards.
+// *Asterisks* highlight words. Click, Space, E or Enter moves on, Tab skips. A Wait Here line holds the scene
+// until something (like a Contradiction) calls Continue
 [AddComponentMenu("Game/UI/Intro Cutscene")]
 public class IntroCutscene : MonoBehaviour
 {
@@ -77,7 +76,7 @@ public class IntroCutscene : MonoBehaviour
         [DisplayAs("Effect")]
         public Effect effect;
 
-        // The scene stops after this line and fires On Waiting, then carries on when Continue is called
+        // Stops after this line and fires On Waiting until Continue is called
         [DisplayAs("Wait Here For An Event")]
         public bool waitHere;
 
@@ -272,11 +271,12 @@ public class IntroCutscene : MonoBehaviour
     private float shakeLeft;
     private float flashLeft;
 
-    public static bool IsPlaying { get; private set; }
-
     private bool showingAside;
     private bool asideWaits;
     private Canvas boxLayer;
+
+    public static bool IsPlaying { get; private set; }
+    public bool AsideTyping => showingAside && IsTyping;
 
     private bool IsTyping => visibleLetters < typedLine.Length;
 
@@ -409,11 +409,8 @@ public class IntroCutscene : MonoBehaviour
         else ShowLine(lines[lineIndex]);
     }
 
-    public bool AsideTyping => showingAside && IsTyping;
-
-    // While the scene waits, something shown over it (like a Contradiction) can use the text box for its own lines,
-    // e.g. Salem's thoughts. A blank line hides the box, so the line the scene stopped on doesn't sit underneath.
-    // Waiting For Click shows the next arrow and hint once it's typed, for whatever is waiting on a click
+    // Lets something shown over a waiting scene (like a Contradiction) use the text box for Salem's lines.
+    // A blank line hides the box; Waiting For Click shows the next arrow once it's typed
     public void ShowAside(string speakerName, string text, bool waitingForClick = false)
     {
         if (state != State.Waiting) return;
@@ -421,7 +418,7 @@ public class IntroCutscene : MonoBehaviour
         bool show = !string.IsNullOrWhiteSpace(text);
         showingAside = true;
 
-        // Lifted above whatever is covering the scene, so its screen shade doesn't darken the box
+        // Above whatever covers the scene, so its shade doesn't darken the box
         if (boxLayer == null) boxLayer = box.gameObject.AddComponent<Canvas>();
         boxLayer.overrideSorting = true;
         boxLayer.sortingOrder = AsideSortingOrder;
@@ -532,7 +529,7 @@ public class IntroCutscene : MonoBehaviour
         if (!narration) nameText.text = (speaker != null ? speaker.name : line.speaker.Trim()).ToUpper();
         lineText.color = narration ? narrationColor : activeTextColor;
 
-        // Narration clears the stage; a speaker keeps their portrait between lines and slides in when they change
+        // Narration clears the stage; a new speaker slides in
         idleSprite = line.expression != null ? line.expression : speaker != null ? speaker.portrait : null;
         talkingSprite = line.expression == null && speaker != null ? speaker.talkingPortrait : null;
         portrait.gameObject.SetActive(idleSprite != null && !narration);
@@ -703,7 +700,7 @@ public class IntroCutscene : MonoBehaviour
         background = RuntimeUI.CreateImage("Background", stage, backgroundColor);
         RuntimeUI.Stretch(background.rectTransform);
 
-        // Stands at the bottom of the screen so the text box covers the lower half, like a courtroom shot
+        // Stands at the bottom so the text box covers the lower half, like a courtroom shot
         portrait = RuntimeUI.CreateImage("Portrait", stage, Color.white);
         portrait.preserveAspect = true;
         RectTransform portraitRect = portrait.rectTransform;
@@ -768,7 +765,7 @@ public class IntroCutscene : MonoBehaviour
         card.gameObject.SetActive(false);
     }
 
-    // Built the same way as the NPC dialogue box: bottom-centered, sized to its text, name above the line
+    // Built like the NPC dialogue box: bottom-centered, sized to its text, name above
     private void BuildTextBox()
     {
         box = RuntimeUI.CreateBox("Text Box", stage, boxWidth, boxColor, borderColor, PlayerDialogue.NpcBoxPadding, PlayerDialogue.NpcBoxSpacing, borders);
@@ -798,8 +795,7 @@ public class IntroCutscene : MonoBehaviour
         return text;
     }
 
-    // Pushes the look onto the built UI: the Player Dialogue's box when matching it, otherwise this component's own values.
-    // Runs after building, at the start of each play, and whenever a value is edited
+    // Copies the Player Dialogue's box look when matching it, otherwise uses this component's values
     private void ApplyLook()
     {
         bool match = matchDialogueBox && dialogue != null;
@@ -843,8 +839,7 @@ public class IntroCutscene : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    // Adds Level 0's opening after the existing lines: Helena and James's argument, the pause for catching
-    // their lie, and Salem heading in. Helena and James are added to the cast if they aren't there yet
+    // Appends Level 0's opening: Helena and James's argument, the pause to catch their lie, and Salem heading in
     [ContextMenu("Add Level 0 Opening Lines")]
     private void AddLevelZeroOpening()
     {

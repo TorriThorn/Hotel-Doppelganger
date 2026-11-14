@@ -4,13 +4,10 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Salem talking to themselves: short lines that appear low on screen, one after another, as hints.
-// Also shows the note panel while the player holds a readable Clue.
-// Call Say from any UnityEvent. If there's none in the scene, one is made with default settings the first time it's needed
+// Salem's thoughts as short lines low on screen, plus the note panel for a held Clue. Made if there isn't one
 [AddComponentMenu("Game/UI/Detective Thoughts")]
 public class DetectiveThoughts : MonoBehaviour
 {
-    // Under the dialogue box, so conversations cover it
     private const int SortingOrder = 90;
 
     private const float FadeTime = 0.25f;
@@ -19,6 +16,7 @@ public class DetectiveThoughts : MonoBehaviour
     [DisplayAs("Speaker Name")]
     [SerializeField] private string speakerName = "Salem";
 
+    [Foldout("Timing")]
     [DisplayAs("Shortest Time On Screen (seconds)", Min = 0.5f)]
     [SerializeField] private float minimumTime = 2.5f;
 
@@ -89,7 +87,6 @@ public class DetectiveThoughts : MonoBehaviour
     private bool showing;
     private object noteOwner;
 
-    // Lets scripts call DetectiveThoughts.Get().Say(...) without placing one in the scene first
     public static DetectiveThoughts Get()
     {
         if (instance == null) instance = FindAnyObjectByType<DetectiveThoughts>();
@@ -121,40 +118,9 @@ public class DetectiveThoughts : MonoBehaviour
         if (canvas != null) Destroy(canvas.gameObject);
     }
 
-    // Queues a line. Words between *asterisks* are highlighted, like in dialogue
-    public void Say(string line)
-    {
-        if (!string.IsNullOrWhiteSpace(line)) waiting.Enqueue(line.Trim());
-    }
-
-    public void ClearThoughts()
-    {
-        waiting.Clear();
-        showing = false;
-        thoughtGroup.alpha = 0f;
-    }
-
-    // The note panel belongs to whoever opened it, so dropping one note can't close another's panel
-    public void ShowNote(object owner, string title, string text)
-    {
-        noteOwner = owner;
-        noteTitle.text = title;
-        noteTitle.gameObject.SetActive(!string.IsNullOrWhiteSpace(title));
-        typedLine.Set(text);
-        noteText.text = typedLine.Render(typedLine.Length, highlightTag);
-        noteBox.gameObject.SetActive(true);
-    }
-
-    public void HideNote(object owner)
-    {
-        if (noteOwner != owner) return;
-        noteOwner = null;
-        noteBox.gameObject.SetActive(false);
-    }
-
     private void Update()
     {
-        // Thoughts wait while a conversation, menu or cutscene has the screen, and the note hides with them
+        // Waits while a conversation, menu or cutscene has the screen
         bool busy = (dialogue != null && dialogue.IsTalking) || IntroCutscene.IsPlaying || StartupNotice.IsShowing || Time.timeScale == 0f;
         if (canvas.enabled == busy) canvas.enabled = !busy;
         if (busy) return;
@@ -172,6 +138,37 @@ public class DetectiveThoughts : MonoBehaviour
         thoughtGroup.alpha = Mathf.Clamp01(Mathf.Min(shownFor, fadeOut) / FadeTime);
 
         if (shownFor >= showTime) showing = false;
+    }
+
+    // Words between *asterisks* are highlighted
+    public void Say(string line)
+    {
+        if (!string.IsNullOrWhiteSpace(line)) waiting.Enqueue(line.Trim());
+    }
+
+    public void ClearThoughts()
+    {
+        waiting.Clear();
+        showing = false;
+        thoughtGroup.alpha = 0f;
+    }
+
+    // Belongs to whoever opened it, so dropping one note can't close another's
+    public void ShowNote(object owner, string title, string text)
+    {
+        noteOwner = owner;
+        noteTitle.text = title;
+        noteTitle.gameObject.SetActive(!string.IsNullOrWhiteSpace(title));
+        typedLine.Set(text);
+        noteText.text = typedLine.Render(typedLine.Length, highlightTag);
+        noteBox.gameObject.SetActive(true);
+    }
+
+    public void HideNote(object owner)
+    {
+        if (noteOwner != owner) return;
+        noteOwner = null;
+        noteBox.gameObject.SetActive(false);
     }
 
     private void StartThought(string line)
@@ -200,7 +197,7 @@ public class DetectiveThoughts : MonoBehaviour
         thoughtText = CreateText("Line", thoughtBox.transform, thoughtSize, TextAnchor.UpperLeft);
         thoughtText.supportRichText = true;
 
-        // The note sits on the right, out of the way of the carried object in the middle of the view
+        // On the right, out of the way of the carried object
         noteBox = RuntimeUI.CreateBox("Note", canvas.transform, noteWidth, boxColor, borderColor, new RectOffset(28, 28, 24, 28), 12f, borders);
         RectTransform noteRect = noteBox.rectTransform;
         noteRect.anchorMin = noteRect.anchorMax = new Vector2(1f, 0.5f);

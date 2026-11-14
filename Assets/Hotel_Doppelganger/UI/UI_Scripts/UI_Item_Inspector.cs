@@ -5,9 +5,8 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// A close look at one item in its own space: drag to turn it, scroll to zoom, right-drag to move it, and click
-// outside it to go back. The item's meshes are copied to a spot far above the level and filmed by their own
-// camera, so the real object (which may be put away) is never touched and nothing from the level gets in the shot
+// A close look at one item: drag to turn, scroll to zoom, right-drag to move, click outside to go back.
+// Its meshes are copied far above the level and filmed by their own camera, so the real object is never touched
 public sealed class ItemInspector
 {
     private const int TextureSize = 1024;
@@ -118,7 +117,7 @@ public sealed class ItemInspector
 
     public void Close()
     {
-        if (stage != null) Object.Destroy(stage);
+        if (stage != null) UnityEngine.Object.Destroy(stage);
         stage = null;
         pivot = null;
         stageCamera = null;
@@ -127,7 +126,7 @@ public sealed class ItemInspector
         {
             view.texture = null;
             texture.Release();
-            Object.Destroy(texture);
+            UnityEngine.Object.Destroy(texture);
             texture = null;
         }
 
@@ -162,7 +161,7 @@ public sealed class ItemInspector
         Transform cameraTransform = stageCamera.transform;
         if (turning && delta != Vector2.zero)
         {
-            // Turned around the camera's own axes, so dragging always spins the item the way the mouse moves
+            // Around the camera's axes, so it always spins the way the mouse moves
             pivot.rotation = Quaternion.AngleAxis(-delta.x * TurnDegreesPerPixel, cameraTransform.up)
                              * Quaternion.AngleAxis(delta.y * TurnDegreesPerPixel, cameraTransform.right)
                              * pivot.rotation;
@@ -171,7 +170,7 @@ public sealed class ItemInspector
         float distance = fitDistance * zoom;
         if (moving && delta != Vector2.zero)
         {
-            // Pixels on screen to meters at the item, so it stays under the mouse while it's moved
+            // Pixels to meters at the item, so it stays under the mouse
             float viewPixels = view.rectTransform.rect.height * view.canvas.scaleFactor;
             float metersPerPixel = 2f * distance * Mathf.Tan(FieldOfView * 0.5f * Mathf.Deg2Rad) / Mathf.Max(1f, viewPixels);
             pan = Vector2.ClampMagnitude(pan + delta * metersPerPixel, radius * 2f);
@@ -184,7 +183,7 @@ public sealed class ItemInspector
         return true;
     }
 
-    // A copy of just the item's meshes, centered on a pivot, with a camera far enough back to fit it all in
+    // Copies the item's meshes onto a pivot, with a camera far enough back to fit them
     private void BuildStage(Grabbable item)
     {
         stage = new GameObject("Item Inspect Stage");
@@ -210,7 +209,6 @@ public sealed class ItemInspector
             copy.gameObject.AddComponent<MeshRenderer>().sharedMaterials = partRenderer.sharedMaterials;
         }
 
-        // Keeps the item's real size, then slides it so its middle sits on the pivot
         model.localScale = source.lossyScale;
         RecenterModel(model);
 
@@ -233,7 +231,7 @@ public sealed class ItemInspector
         stageCamera.targetTexture = texture;
         view.texture = texture;
 
-        // A light that travels with the camera, up and to the left, so the item is lit however it's turned
+        // Rides with the camera, up and to the left, so the item is lit however it's turned
         var lightObject = new GameObject("Item Inspect Light");
         lightObject.transform.SetParent(cameraObject.transform, false);
         lightObject.transform.localPosition = LightOffset * fitDistance;
@@ -241,11 +239,10 @@ public sealed class ItemInspector
         keyLight.type = LightType.Point;
         keyLight.range = fitDistance * 6f;
 
-        // Point lights fade with distance squared, so this keeps big and small items about equally bright
+        // Scaled by distance squared so big and small items are equally bright
         keyLight.intensity = Mathf.Max(1f, LightStrength * fitDistance * fitDistance);
     }
 
-    // Centers the copied meshes on the pivot and works out how far back the camera needs to be
     private void RecenterModel(Transform model)
     {
         var bounds = new Bounds();

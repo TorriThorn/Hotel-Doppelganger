@@ -2,9 +2,8 @@
 using System;
 using System.Collections.Generic;
 
-// The Level 1 conversations from the puzzle sequence, added by NPC Dialogue's "Add Level 1 Lines" menu.
-// Node ids start with l1_ so they sit apart from anything already there. Present This Item is left empty on
-// the fish scale lines, since it has to be the scale object from the scene
+// Level 1 conversations, added by NPC Dialogue's "Add Level 1 Lines" menu. Node ids start with l1_.
+// Present This Item is left empty, since it has to be the fish scale from the scene
 public static class LevelOneLines
 {
     public const string StartNode = "l1_start";
@@ -24,7 +23,7 @@ public static class LevelOneLines
         { "Yaroslava", Yaroslava }
     };
 
-    // False when the NPC Name isn't one of the six, or the lines were already added
+    // False if the NPC Name isn't one of the six, or the lines are already there
     public static bool AddTo(NPCDialogue npc)
     {
         if (npc == null || !Writers.TryGetValue(npc.npcName?.Trim() ?? string.Empty, out Writer write)) return false;
@@ -105,10 +104,10 @@ public static class LevelOneLines
         Node(npc, "l1_work2", "(narrows eyes) You think I'm a hack? I make sure to properly diagnose my patients both on the phone and in person. Do you need me to show you my medical license to prove it?",
             Last("No, not right now."));
 
-        // No way on from her answer: showing her the scale is what counts, and the conversation just ends
+        // Showing her the scale is what counts, so the conversation just ends
         Present(npc, "Is that a scale? I don't know what that could be.", "");
 
-        // Unlocked once the player has overheard her arguing with Yaroslava by the fireplace
+        // Unlocked once the fireplace argument has been overheard
         npc.eventDialogue.Add(new NPCDialogue.EventDialogue
         {
             unlockId = "l1_hiding",
@@ -221,7 +220,6 @@ public static class LevelOneLines
         Node(npc, "l1_work2", "You ask too many questions.",
             Back());
 
-        // Ends once she's tried to keep the scale; showing it to her is what counts
         Present(npc, "(eyes go wide, she smiles) That's awfully valuable, sonny.",
             "", Ask("Valuable for what?", "l1_scale2"));
         Node(npc, "l1_scale2", "(muttering to herself) This seems like a prime ingredient...",
@@ -238,7 +236,7 @@ public static class LevelOneLines
         });
     }
 
-    // The greeting, with the four questions Salem asks everyone
+    // The greeting and the four questions Salem asks everyone
     private static void Intro(NPCDialogue npc, string greeting)
     {
         Node(npc, StartNode, greeting,
@@ -269,7 +267,7 @@ public static class LevelOneLines
         });
     }
 
-    // A line followed straight away by another, with nothing for Salem to say in between
+    // Two lines in a row with nothing for Salem to say in between
     private static void Then(NPCDialogue npc, string id, string says, string next, string speaker = "")
     {
         npc.nodes.Add(new NPCDialogue.Node
@@ -284,7 +282,7 @@ public static class LevelOneLines
     private static NPCDialogue.Choice Ask(string text, string next, string salemThinks = "") =>
         new NPCDialogue.Choice { text = text, nextNode = next, salemThinks = salemThinks };
 
-    // Salem gets the last word, then it's back to the other questions
+    // Salem gets the last word, then it's back to the greeting
     private static NPCDialogue.Choice Last(string text) => new NPCDialogue.Choice { text = text, nextNode = StartNode };
 
     private static NPCDialogue.Choice End(string text) => new NPCDialogue.Choice { text = text, endConversation = true };

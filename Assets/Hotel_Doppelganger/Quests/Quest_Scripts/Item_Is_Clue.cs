@@ -3,9 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// A piece of evidence the player can pick up. The first pick-up counts as finding it: it joins the inventory,
-// Salem can comment, and On Found can unlock dialogue or start other events. A note's text shows on screen
-// while it's held, and its inventory page shows the note and what Salem thought
+// Evidence the player can pick up. The first pick-up counts as finding it: it joins the inventory, Salem can
+// comment, and On Found fires. A note's text shows on screen while it's held
 [AddComponentMenu("Game/Puzzle/Clue")]
 [RequireComponent(typeof(Grabbable))]
 public class Clue : MonoBehaviour
@@ -21,11 +20,11 @@ public class Clue : MonoBehaviour
     [DisplayAs("Note Text (shown while held)", Lines = 5)]
     [SerializeField] private string noteText = "";
 
-    [Header("Inventory")]
+    [Foldout("Inventory")]
     [DisplayAs("Add To Inventory")]
     [SerializeField] private bool addToJournal = true;
 
-    // Only used if the Grabbable's own Item Name is blank
+    // Only used if the Grabbable's Item Name is blank
     [DisplayAs("Inventory Name (blank = note title)", ShowIf = nameof(addToJournal))]
     [SerializeField] private string journalTitle = "";
 
@@ -41,13 +40,12 @@ public class Clue : MonoBehaviour
     public string NoteText => noteText;
     public string Thought => thought;
 
-    // What Salem worked out once a Clue Set this belongs to was complete
+    // Added by a completed Clue Set
     public IReadOnlyList<string> Conclusions => conclusions;
 
-    // For Clue Sets, which count how many pieces have been found
     public event Action<Clue> FoundChanged;
 
-    // Falls back to the note's title, then the object's name, so every item has something to show in the list
+    // Falls back to the note's title, then the object's name
     public string InventoryName =>
         !string.IsNullOrWhiteSpace(journalTitle) ? journalTitle.Trim()
         : !string.IsNullOrWhiteSpace(noteTitle) ? noteTitle.Trim()
@@ -68,7 +66,7 @@ public class Clue : MonoBehaviour
         OnDropped();
     }
 
-    // Counts the clue as found without picking it up, e.g. when an NPC hands the information over
+    // Counts it as found without a pick-up, e.g. when an NPC hands the information over
     public void MarkFound()
     {
         if (Found) return;

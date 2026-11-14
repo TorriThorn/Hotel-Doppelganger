@@ -2,8 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
-// First-person movement and mouse look. WASD moves, Shift sprints, Esc frees the cursor and a click captures it again.
-// Other systems drive the crosshair and can freeze the player through the public properties
+// First-person movement and mouse look. Esc frees the cursor and a click captures it again
 [AddComponentMenu("Game/Player/First Person Controller")]
 [RequireComponent(typeof(CharacterController))]
 public class FirstPersonController : MonoBehaviour
@@ -20,10 +19,6 @@ public class FirstPersonController : MonoBehaviour
     private const int DotTextureSize = 32;
     private const int CrosshairSortingOrder = 50;
 
-    [Foldout("References (filled in automatically)")]
-    [DisplayAs("Camera (optional)")]
-    [SerializeField] private Transform cameraTransform;
-
     [Header("Movement")]
     [DisplayAs("Walk Speed", Min = 0f)]
     [SerializeField] private float walkSpeed = 5f;
@@ -31,18 +26,19 @@ public class FirstPersonController : MonoBehaviour
     [DisplayAs("Sprint Speed", Min = 0f)]
     [SerializeField] private float sprintSpeed = 8f;
 
-    [DisplayAs("Gravity")]
-    [SerializeField] private float gravity = -19.62f;
-
     [Header("Mouse Look")]
     [DisplayAs("Mouse Sensitivity", Min = 0f)]
     [SerializeField] private float mouseSensitivity = 0.1f;
 
-    [DisplayAs("Look Up/Down Limit", Min = 0f, Max = 90f)]
-    [SerializeField] private float maxLookAngle = 85f;
-
     [DisplayAs("Invert Mouse Up/Down")]
     [SerializeField] private bool invertY;
+
+    [Foldout("Advanced")]
+    [DisplayAs("Gravity")]
+    [SerializeField] private float gravity = -19.62f;
+
+    [DisplayAs("Look Up/Down Limit", Min = 0f, Max = 90f)]
+    [SerializeField] private float maxLookAngle = 85f;
 
     [Foldout("Crosshair Icons")]
     [DisplayAs("Dot Size", Min = 0f)]
@@ -63,6 +59,10 @@ public class FirstPersonController : MonoBehaviour
     [DisplayAs("Icon Size", Min = 0f)]
     [SerializeField] private float handSize = 32f;
 
+    [Foldout("References (filled in automatically)")]
+    [DisplayAs("Camera (optional)")]
+    [SerializeField] private Transform cameraTransform;
+
     private CharacterController controller;
     private Camera playerCamera;
     private float verticalVelocity;
@@ -73,16 +73,14 @@ public class FirstPersonController : MonoBehaviour
     private Texture2D dotTexture;
     private Texture shownTexture;
 
-    // Requested by the interaction systems. Falls back to the dot when that icon isn't assigned
+    // Falls back to the dot when the icon isn't assigned
     public CrosshairState Crosshair { get; set; }
 
-    // Shows the talk icon when no hand icon is active
     public bool CanTalk { get; set; }
 
-    // Stops the camera turning, e.g. while rotating a held object
     public bool LookLocked { get; set; }
 
-    // Freezes movement, look and cursor handling, e.g. during dialogue or menus
+    // Freezes movement and look, e.g. during dialogue or menus
     public bool InputLocked { get; set; }
 
     public float SpeedMultiplier { get; set; } = 1f;
@@ -90,7 +88,7 @@ public class FirstPersonController : MonoBehaviour
 
     public Transform CameraTransform => cameraTransform;
 
-    // Up/down look angle in degrees. Positive is looking down
+    // Positive is looking down
     public float Pitch => cameraPitch;
 
     public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
@@ -100,7 +98,6 @@ public class FirstPersonController : MonoBehaviour
     public float LookLimit { get => maxLookAngle; set => maxLookAngle = Mathf.Clamp(value, 0f, 90f); }
     public float Gravity { get => gravity; set => gravity = value; }
 
-    // Clearing the shown texture makes the crosshair redraw at the new size
     public float DotSize
     {
         get => crosshairSize;
@@ -121,7 +118,7 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    // Reads 60 when there's no camera, so the Playtest slider still has something to show
+    // Reads 60 without a camera, so the Playtest slider has something to show
     public float FieldOfView
     {
         get => playerCamera != null ? playerCamera.fieldOfView : 60f;
@@ -131,7 +128,7 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    // Only touches the cursor when it actually needs to change, since menus call this every frame
+    // Only touches the cursor when it changes, since menus call this every frame
     public static void SetCursorLocked(bool locked)
     {
         CursorLockMode mode = locked ? CursorLockMode.Locked : CursorLockMode.None;
@@ -219,7 +216,7 @@ public class FirstPersonController : MonoBehaviour
         return Vector3.ClampMagnitude(new Vector3(x, 0f, z), 1f);
     }
 
-    // Unscaled canvas, so the dot and icons stay at their pixel sizes on any resolution
+    // Unscaled, so the icons keep their pixel size on any resolution
     private void BuildCrosshair()
     {
         dotTexture = CreateDotTexture(DotTextureSize);
@@ -256,7 +253,6 @@ public class FirstPersonController : MonoBehaviour
         return null;
     }
 
-    // Soft-edged white circle, tinted by Dot Color
     private static Texture2D CreateDotTexture(int size)
     {
         var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);

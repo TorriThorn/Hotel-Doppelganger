@@ -4,9 +4,8 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
 
-// Everything one NPC can say. Nodes are screens (an NPC line plus the player's replies) linked by Go To Node.
-// Event Dialogue entries stay hidden until something calls UnlockChoice with their Event Id,
-// e.g. a PlacementZone's On Placed or another dialogue choice's On Chosen
+// Everything one NPC can say. Nodes are screens linked by Go To Node. Event Dialogue entries stay hidden
+// until something calls UnlockChoice with their Event Id
 [AddComponentMenu("Game/NPC/NPC Dialogue")]
 public class NPCDialogue : MonoBehaviour
 {
@@ -27,16 +26,15 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Grey Out Once Picked")]
         public bool greyAfterChosen = true;
 
-        // Counts play time only: menus, the intro and conversations don't use it up
+        // Counts play time only
         [MoreOptions]
         [DisplayAs("Appears After (seconds, 0 = always)", Min = 0f)]
         public float appearAfter;
 
-        // Older setups gated choices inside nodes with this; they get moved to Event Dialogue on load
+        // Old setups kept event ids here; they're moved to Event Dialogue on load
         [HideInInspector]
         public string unlockId = "";
 
-        // Shown once the conversation closes, and written in the journal
         [MoreOptions]
         [DisplayAs("Salem Thinks Afterwards (optional)", Lines = 2)]
         public string salemThinks = "";
@@ -54,29 +52,35 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("NPC Says", Lines = 3)]
         public string npcText = "...";
 
-        [DisplayAs("Expression Sprite (optional)")]
-        public Sprite expression;
-
         public List<Choice> choices = new List<Choice>();
 
-        // A quick-time screen: pick before the bar runs out or the conversation moves on without you
-        [DisplayAs("Time Limit (seconds, 0 = none)", Min = 0f)]
-        public float timeLimit;
+        // Two lines in a row: the screen only shows Continue, which goes to this node
+        [MoreOptions]
+        [DisplayAs("Then Go To (for back-to-back lines)")]
+        public string thenNode = "";
 
-        [DisplayAs("If Time Runs Out, Go To (blank = end)")]
-        public string timeoutNode = "";
-
-        // Someone else saying this line, e.g. a person shouting from across the room
+        [MoreOptions]
         [DisplayAs("Said By (blank = this NPC)")]
         public string speaker = "";
 
-        // For lines that follow each other with nothing for Salem to say in between: the screen shows only a
-        // Continue option, which goes on to this node
-        [DisplayAs("Then Go To (for back-to-back lines)")]
-        public string thenNode = "";
+        [MoreOptions]
+        [DisplayAs("Expression Sprite (optional)")]
+        public Sprite expression;
+
+        [MoreOptions]
+        [DisplayAs("Portrait Expression (optional)")]
+        public Sprite portraitExpression;
+
+        // A quick-time screen
+        [MoreOptions]
+        [DisplayAs("Time Limit (seconds, 0 = none)", Min = 0f)]
+        public float timeLimit;
+
+        [MoreOptions]
+        [DisplayAs("If Time Runs Out, Go To (blank = end)")]
+        public string timeoutNode = "";
     }
 
-    // Laid out like a Node: the line the player picks, the NPC's answer, and the replies under that
     [Serializable]
     public class EventDialogue
     {
@@ -89,8 +93,7 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Player Says")]
         public string text = "...";
 
-        // Set this to make it a "present the item" line. It's never listed as a choice; the player reaches it by
-        // presenting the item from their inventory, and Player Says is logged as what they say while showing it
+        // Makes this a "present the item" line, reached by presenting the item rather than listed as a choice
         [DisplayAs("Present This Item (optional)")]
         public Grabbable requiredItem;
 
@@ -103,6 +106,10 @@ public class NPCDialogue : MonoBehaviour
         [MoreOptions]
         [DisplayAs("Expression Sprite (optional)")]
         public Sprite expression;
+
+        [MoreOptions]
+        [DisplayAs("Portrait Expression (optional)")]
+        public Sprite portraitExpression;
 
         [MoreOptions]
         [DisplayAs("Back Option Text")]
@@ -137,17 +144,24 @@ public class NPCDialogue : MonoBehaviour
     [DisplayAs("First Node")]
     public string startNode = "start";
 
-    [DisplayAs("Add Goodbye Option")]
-    public bool addGoodbye = true;
+    // Swapped on the NPC's own sprite while they talk. Keep them the same size and pivot as the normal sprite
+    [Foldout("Talking Sprites")]
+    [DisplayAs("Idle Sprite (optional)")]
+    public Sprite portrait;
 
-    [Header("Presenting Items")]
-    [DisplayAs("Reply To Unhelpful Items", Lines = 2)]
-    public string wrongItemReply = "I don't see what that has to do with anything.";
+    [DisplayAs("Talking Sprite (optional)")]
+    public Sprite talkingPortrait;
 
-    // Shown on the NPC itself while they talk. Left empty, Idle Sprite is whatever the NPC already shows.
-    // Both should match the NPC's normal sprite in size and pivot so nothing jumps when they swap
-    // The first time a conversation closes with nothing new left to ask, e.g. Salem summing someone up
-    [Header("Once Everything's Asked")]
+    // Art that slides in beside the dialogue box, instead of the camera zooming right up to the sprite
+    [Foldout("Dialogue Portrait")]
+    [DisplayAs("Portrait (optional)")]
+    public Sprite dialoguePortrait;
+
+    [DisplayAs("Portrait Talking (optional)")]
+    public Sprite dialoguePortraitTalking;
+
+    // The first time a conversation ends with nothing new left to ask
+    [Foldout("Once Everything's Asked")]
     [DisplayAs("Only Counts While First Node Is (blank = any)")]
     public string allAskedNode = "";
 
@@ -156,21 +170,18 @@ public class NPCDialogue : MonoBehaviour
 
     public UnityEvent onAllAsked;
 
-    [Header("Talking Sprites")]
-    [DisplayAs("Idle Sprite (optional)")]
-    public Sprite portrait;
+    [Foldout("More Options")]
+    [DisplayAs("Add Goodbye Option")]
+    public bool addGoodbye = true;
 
-    [DisplayAs("Talking Sprite (optional)")]
-    public Sprite talkingPortrait;
+    [DisplayAs("Reply To Unhelpful Items", Lines = 2)]
+    public string wrongItemReply = "I don't see what that has to do with anything.";
 
-    // Moves the spot the conversation camera zooms in on up or down for this NPC, in meters
-    [Header("Conversation Camera")]
     [DisplayAs("Face Height Adjust (meters)")]
     public float faceHeightAdjust;
 
-    // Nudges the floating ! and overheard lines up or down for this NPC, in meters
-    [Header("Over Their Head")]
-    [DisplayAs("Height Adjust (meters)")]
+    // Moves the floating ! and overheard lines
+    [DisplayAs("Over-Head Height Adjust (meters)")]
     public float headHeightAdjust;
 
     [Header("Conversation")]
@@ -180,10 +191,10 @@ public class NPCDialogue : MonoBehaviour
     [FormerlySerializedAs("topics")]
     public List<EventDialogue> eventDialogue = new List<EventDialogue>();
 
-    // Top of each sprite's drawn pixels, in the sprite's own units, worked out once per sprite
+    // Top of each sprite's drawn pixels, worked out once per sprite
     private static readonly Dictionary<Sprite, float> spriteTops = new Dictionary<Sprite, float>();
 
-    // Ids and node names ignore capitals, and stray spaces are trimmed off
+    // Ids ignore capitals and stray spaces
     private readonly HashSet<string> unlockedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<Choice> pickedChoices = new HashSet<Choice>();
     private readonly HashSet<EventDialogue> pickedEvents = new HashSet<EventDialogue>();
@@ -198,10 +209,9 @@ public class NPCDialogue : MonoBehaviour
     private float playTime;
     private int nextAppear;
 
-    // Goes up whenever something changes what the NPC has left to say, so markers only recheck when needed
+    // Goes up whenever what the NPC has left to say changes, so markers only recheck then
     public int Version { get; private set; }
 
-    // The item the player last presented in this conversation, if any
     public Grabbable ShownItem { get; set; }
 
     private void Awake()
@@ -216,20 +226,6 @@ public class NPCDialogue : MonoBehaviour
         nodeLookup = null;
         Version++;
         if (MoveEventChoicesOutOfNodes()) UnityEditor.EditorUtility.SetDirty(this);
-    }
-#endif
-
-#if UNITY_EDITOR
-    // Fills in this NPC's Level 1 lines from the puzzle sequence, picked by NPC Name
-    [ContextMenu("Add Level 1 Lines")]
-    private void AddLevelOneLines()
-    {
-        UnityEditor.Undo.RecordObject(this, "Add Level 1 Lines");
-        if (!LevelOneLines.AddTo(this)) return;
-
-        nodeLookup = null;
-        Version++;
-        UnityEditor.EditorUtility.SetDirty(this);
     }
 #endif
 
@@ -266,7 +262,7 @@ public class NPCDialogue : MonoBehaviour
         && (string.IsNullOrWhiteSpace(choice.unlockId) || unlockedIds.Contains(choice.unlockId.Trim()))
         && playTime >= choice.appearAfter;
 
-    // Event dialogue shows once its event has happened. A present-the-item line only needs the item, unless it also has an Event Id
+    // A present-the-item line only needs the item, unless it also has an Event Id
     public bool IsAvailable(EventDialogue entry)
     {
         if (entry == null) return false;
@@ -278,7 +274,7 @@ public class NPCDialogue : MonoBehaviour
         return ShownItem == entry.requiredItem && (!hasId || unlocked);
     }
 
-    // Whether an unlocked entry belongs on this screen. A blank Show On Node means the first node
+    // A blank Show On Node means the first node
     public bool IsShownOn(EventDialogue entry, Node screen)
     {
         if (screen == null || !IsAvailable(entry)) return false;
@@ -293,7 +289,6 @@ public class NPCDialogue : MonoBehaviour
     public bool WasChosen(EventDialogue entry) => pickedEvents.Contains(entry);
     public void MarkChosen(EventDialogue entry) => pickedEvents.Add(entry);
 
-    // Seen is tracked separately from greying out, so choices that never grey out still count as heard
     public void MarkTalkedTo() => SetChanged(ref talkedTo);
 
     public void MarkVisited(Choice choice)
@@ -306,7 +301,7 @@ public class NPCDialogue : MonoBehaviour
         if (visited.Add(entry)) Version++;
     }
 
-    // The "present the item" line for this object, if its event has happened (or it has none). -1 if there isn't one
+    // -1 if there's no line for this item, or its event hasn't happened
     public int FindItemEntry(Grabbable item)
     {
         if (item == null) return -1;
@@ -323,7 +318,7 @@ public class NPCDialogue : MonoBehaviour
         return -1;
     }
 
-    // Whether this NPC has an unheard "present the item" line for this object, so a marker can say "show me that"
+    // For the marker that says "show me that"
     public bool WantsItem(Grabbable item)
     {
         if (item == null) return false;
@@ -339,9 +334,8 @@ public class NPCDialogue : MonoBehaviour
         return false;
     }
 
-    // True while there's something the player hasn't heard yet: a first conversation, an unlocked event line,
-    // or a choice that greys out once picked on any screen they can reach. Choices that never grey out
-    // ("I had other questions") only move between screens, so they're followed but never counted
+    // True while there's something unheard: a first conversation, an unlocked event line, or a choice that
+    // greys out once picked on any reachable screen
     public bool HasNewDialogue()
     {
         if (!talkedTo) return nodes.Count > 0;
@@ -355,7 +349,7 @@ public class NPCDialogue : MonoBehaviour
             if (entry == null || entry.requiredItem != null || !IsAvailable(entry) || string.IsNullOrWhiteSpace(entry.text)) continue;
             if (IsUnheard(entry.greyAfterChosen, visited.Contains(entry))) return true;
 
-            // Heard (or never greys out): whatever it leads to may still hold something new
+            // Heard already, but what it leads to may still be new
             Node target = GetNode(entry.nextNode);
             if (target != null) QueueScan(target);
             else if (HasNewChoice(entry.choices)) return true;
@@ -371,7 +365,6 @@ public class NPCDialogue : MonoBehaviour
         return false;
     }
 
-    // Shows every Event Dialogue entry with this id
     public void UnlockChoice(string unlockId)
     {
         if (!string.IsNullOrWhiteSpace(unlockId) && unlockedIds.Add(unlockId.Trim())) Version++;
@@ -382,7 +375,7 @@ public class NPCDialogue : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(unlockId) && unlockedIds.Remove(unlockId.Trim())) Version++;
     }
 
-    // Checked as a conversation closes. Only happens once, and only while the NPC opens on the named node
+    // Called as a conversation closes. Fires once, and only while the NPC opens on the named node
     public void CheckAllAsked()
     {
         if (allAskedDone || HasNewDialogue()) return;
@@ -417,7 +410,7 @@ public class NPCDialogue : MonoBehaviour
         {
             if (!IsAvailable(choice) || string.IsNullOrWhiteSpace(choice.text)) continue;
 
-            // A choice that only closes the conversation has nothing to hear, unless it sets something off
+            // A choice that only ends the conversation has nothing to hear, unless it sets something off
             bool worthHearing = !choice.endConversation || choice.onChosen.GetPersistentEventCount() > 0;
             if (worthHearing && IsUnheard(choice.greyAfterChosen, visited.Contains(choice))) return true;
 
@@ -427,7 +420,6 @@ public class NPCDialogue : MonoBehaviour
         return false;
     }
 
-    // Only lines that grey out once picked can be "done", which matches what the player sees on screen
     private static bool IsUnheard(bool greysOut, bool picked) => greysOut && !picked;
 
     private void QueueScan(Node node)
@@ -435,9 +427,7 @@ public class NPCDialogue : MonoBehaviour
         if (node != null && scanned.Add(node)) toScan.Enqueue(node);
     }
 
-    // Where the top of this NPC's head is in the world, for anything that floats above it.
-    // Sprites are measured by their drawn pixels, not the image's box, since character art usually has empty
-    // space above the head and every box would come out the same height
+    // Top of the NPC's head, measured by the sprite's drawn pixels so empty space above the art doesn't count
     public Vector3 HeadPosition(Renderer body, float fallbackHeight)
     {
         Vector3 root = transform.position;
@@ -457,7 +447,7 @@ public class NPCDialogue : MonoBehaviour
     {
         if (spriteTops.TryGetValue(sprite, out float top)) return top;
 
-        // A sprite's mesh hugs its drawn pixels when its Mesh Type is Tight (Unity's default)
+        // A Tight sprite mesh (Unity's default) hugs the drawn pixels
         top = float.MinValue;
         foreach (Vector2 corner in sprite.vertices) top = Mathf.Max(top, corner.y);
         if (top == float.MinValue) top = sprite.bounds.max.y;
@@ -477,7 +467,7 @@ public class NPCDialogue : MonoBehaviour
         }
     }
 
-    // Every timed choice's time in order, so Update only ever checks the next one due
+    // Sorted, so Update only checks the next one due
     private void CollectAppearTimes()
     {
         appearTimes.Clear();
@@ -501,7 +491,7 @@ public class NPCDialogue : MonoBehaviour
         nextAppear = 0;
     }
 
-    // Upgrade path: choices that still carry an event id are moved out of their node into Event Dialogue
+    // Moves choices that still carry an event id out of their node and into Event Dialogue
     private bool MoveEventChoicesOutOfNodes()
     {
         bool moved = false;
@@ -538,4 +528,17 @@ public class NPCDialogue : MonoBehaviour
         if (moved) nodeLookup = null;
         return moved;
     }
+
+#if UNITY_EDITOR
+    [ContextMenu("Add Level 1 Lines")]
+    private void AddLevelOneLines()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Level 1 Lines");
+        if (!LevelOneLines.AddTo(this)) return;
+
+        nodeLookup = null;
+        Version++;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+#endif
 }

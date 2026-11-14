@@ -8,9 +8,8 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Title screen with Start, How To Play, and a Playtest page for changing settings while testing.
-// Playtest settings are grouped into sections, each on its own page. It can also be opened mid-game with F1.
-// Builds its own UI at runtime
+// Title screen with Start, How To Play, and a Playtest page of settings for testing (also opened mid-game
+// with F1). Builds its own UI at runtime
 [AddComponentMenu("Game/UI/Main Menu")]
 public class MainMenu : MonoBehaviour
 {
@@ -45,25 +44,43 @@ public class MainMenu : MonoBehaviour
     [DisplayAs("Game Title")]
     [SerializeField] private string gameTitle = "My Game";
 
-    [DisplayAs("Start Button Text")]
-    [SerializeField] private string startText = "Start";
-
-    [DisplayAs("Tutorial Button Text")]
-    [SerializeField] private string tutorialButtonText = "How To Play";
-
-    // Empty: the menu sits over this scene and just closes. Filled in: Start loads that scene instead
-    [Header("Starting The Game")]
+    // Blank: Start just closes the menu over this scene
     [DisplayAs("Scene To Load (optional)")]
     [SerializeField] private string sceneToLoad = "";
 
     [DisplayAs("Pause Game Behind Menu")]
     [SerializeField] private bool pauseWhileOpen = true;
 
-    [Header("How To Play Page")]
-    [DisplayAs("Page Title")]
+    [DisplayAs("Show Playtest Button")]
+    [SerializeField] private bool showPlaytestButton = true;
+
+    [DisplayAs("Open With F1 During Play")]
+    [SerializeField] private bool allowInGamePlaytest = true;
+
+    [Foldout("Button Text")]
+    [DisplayAs("Start Button Text")]
+    [SerializeField] private string startText = "Start";
+
+    [DisplayAs("Tutorial Button Text")]
+    [SerializeField] private string tutorialButtonText = "How To Play";
+
+    [DisplayAs("Playtest Button Text", ShowIf = nameof(showPlaytestButton))]
+    [SerializeField] private string playtestButtonText = "Playtest";
+
+    [DisplayAs("Back Button Text")]
+    [SerializeField] private string backText = "Back";
+
+    [DisplayAs("Reset Page Button Text")]
+    [SerializeField] private string resetText = "Reset To Defaults";
+
+    [DisplayAs("Reset Everything Button Text")]
+    [SerializeField] private string resetAllText = "Reset Everything";
+
+    [Foldout("Page Text")]
+    [DisplayAs("How To Play Title")]
     [SerializeField] private string tutorialTitle = "How To Play";
 
-    [DisplayAs("Page Text", Lines = 12)]
+    [DisplayAs("How To Play Text", Lines = 12)]
     [SerializeField]
     private string tutorialText =
         "WASD  -  Walk\n" +
@@ -79,27 +96,8 @@ public class MainMenu : MonoBehaviour
         "Tab  -  Leave a conversation\n" +
         "J  -  Open or close the journal and inventory";
 
-    [DisplayAs("Back Button Text")]
-    [SerializeField] private string backText = "Back";
-
-    [Header("Playtest")]
-    [DisplayAs("Show Playtest Button")]
-    [SerializeField] private bool showPlaytestButton = true;
-
-    [DisplayAs("Playtest Button Text", ShowIf = nameof(showPlaytestButton))]
-    [SerializeField] private string playtestButtonText = "Playtest";
-
-    [DisplayAs("Open With F1 During Play")]
-    [SerializeField] private bool allowInGamePlaytest = true;
-
     [DisplayAs("Playtest Page Title")]
     [SerializeField] private string playtestTitle = "Playtest";
-
-    [DisplayAs("Reset Page Button Text")]
-    [SerializeField] private string resetText = "Reset To Defaults";
-
-    [DisplayAs("Reset Everything Button Text")]
-    [SerializeField] private string resetAllText = "Reset Everything";
 
     [Foldout("Look")]
     [DisplayAs("Font (optional)")]
@@ -210,7 +208,7 @@ public class MainMenu : MonoBehaviour
 
     public bool IsOpen { get; private set; }
 
-    // Raised when Start closes the menu over this scene, e.g. so the intro cutscene can begin
+    // Raised when Start closes the menu over this scene, e.g. to begin the intro
     public event Action GameStarted;
 
     private MenuList CurrentList
@@ -240,7 +238,7 @@ public class MainMenu : MonoBehaviour
         if (canvas != null) ApplyLook();
     }
 
-    // Built in Start rather than Awake so every NPC has registered and every value holds its starting setting
+    // In Start so every NPC has registered first
     private void Start()
     {
         BuildSettings();
@@ -356,7 +354,7 @@ public class MainMenu : MonoBehaviour
         return dialogue == null || !dialogue.IsTalking;
     }
 
-    // Sections go back to the Playtest page. From a Playtest page opened with F1, Back returns to the game
+    // Sections go back to the Playtest page; an F1 Playtest page goes back to the game
     private void GoBack()
     {
         if (page == Page.Section) ShowPage(Page.Playtest);
@@ -493,7 +491,7 @@ public class MainMenu : MonoBehaviour
         return section;
     }
 
-    // Lists each screen size once (Unity reports every refresh rate separately). Skipped where only one size exists, e.g. in the editor
+    // Each screen size once, since Unity lists every refresh rate separately
     private void AddResolution(SettingsSection section)
     {
         var sizes = new List<Vector2Int>();
@@ -510,7 +508,7 @@ public class MainMenu : MonoBehaviour
         var names = new string[sizes.Count];
         for (int i = 0; i < sizes.Count; i++) names[i] = sizes[i].x + " x " + sizes[i].y;
 
-        // Screen.width only updates a frame after a change, so the chosen index is tracked here instead
+        // Screen.width lags a frame behind, so the index is tracked here
         resolutionIndex = sizes.IndexOf(current);
         section.Settings.Add(MenuSetting.Choice("Resolution", names, () => resolutionIndex, i =>
         {
@@ -525,7 +523,7 @@ public class MainMenu : MonoBehaviour
         return index >= 0 ? index : FrameRates.Length - 1;
     }
 
-    // Falls back to the type's default if every NPC has been removed since the menu was built
+    // Falls back to the default if every NPC has since been removed
     private static T ReadNPC<T>(Func<NPCPatrol, T> read)
     {
         IReadOnlyList<NPCPatrol> npcs = NPCPatrol.Active;
@@ -573,7 +571,7 @@ public class MainMenu : MonoBehaviour
         background = RuntimeUI.CreateImage("Background", canvas.transform, backgroundColor);
         RuntimeUI.Stretch(background.rectTransform);
 
-        // Fills the screen at the image's own shape, cropping the edges rather than stretching it
+        // Crops rather than stretches
         picture = RuntimeUI.CreateImage("Background Image", canvas.transform, Color.white);
         RuntimeUI.Stretch(picture.rectTransform);
         pictureFit = picture.gameObject.AddComponent<AspectRatioFitter>();
@@ -661,7 +659,7 @@ public class MainMenu : MonoBehaviour
         return box.transform;
     }
 
-    // Pushes Inspector values onto the built UI. Runs once after building, then whenever a value is edited
+    // Pushes Inspector values onto the built UI
     private void ApplyLook()
     {
         UpdateStyle();
@@ -683,7 +681,7 @@ public class MainMenu : MonoBehaviour
         foreach (SettingsSection section in sections) section.List.MarkDirty();
     }
 
-    // The image is for the title screen. The F1 Playtest page keeps the tinted game view, so changes can be seen behind it
+    // The F1 Playtest page skips the image so changes show in the game behind it
     private void UpdateBackground()
     {
         bool useImage = backgroundImage != null && !openedInGame;

@@ -9,8 +9,7 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Ends the game: fades out, then shows a Game Complete screen with Play Again and Quit.
-// Trigger it by calling EndGame from any UnityEvent, e.g. a dialogue choice's On Chosen
+// Fades out to a Game Complete screen with Play Again and Quit. Call EndGame from any UnityEvent
 [AddComponentMenu("Game/UI/Game Complete")]
 public class GameComplete : MonoBehaviour
 {
@@ -26,16 +25,17 @@ public class GameComplete : MonoBehaviour
     [DisplayAs("Message", Lines = 3)]
     [SerializeField] private string message = "Thanks for playing!";
 
-    [DisplayAs("Play Again Button Text")]
-    [SerializeField] private string playAgainText = "Play Again";
-
     [DisplayAs("Show Quit Button")]
     [SerializeField] private bool showQuitButton = true;
+
+    [Foldout("Button Text")]
+    [DisplayAs("Play Again Button Text")]
+    [SerializeField] private string playAgainText = "Play Again";
 
     [DisplayAs("Quit Button Text", ShowIf = nameof(showQuitButton))]
     [SerializeField] private string quitText = "Quit";
 
-    [Header("Fade")]
+    [Foldout("Fade")]
     [DisplayAs("Wait Before Fading (seconds)", Min = 0f)]
     [SerializeField] private float delayBeforeFade = 0.5f;
 
@@ -147,7 +147,6 @@ public class GameComplete : MonoBehaviour
         buttons.Refresh();
     }
 
-    // Starts the ending. Calling it again while it's running does nothing
     public void EndGame()
     {
         if (HasEnded) return;
@@ -173,7 +172,7 @@ public class GameComplete : MonoBehaviour
 
     private IEnumerator EndingRoutine()
     {
-        // Let whatever triggered the ending (e.g. a dialogue choice) finish its own frame first
+        // Lets whatever triggered it finish its frame first
         yield return null;
         if (dialogue != null) dialogue.EndConversation();
 
@@ -195,7 +194,7 @@ public class GameComplete : MonoBehaviour
         buttonsReady = true;
     }
 
-    // Eases 0 to 1 on real time, so it keeps running while the game is paused
+    // Eases 0 to 1 on real time, so it runs while paused
     private static IEnumerator Animate(float duration, Action<float> apply)
     {
         if (duration <= 0f)

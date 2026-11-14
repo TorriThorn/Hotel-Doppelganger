@@ -4,8 +4,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using Random = UnityEngine.Random;
 
-// Walks an NPC between waypoints, waiting at each one. Paths around obstacles when it has a NavMeshAgent
-// on a baked NavMesh, otherwise walks in straight lines. The route can be changed at runtime from UnityEvents
+// Walks an NPC between waypoints, around obstacles if it has a NavMeshAgent, otherwise in straight lines
 [AddComponentMenu("Game/NPC/NPC Patrol")]
 public class NPCPatrol : MonoBehaviour
 {
@@ -25,7 +24,7 @@ public class NPCPatrol : MonoBehaviour
         [DisplayAs("Part Of Route")]
         public bool active = true;
 
-        // Recorded once at start, so waypoints parented to the NPC don't move with it
+        // Recorded once, so waypoints parented to the NPC don't move with it
         [NonSerialized]
         public Vector3 position;
 
@@ -46,9 +45,10 @@ public class NPCPatrol : MonoBehaviour
     [DisplayAs("Walk Pattern")]
     [SerializeField] private PatrolMode mode = PatrolMode.PingPong;
 
-    [DisplayAs("Start On First Spot")]
-    [SerializeField] private bool startAtFirstPoint = true;
+    [DisplayAs("Walk Speed", Min = 0f)]
+    [SerializeField] private float walkSpeed = 1.5f;
 
+    [Foldout("Waiting At Spots")]
     [DisplayAs("Wait At Each Spot (seconds)", HideIf = nameof(randomWait), Min = 0f)]
     [SerializeField] private float defaultWaitTime = 2f;
 
@@ -61,38 +61,12 @@ public class NPCPatrol : MonoBehaviour
     [DisplayAs("Longest Wait (seconds)", ShowIf = nameof(randomWait), Min = 0f)]
     [SerializeField] private float maxRandomWait = 10f;
 
-    [Header("Movement")]
-    [DisplayAs("Walk Speed", Min = 0f)]
-    [SerializeField] private float walkSpeed = 1.5f;
-
-    [DisplayAs("Speed Up / Slow Down", Min = 0f)]
-    [SerializeField] private float acceleration = 4f;
-
-    [DisplayAs("Arrival Distance", Min = 0f)]
-    [SerializeField] private float arriveDistance = 0.1f;
-
-    [DisplayAs("Stay At Own Height")]
-    [SerializeField] private bool keepHeight = true;
-
-    [Header("Walking Around Obstacles")]
-    [DisplayAs("Walk Around Obstacles")]
-    [SerializeField] private bool useNavMesh = true;
-
-    [DisplayAs("Give Up After (seconds)", ShowIf = nameof(useNavMesh), Min = 0f)]
-    [SerializeField] private float giveUpTime = 4f;
-
-    [DisplayAs("Add Collider If Missing", ShowIf = nameof(useNavMesh))]
-    [SerializeField] private bool addColliderIfMissing = true;
-
-    [Header("Player")]
+    [Foldout("Stopping For The Player")]
     [DisplayAs("Stop When Player Is Close")]
     [SerializeField] private bool stopForPlayer = true;
 
     [DisplayAs("Stop Distance", ShowIf = nameof(stopForPlayer), Min = 0f)]
     [SerializeField] private float stopRange = 2f;
-
-    [DisplayAs("Player (optional)")]
-    [SerializeField] private Transform player;
 
     [Foldout("Animation & Sprite")]
     [DisplayAs("Animator (optional)")]
@@ -109,6 +83,32 @@ public class NPCPatrol : MonoBehaviour
 
     [DisplayAs("Artwork Faces Right", ShowIf = nameof(flipSpriteToWalkDirection))]
     [SerializeField] private bool spriteFacesRight = true;
+
+    [Foldout("Movement (advanced)")]
+    [DisplayAs("Start On First Spot")]
+    [SerializeField] private bool startAtFirstPoint = true;
+
+    [DisplayAs("Speed Up / Slow Down", Min = 0f)]
+    [SerializeField] private float acceleration = 4f;
+
+    [DisplayAs("Arrival Distance", Min = 0f)]
+    [SerializeField] private float arriveDistance = 0.1f;
+
+    [DisplayAs("Stay At Own Height")]
+    [SerializeField] private bool keepHeight = true;
+
+    [DisplayAs("Walk Around Obstacles (NavMesh)")]
+    [SerializeField] private bool useNavMesh = true;
+
+    [DisplayAs("Give Up After (seconds)", ShowIf = nameof(useNavMesh), Min = 0f)]
+    [SerializeField] private float giveUpTime = 4f;
+
+    [DisplayAs("Add Collider If Missing", ShowIf = nameof(useNavMesh))]
+    [SerializeField] private bool addColliderIfMissing = true;
+
+    [Foldout("References (filled in automatically)")]
+    [DisplayAs("Player (optional)")]
+    [SerializeField] private Transform player;
 
     private readonly List<Waypoint> route = new List<Waypoint>();
     private CharacterController controller;
@@ -131,13 +131,13 @@ public class NPCPatrol : MonoBehaviour
     private int walkingHash;
     private bool hasWalkingBool;
 
-    // Every enabled patrol, so other systems (like the Playtest menu) can adjust them all at once
+    // For things like the Playtest menu that adjust every patrol at once
     public static IReadOnlyList<NPCPatrol> Active => active;
 
     public bool IsWalking { get; private set; }
     public bool IsStopped => isStopped;
 
-    // Holds the NPC in place temporarily, e.g. for the length of a conversation
+    // Holds the NPC in place, e.g. during a conversation
     public bool Paused { get; set; }
 
     public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
@@ -206,7 +206,7 @@ public class NPCPatrol : MonoBehaviour
         else UpdateStraightLine();
     }
 
-    // Turns a waypoint on. One that isn't in the list yet goes on the end of the route
+    // A waypoint that isn't in the list yet goes on the end of the route
     public void AddWaypoint(Transform point)
     {
         if (point == null) return;
@@ -223,7 +223,7 @@ public class NPCPatrol : MonoBehaviour
         BuildRoute();
     }
 
-    // Turns a waypoint off. It keeps its place in the list so AddWaypoint can bring it back
+    // Keeps its place in the list so AddWaypoint can bring it back
     public void RemoveWaypoint(Transform point)
     {
         Waypoint waypoint = FindWaypoint(point);
@@ -240,7 +240,6 @@ public class NPCPatrol : MonoBehaviour
         else AddWaypoint(point);
     }
 
-    // Stops where the NPC is standing until ResumePatrol is called
     public void StopPatrol()
     {
         isStopped = true;
@@ -251,7 +250,7 @@ public class NPCPatrol : MonoBehaviour
         SetWalking(false);
     }
 
-    // Walks to this point and stays there until ResumePatrol is called
+    // Walks there and stays until ResumePatrol
     public void StopAtWaypoint(Transform point)
     {
         if (point == null)
@@ -272,7 +271,7 @@ public class NPCPatrol : MonoBehaviour
         StopAgent();
     }
 
-    // Moves the NPC to this point at once and keeps them there until ResumePatrol, e.g. while the lights are out
+    // Moves there at once and stays until ResumePatrol, e.g. while the lights are out
     public void WarpTo(Transform point)
     {
         if (point == null) return;
@@ -281,8 +280,8 @@ public class NPCPatrol : MonoBehaviour
         StopAtWaypoint(point);
     }
 
-    // Walks toward a spot that can keep changing, e.g. somewhere near the player, and stands there on arrival.
-    // Small changes are ignored so the NPC isn't constantly re-planning. StopPatrol or ResumePatrol ends it
+    // Walks toward a spot that can keep moving, e.g. near the player, and stands there on arrival.
+    // Small changes are ignored so the NPC isn't constantly re-planning
     public void WalkTowards(Vector3 position)
     {
         if (movingSpot == null) movingSpot = new Waypoint { cached = true };
@@ -291,7 +290,6 @@ public class NPCPatrol : MonoBehaviour
         bool sameSpot = target == movingSpot && (movingSpot.position - position).sqrMagnitude < retarget;
         if (sameSpot && !isStopped) return;
 
-        // Already standing close enough to it
         Vector3 gap = position - transform.position;
         gap.y = 0f;
         if (isStopped && gap.sqrMagnitude < retarget) return;
@@ -322,10 +320,9 @@ public class NPCPatrol : MonoBehaviour
         agent.acceleration = acceleration;
         agent.stoppingDistance = 0f;
         agent.autoBraking = true;
-        // NPCFacePlayer handles facing
         agent.updateRotation = false;
 
-        // Agents have no collider of their own, so without one the player can't aim at the NPC to talk
+        // Without a collider the player can't aim at the NPC to talk
         if (addColliderIfMissing && GetComponentInChildren<Collider>() == null)
         {
             var capsule = gameObject.AddComponent<CapsuleCollider>();
@@ -345,7 +342,6 @@ public class NPCPatrol : MonoBehaviour
             if (parameter.nameHash != walkingHash || parameter.type != AnimatorControllerParameterType.Bool) continue;
 
             hasWalkingBool = true;
-            // SetWalking only sends changes, so start from a known state
             animator.SetBool(walkingHash, false);
             break;
         }
@@ -369,7 +365,6 @@ public class NPCPatrol : MonoBehaviour
         waypoint.cached = true;
     }
 
-    // Rebuilds the active route and keeps the NPC heading somewhere sensible
     private void BuildRoute()
     {
         if (!hasStarted) return;
@@ -383,7 +378,7 @@ public class NPCPatrol : MonoBehaviour
             if (waypoint != null && waypoint.active && waypoint.point != null && waypoint.cached) route.Add(waypoint);
         }
 
-        // While stopped (or walking to a final spot) keep the new route for later but don't redirect
+        // While stopped, keep the new route for later but don't redirect
         if (isStopped || stopOnArrival) return;
 
         if (route.Count == 0)
@@ -403,7 +398,7 @@ public class NPCPatrol : MonoBehaviour
         }
         else
         {
-            // The point it was walking to got removed, so head for whatever now sits in that slot
+            // Its target was removed, so head for whatever now sits in that slot
             routeIndex = Mathf.Clamp(previousIndex, 0, route.Count - 1);
             destinationSet = false;
             if (waitTimer <= 0f) StopAgent();
@@ -487,7 +482,7 @@ public class NPCPatrol : MonoBehaviour
         agent.speed = walkSpeed;
         agent.acceleration = acceleration;
 
-        // An unreachable point gets skipped; a partial path counts as arriving at its end
+        // An unreachable point is skipped; a partial path counts as arriving
         if (!agent.pathPending && (agent.pathStatus == NavMeshPathStatus.PathInvalid || agent.remainingDistance <= arriveDistance))
         {
             Arrive();
@@ -502,7 +497,7 @@ public class NPCPatrol : MonoBehaviour
         SetWalking(moving);
         if (moving) UpdateSpriteFlip(velocity / currentSpeed);
 
-        // Not blocked, but not getting anywhere either, so give up on this point
+        // Not blocked but not moving, so give up on this point
         if (!blocked && !agent.pathPending && currentSpeed < StuckSpeedThreshold)
         {
             stuckTimer += Time.deltaTime;
@@ -526,7 +521,6 @@ public class NPCPatrol : MonoBehaviour
             return;
         }
 
-        // Ease in, stop for the player, and brake so it comes to rest right on the waypoint
         float desiredSpeed = Paused || IsPlayerNearby() ? 0f : walkSpeed;
         desiredSpeed = Mathf.Min(desiredSpeed, Mathf.Sqrt(2f * acceleration * distance));
         speed = Mathf.MoveTowards(speed, desiredSpeed, acceleration * Time.deltaTime);
@@ -556,7 +550,7 @@ public class NPCPatrol : MonoBehaviour
             return;
         }
 
-        // A CharacterController overrides direct position changes unless it's briefly turned off
+        // A CharacterController ignores position changes unless it's briefly turned off
         bool hadController = controller != null && controller.enabled;
         if (hadController) controller.enabled = false;
         transform.position = position;
@@ -597,7 +591,6 @@ public class NPCPatrol : MonoBehaviour
             cameraTransform = cam.transform;
         }
 
-        // Walking straight toward or away from the camera keeps the current flip
         float side = Vector3.Dot(direction, cameraTransform.right);
         if (Mathf.Abs(side) < FlipDeadZone) return;
 
@@ -605,7 +598,7 @@ public class NPCPatrol : MonoBehaviour
         sprite.flipX = spriteFacesRight ? !movingRight : movingRight;
     }
 
-    // Green: active route. Faded: inactive spots. Cyan: live NavMesh path. Orange: player stop range
+    // Green: route. Cyan: NavMesh path. Orange: player stop range
     private void OnDrawGizmosSelected()
     {
         DrawRouteGizmos();

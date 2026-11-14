@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// Waits for several things to have happened, in any order, then fires On All Done once. Steps are ticked off by
-// name from any UnityEvent, e.g. a dialogue entry's On Chosen calling Done with "Carmela". Capitals don't matter
+// Fires On All Done once every step has happened, in any order. Tick steps off by name from any UnityEvent,
+// e.g. a dialogue entry's On Chosen calling Done("Carmela")
 [AddComponentMenu("Game/Puzzle/Game Condition")]
 public class GameCondition : MonoBehaviour
 {
     [Header("Steps")]
-    [DisplayAs("Steps (names, any order)")]
+    [DisplayAs("Steps (names, capitals don't matter)")]
     [SerializeField] private List<string> steps = new List<string>();
 
     [Foldout("Events")]

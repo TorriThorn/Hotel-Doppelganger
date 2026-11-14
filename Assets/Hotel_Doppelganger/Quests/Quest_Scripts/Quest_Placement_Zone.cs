@@ -3,8 +3,8 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Rendering;
 
-// A spot where one particular Grabbable belongs. While the player carries it, a glowing ghost marks the spot,
-// and letting go close enough snaps the object in. Pose this GameObject where the object's pivot should end up
+// A spot where one Grabbable belongs. A glowing ghost marks it while the object is carried, and letting go
+// close enough snaps it in. Pose this GameObject where the object's pivot should end up
 [AddComponentMenu("Game/Interaction/Placement Zone")]
 public class PlacementZone : MonoBehaviour
 {
@@ -39,6 +39,7 @@ public class PlacementZone : MonoBehaviour
     [DisplayAs("Snap Distance", Min = 0f)]
     [SerializeField] private float snapRadius = 0.4f;
 
+    [Foldout("Snapping")]
     [DisplayAs("Snap To This Rotation")]
     [SerializeField] private bool matchRotation = true;
 
@@ -82,7 +83,7 @@ public class PlacementZone : MonoBehaviour
     [DisplayAs("Scanline Strength", Min = 0f, Max = 1f)]
     [SerializeField] private float scanlineStrength = 0.25f;
 
-    [Header("Events (optional)")]
+    [Foldout("Events")]
     public UnityEvent onPlaced;
 
     public UnityEvent onRemoved;
@@ -238,7 +239,8 @@ public class PlacementZone : MonoBehaviour
         ghostMaterial.SetFloat(PulseId, ghostPulse);
         ghostMaterial.SetFloat(ScanlineDensityId, scanlineDensity);
         ghostMaterial.SetFloat(ScanlineSpeedId, scanlineSpeed);
-        ghostMaterial.SetFloat(ScanlineStrengthId, ready ? Mathf.Min(1f, scanlineStrength * ReadyScanlineMultiplier) : scanlineStrength);
+        float strength = ready ? Mathf.Min(1f, scanlineStrength * ReadyScanlineMultiplier) : scanlineStrength;
+        ghostMaterial.SetFloat(ScanlineStrengthId, strength);
     }
 
     // Mesh offsets are recorded relative to the object's root, so the ghost can be drawn at this zone's pose

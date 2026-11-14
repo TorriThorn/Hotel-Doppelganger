@@ -1,23 +1,19 @@
 using System.Collections;
 using UnityEngine;
 
-// Lets UnityEvents change an NPC's sprite (e.g. a dialogue choice's On Chosen), with an optional squash-and-stretch pop
+// Changes an NPC's sprite from UnityEvents, with an optional squash-and-stretch pop
 [AddComponentMenu("Game/NPC/NPC Sprite Swap")]
 public class NPCSpriteSwap : MonoBehaviour
 {
-    // How much narrower the sprite gets relative to how much taller, so the pop roughly keeps its volume
     private const float PopWidthRatio = 0.5f;
 
-    [Header("Setup")]
-    [DisplayAs("Sprite (optional)")]
-    [SerializeField] private SpriteRenderer spriteRenderer;
+    // For reveals: the conversation camera pulls back to show the new sprite
+    [Header("Swapping")]
+    [DisplayAs("Zoom Out To Show The Swap")]
+    [SerializeField] private bool zoomOutOnSwap = true;
 
     [DisplayAs("Turn Off Animator On Swap")]
     [SerializeField] private bool disableAnimatorOnSwap = true;
-
-    // For reveals: mid-conversation, the camera pulls back to show the whole new sprite
-    [DisplayAs("Zoom Out To Show The Swap")]
-    [SerializeField] private bool zoomOutOnSwap = true;
 
     [Foldout("Pop Effect")]
     [DisplayAs("Pop When Changing")]
@@ -29,12 +25,17 @@ public class NPCSpriteSwap : MonoBehaviour
     [DisplayAs("Pop Strength", ShowIf = nameof(popOnSwap), Min = 0f, Max = 0.5f)]
     [SerializeField] private float popAmount = 0.15f;
 
+    [Foldout("References (filled in automatically)")]
+    [DisplayAs("Sprite (optional)")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
     private Animator animator;
     private Sprite originalSprite;
     private Vector3 baseScale;
     private Coroutine popRoutine;
 
     public bool IsSwapped { get; private set; }
+
     public bool ZoomOutOnSwap => zoomOutOnSwap;
 
     private void Awake()
@@ -48,7 +49,7 @@ public class NPCSpriteSwap : MonoBehaviour
         baseScale = spriteRenderer.transform.localScale;
     }
 
-    // An Animator would overwrite the new sprite every frame, so it's switched off while a swapped sprite is shown
+    // An Animator would overwrite the new sprite, so it's turned off while swapped
     public void SetSprite(Sprite sprite)
     {
         if (spriteRenderer == null || sprite == null) return;

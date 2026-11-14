@@ -6,8 +6,7 @@ using Component = UnityEngine.Component;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// Builds screen-space UI from code so the dialogue box and menus don't need prefabs.
-// Nothing here raycasts: menus hit-test their rows themselves, so no EventSystem is required
+// Builds screen-space UI from code, so nothing needs prefabs. Nothing raycasts, so no EventSystem is needed
 public static class RuntimeUI
 {
     public const float BorderThickness = 2f;
@@ -104,8 +103,7 @@ public static class RuntimeUI
         return rect;
     }
 
-    // A filled panel with a thin border that lays its children out top to bottom.
-    // The border images are added to the list so their color can be changed later
+    // A bordered panel that stacks its children top to bottom. Borders go in the list for recoloring
     public static Image CreateBox(string name, Transform parent, float width, Color color, Color borderColor,
                                   RectOffset padding, float spacing, List<Image> borders)
     {
@@ -182,9 +180,8 @@ public static class RuntimeUI
     }
 }
 
-// Scrolling for a column inside a clipped area, with the mouse wheel or a slim scroll bar down the right edge.
-// The column is pinned to the top or bottom of the area and slides to show what has run off the other end.
-// The bar only shows when there's more than fits, and its handle can be dragged or the track clicked to jump
+// Wheel and scroll-bar scrolling for a column pinned to the top or bottom of a clipped area.
+// The bar only shows when there's more than fits; drag the handle or click the track to jump
 public sealed class WheelScroll
 {
     private const float StepPerNotch = 70f;
@@ -206,7 +203,7 @@ public sealed class WheelScroll
     private bool dragging;
     private float grabOffset;
 
-    // The column is narrowed to leave room for the bar, so text never runs underneath it
+    // Narrowed so text never runs under the bar
     public WheelScroll(RectTransform viewport, RectTransform content, bool pinnedToBottom, Color trackColor, Color handleColor)
     {
         this.viewport = viewport;
@@ -241,7 +238,7 @@ public sealed class WheelScroll
         handle.color = handleColor;
     }
 
-    // True while the mouse is on the bar, so a click there isn't also taken as a click on what's behind it
+    // True while the mouse is on the bar, so the click isn't also taken by what's behind
     public bool IsOver(Mouse mouse) =>
         dragging || (mouse != null && track.gameObject.activeSelf && RuntimeUI.Contains(track.rectTransform, mouse.position.ReadValue()));
 
@@ -270,7 +267,6 @@ public sealed class WheelScroll
 
             float wheel = mouse.scroll.ReadValue().y;
 
-            // Wheel up shows older lines in a bottom-pinned log, and the start of a top-pinned page
             if (wheel != 0f && RuntimeUI.Contains(viewport, point)) target += Mathf.Sign(wheel) * StepPerNotch * (pinnedToBottom ? 1f : -1f);
         }
 
@@ -287,7 +283,6 @@ public sealed class WheelScroll
         UpdateBar();
     }
 
-    // Grabbing the handle keeps the same spot under the mouse; clicking the track centers the handle there
     private void UpdateDrag(Mouse mouse, Vector2 point)
     {
         if (!mouse.leftButton.isPressed)
@@ -344,7 +339,7 @@ public sealed class WheelScroll
         if (track.gameObject.activeSelf != show) track.gameObject.SetActive(show);
         if (!show) return;
 
-        // A minimum size keeps the handle easy to grab in a very long log
+        // Stays easy to grab in a long log
         float size = Mathf.Max(VisibleFraction(), MinHandleFraction);
         float top = 1f - HandleTop() * (1f - size) / Mathf.Max(0.0001f, 1f - VisibleFraction());
         RectTransform handleRect = handle.rectTransform;

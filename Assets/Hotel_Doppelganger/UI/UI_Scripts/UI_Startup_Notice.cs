@@ -7,8 +7,7 @@ using UnityEngine.UI;
 using Image = UnityEngine.UI.Image;
 using Text = UnityEngine.UI.Text;
 
-// A full-screen notice shown once when the game first opens, before the main menu.
-// A click dismisses it once it has been up for a moment
+// A full-screen notice shown once before the main menu. A click dismisses it after a moment
 [AddComponentMenu("Game/UI/Startup Notice")]
 public class StartupNotice : MonoBehaviour
 {
@@ -32,18 +31,18 @@ public class StartupNotice : MonoBehaviour
         "All characters, art, writing and gameplay are a work in progress\n" +
         "and subject to change.";
 
+    [DisplayAs("Show Again On Play Again")]
+    [SerializeField] private bool showOnEveryLoad;
+
+    [Foldout("More Options")]
     [DisplayAs("Build Label (optional)")]
     [SerializeField] private string buildLabel = "Playtest Build";
 
     [DisplayAs("Continue Hint")]
     [SerializeField] private string continueText = "Click to continue";
 
-    [Header("Timing")]
     [DisplayAs("Can Skip After (seconds)", Min = 0f)]
     [SerializeField] private float minimumTime = 1.5f;
-
-    [DisplayAs("Show Again On Play Again")]
-    [SerializeField] private bool showOnEveryLoad;
 
     [Foldout("Look")]
     [DisplayAs("Font (optional)")]
@@ -85,7 +84,7 @@ public class StartupNotice : MonoBehaviour
 
     public static bool IsShowing { get; private set; }
 
-    // Static values can outlive a play session in the editor, so start each one fresh
+    // Statics outlive play sessions in the editor
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetSession()
     {
@@ -120,7 +119,7 @@ public class StartupNotice : MonoBehaviour
 
     private IEnumerator ShowRoutine()
     {
-        // The background is solid from the first frame, so the menu never shows through; only the words fade in
+        // Solid from the first frame so the menu never shows through; only the words fade in
         yield return Animate(FadeTime, t => textGroup.alpha = t);
 
         float waitUntil = Time.unscaledTime + Mathf.Max(0f, minimumTime - FadeTime);
@@ -133,7 +132,7 @@ public class StartupNotice : MonoBehaviour
         yield return Animate(FadeTime, t => textGroup.alpha = 1f - t);
         yield return Animate(FadeTime, t => group.alpha = 1f - t);
 
-        // The menu underneath ignores input while this is up, so release it a frame after the dismissing press
+        // Frees the menu a frame after the dismissing click
         Destroy(canvas.gameObject);
         canvas = null;
         yield return null;
@@ -146,7 +145,7 @@ public class StartupNotice : MonoBehaviour
         return mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame);
     }
 
-    // Eases 0 to 1 on real time, so it works even if something has paused the game
+    // Eases 0 to 1 on real time, so it runs while paused
     private static IEnumerator Animate(float duration, Action<float> apply)
     {
         for (float time = 0f; time < duration;)
@@ -180,7 +179,7 @@ public class StartupNotice : MonoBehaviour
         messageText.lineSpacing = 1.15f;
         labelText = CreateText("Build Label", column, smallSize, 1400f);
 
-        // The hint sits near the bottom and only fades in once the notice can be skipped
+        // Fades in once the notice can be skipped
         hintText = RuntimeUI.CreateText("Hint", words, font, smallSize, textColor, TextAnchor.MiddleCenter, shadowColor, out Shadow hintShadow);
         shadows.Add(hintShadow);
         RectTransform hintRect = hintText.rectTransform;

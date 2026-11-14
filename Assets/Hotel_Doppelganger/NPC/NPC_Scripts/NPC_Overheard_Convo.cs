@@ -6,9 +6,8 @@ using UnityEngine.Events;
 using UnityEngine.UI;
 using Text = UnityEngine.UI.Text;
 
-// NPCs talking among themselves: each line floats above its speaker's head. Up close the player can read it;
-// out of earshot it only shows "...", so they know something's being said but have to get closer to catch it.
-// Good for arguments, whispered deals and lines like Helena pointing the finger at Murray
+// NPCs talking among themselves, each line floating over the speaker. Out of earshot it only shows "...",
+// so the player has to get closer to catch it
 [AddComponentMenu("Game/NPC/Overheard Conversation")]
 public class OverheardConversation : MonoBehaviour
 {
@@ -30,7 +29,6 @@ public class OverheardConversation : MonoBehaviour
         [DisplayAs("Seconds On Screen (0 = auto)", Min = 0f)]
         public float seconds;
 
-        // Played from the speaker, so it can be heard from across the room
         [DisplayAs("Sound (optional)")]
         public AudioClip sound;
     }
@@ -41,6 +39,8 @@ public class OverheardConversation : MonoBehaviour
     private const float FallbackHeight = 2f;
     private const string OutOfEarshot = "...";
     private const float HopSpeed = 9f;
+
+    private static readonly List<OverheardConversation> Active = new List<OverheardConversation>();
 
     [Header("Lines")]
     [SerializeField] private List<Line> lines = new List<Line>();
@@ -61,11 +61,11 @@ public class OverheardConversation : MonoBehaviour
     [DisplayAs("Pause Between Loops (seconds)", ShowIf = nameof(loop), Min = 0f)]
     [SerializeField] private float loopPause = 8f;
 
+    [Foldout("Speakers")]
     [DisplayAs("Speakers Stop Walking While Talking")]
     [SerializeField] private bool holdSpeakers = true;
 
-    // The one talking bounces on the spot, like two people butting heads. Only works when the sprite sits
-    // on a child of the NPC, not on the NPC object itself
+    // Only works when the sprite is on a child of the NPC
     [DisplayAs("Speaker Hops While Talking")]
     [SerializeField] private bool hop;
 
@@ -97,8 +97,6 @@ public class OverheardConversation : MonoBehaviour
 
     [DisplayAs("Height Above Head")]
     [SerializeField] private float heightAboveHead = 0.6f;
-
-    private static readonly List<OverheardConversation> Active = new List<OverheardConversation>();
 
     private Transform viewer;
     private PlayerDialogue dialogue;
@@ -143,6 +141,36 @@ public class OverheardConversation : MonoBehaviour
         if (bubble != null) Destroy(bubble.gameObject);
     }
 
+    private void LateUpdate()
+    {
+        if (hopping != null) hopping.localPosition = hopRest + Vector3.up * (Mathf.Abs(Mathf.Sin(Time.time * HopSpeed)) * hopHeight);
+
+        bool show = currentSpeaker != null && viewer != null && (dialogue == null || !dialogue.IsTalking);
+        if (bubble.gameObject.activeSelf != show) bubble.gameObject.SetActive(show);
+        if (!show) return;
+
+        Vector3 top = HeadPosition();
+        bool inEarshot = (top - viewer.position).sqrMagnitude <= hearingRange * hearingRange;
+        if (inEarshot) heardAny = true;
+
+        string shown = inEarshot ? currentLine : OutOfEarshot;
+        if (bubbleText.text != shown) bubbleText.text = shown;
+
+        bubble.transform.SetPositionAndRotation(top + Vector3.up * heightAboveHead, viewer.rotation);
+    }
+
+    // So the new dialogue marker can make way for the speech bubble
+    public static bool IsSpeaking(NPCDialogue npc)
+    {
+        if (npc == null) return false;
+
+        foreach (OverheardConversation conversation in Active)
+        {
+            if (conversation.currentSpeaker == npc && conversation.bubble != null && conversation.bubble.gameObject.activeSelf) return true;
+        }
+        return false;
+    }
+
     public void Play()
     {
         if (playing != null || lines.Count == 0 || !isActiveAndEnabled) return;
@@ -176,7 +204,8 @@ public class OverheardConversation : MonoBehaviour
                 currentBody = FindBody(line.speaker);
                 SetHopping(hop ? HopTarget(line.speaker, currentBody) : null);
                 if (line.sound != null) AudioSource.PlayClipAtPoint(line.sound, line.speaker.transform.position, soundVolume);
-                // Floating text is plain, so highlight markers are just dropped
+
+                // Floating text is plain, so highlight markers are dropped
                 currentLine = line.text.Replace("*", string.Empty).Trim();
 
                 float seconds = line.seconds > 0f ? line.seconds : AutoBaseTime + currentLine.Length * AutoTimePerLetter;
@@ -198,7 +227,7 @@ public class OverheardConversation : MonoBehaviour
         playing = null;
     }
 
-    // Counts game time only, and stands still while the player is in a conversation of their own
+    // Stands still while the player is in a conversation of their own
     private IEnumerator Wait(float seconds)
     {
         for (float time = 0f; time < seconds;)
@@ -208,45 +237,12 @@ public class OverheardConversation : MonoBehaviour
         }
     }
 
-    private void LateUpdate()
-    {
-        if (hopping != null) hopping.localPosition = hopRest + Vector3.up * (Mathf.Abs(Mathf.Sin(Time.time * HopSpeed)) * hopHeight);
-
-        bool show = currentSpeaker != null && viewer != null && (dialogue == null || !dialogue.IsTalking);
-        if (bubble.gameObject.activeSelf != show) bubble.gameObject.SetActive(show);
-        if (!show) return;
-
-        Vector3 top = HeadPosition();
-        bool inEarshot = (top - viewer.position).sqrMagnitude <= hearingRange * hearingRange;
-        if (inEarshot) heardAny = true;
-
-        string shown = inEarshot ? currentLine : OutOfEarshot;
-        if (bubbleText.text != shown) bubbleText.text = shown;
-
-        bubble.transform.SetPositionAndRotation(top + Vector3.up * heightAboveHead, viewer.rotation);
-    }
-
-    // True while this NPC's speech bubble is up, so other things drawn over their head (like the new dialogue
-    // marker) can make way for it
-    public static bool IsSpeaking(NPCDialogue npc)
-    {
-        if (npc == null) return false;
-
-        foreach (OverheardConversation conversation in Active)
-        {
-            if (conversation.currentSpeaker == npc && conversation.bubble != null && conversation.bubble.gameObject.activeSelf) return true;
-        }
-        return false;
-    }
-
-    // Moving the NPC object itself would fight its walking, so only a sprite on a child can hop
+    // Moving the NPC object itself would fight its walking
     private static Transform HopTarget(NPCDialogue speaker, Renderer body)
     {
         if (body == null) return null;
 
-        NPCPatrol patrol = speaker.GetComponentInParent<NPCPatrol>();
-        Transform root = patrol != null ? patrol.transform : speaker.transform;
-        return body.transform != root ? body.transform : null;
+        return body.transform != NpcRoot(speaker) ? body.transform : null;
     }
 
     private void SetHopping(Transform body)
@@ -262,14 +258,17 @@ public class OverheardConversation : MonoBehaviour
 
     private static Renderer FindBody(NPCDialogue speaker)
     {
-        NPCPatrol patrol = speaker.GetComponentInParent<NPCPatrol>();
-        Transform root = patrol != null ? patrol.transform : speaker.transform;
-
+        Transform root = NpcRoot(speaker);
         Renderer body = root.GetComponentInChildren<SpriteRenderer>();
         return body != null ? body : root.GetComponentInChildren<Renderer>();
     }
 
-    // Walking speakers stay put for the length of the exchange, so the player can catch up with it
+    private static Transform NpcRoot(NPCDialogue speaker)
+    {
+        NPCPatrol patrol = speaker.GetComponentInParent<NPCPatrol>();
+        return patrol != null ? patrol.transform : speaker.transform;
+    }
+
     private void HoldSpeakers(bool hold)
     {
         if (!holdSpeakers) return;
@@ -277,6 +276,7 @@ public class OverheardConversation : MonoBehaviour
         foreach (Line line in lines)
         {
             if (line == null || line.speaker == null) continue;
+
             NPCPatrol patrol = line.speaker.GetComponentInParent<NPCPatrol>();
             if (patrol != null) patrol.Paused = hold;
         }
@@ -306,8 +306,16 @@ public class OverheardConversation : MonoBehaviour
         bubbleShadow.effectColor = shadowColor;
     }
 
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.6f);
+        foreach (Line line in lines)
+        {
+            if (line != null && line.speaker != null) Gizmos.DrawWireSphere(line.speaker.transform.position, hearingRange);
+        }
+    }
+
 #if UNITY_EDITOR
-    // Fills in Carmela and Yaroslava's fireplace argument from Level 1, finding both by NPC Name
     [ContextMenu("Add Level 1 Fireplace Argument")]
     private void AddFireplaceArgument()
     {
@@ -332,20 +340,11 @@ public class OverheardConversation : MonoBehaviour
 
     private static NPCDialogue FindNpc(string npcName)
     {
-        foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>(FindObjectsInactive.Include))
         {
             if (string.Equals(npc.npcName?.Trim(), npcName, StringComparison.OrdinalIgnoreCase)) return npc;
         }
         return null;
     }
 #endif
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.6f);
-        foreach (Line line in lines)
-        {
-            if (line != null && line.speaker != null) Gizmos.DrawWireSphere(line.speaker.transform.position, hearingRange);
-        }
-    }
 }

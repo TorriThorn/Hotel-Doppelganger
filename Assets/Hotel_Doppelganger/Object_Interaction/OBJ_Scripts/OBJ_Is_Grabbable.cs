@@ -4,22 +4,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-// Marks an object as carryable by ObjectGrabber and holds its per-object carry settings.
-// Also owns the object's glide, used both for returning home and for snapping into a PlacementZone
+// Per-object carry settings for ObjectGrabber, plus the glide used for returning home and placement zones
 [AddComponentMenu("Game/Interaction/Grabbable")]
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 public class Grabbable : MonoBehaviour
 {
-    // One recipe: this item combined with another makes a third. It works from either item's side,
-    // so it only needs setting up on one of them
+    // One recipe. It works from either item's side, so it only needs setting up on one
     [Serializable]
     public class Combination
     {
         [DisplayAs("Combine With")]
         public Grabbable other;
 
-        // An object waiting hidden in the scene; it's added to the inventory when the two are combined
+        // A hidden object in the scene, added to the inventory when the two are combined
         [DisplayAs("Makes")]
         public Grabbable result;
 
@@ -30,6 +28,7 @@ public class Grabbable : MonoBehaviour
     }
 
     private static readonly WaitForFixedUpdate WaitForPhysics = new WaitForFixedUpdate();
+    private static readonly List<Grabbable> active = new List<Grabbable>();
 
     [Header("Basics")]
     [DisplayAs("Can Be Picked Up")]
@@ -41,37 +40,11 @@ public class Grabbable : MonoBehaviour
     [DisplayAs("Glow When Aimed At")]
     public bool highlight = true;
 
-    [Header("Weight")]
-    [DisplayAs("Weight From Mass")]
-    public bool weightFromMass = true;
+    // Only inventory items and clues glow
+    [DisplayAs("Glow Until Found")]
+    public bool glowUntilFound = true;
 
-    [DisplayAs("Custom Weight", HideIf = nameof(weightFromMass), Min = 0f, Max = 1f)]
-    public float customWeight;
-
-    [Header("Holding")]
-    [DisplayAs("Hold Distance", Min = 0f)]
-    public float holdDistance;
-
-    [DisplayAs("Use Fixed Hold Angle")]
-    public bool useHoldRotation;
-
-    [DisplayAs("Hold Angle", ShowIf = nameof(useHoldRotation))]
-    public Vector3 holdRotation;
-
-    [Header("Return To Start")]
-    [DisplayAs("Return When Dropped")]
-    public bool returnOnDrop;
-
-    [DisplayAs("Wait Before Returning", ShowIf = nameof(returnOnDrop), Min = 0f)]
-    public float returnDelay;
-
-    [DisplayAs("Return Time", ShowIf = nameof(returnOnDrop), Min = 0f)]
-    public float returnDuration = 0.4f;
-
-    [DisplayAs("Movement Curve")]
-    public AnimationCurve returnCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
-
-    // Items an NPC asks to be shown always go in the inventory; tick this for anything else that should
+    // Items an NPC asks to be shown always go in the inventory
     [Header("Inventory")]
     [DisplayAs("Goes In Inventory")]
     public bool inventoryItem;
@@ -85,7 +58,38 @@ public class Grabbable : MonoBehaviour
     [DisplayAs("Item Picture (optional)")]
     public Sprite itemPicture;
 
+    [Foldout("Combining")]
     public List<Combination> combinations = new List<Combination>();
+
+    [Foldout("Weight")]
+    [DisplayAs("Weight From Mass")]
+    public bool weightFromMass = true;
+
+    [DisplayAs("Custom Weight", HideIf = nameof(weightFromMass), Min = 0f, Max = 1f)]
+    public float customWeight;
+
+    [Foldout("Holding")]
+    [DisplayAs("Hold Distance (0 = where it was picked up)", Min = 0f)]
+    public float holdDistance;
+
+    [DisplayAs("Use Fixed Hold Angle")]
+    public bool useHoldRotation;
+
+    [DisplayAs("Hold Angle", ShowIf = nameof(useHoldRotation))]
+    public Vector3 holdRotation;
+
+    [Foldout("Return To Start")]
+    [DisplayAs("Return When Dropped")]
+    public bool returnOnDrop;
+
+    [DisplayAs("Wait Before Returning", ShowIf = nameof(returnOnDrop), Min = 0f)]
+    public float returnDelay;
+
+    [DisplayAs("Return Time", ShowIf = nameof(returnOnDrop), Min = 0f)]
+    public float returnDuration = 0.4f;
+
+    [DisplayAs("Movement Curve")]
+    public AnimationCurve returnCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
     [Foldout("Events")]
     public UnityEvent onGrabbed;
@@ -107,9 +111,12 @@ public class Grabbable : MonoBehaviour
     private bool kinematicSetByGlide;
     private bool kinematicBeforeGlide;
 
-    public bool IsHeld { get; private set; }
+    public static IReadOnlyList<Grabbable> Active => active;
 
-    // Item Name, then a clue's inventory name, then the object's own name
+    public bool IsHeld { get; private set; }
+    public bool WasPickedUp { get; private set; }
+
+    // Item Name, then a clue's inventory name, then the object's name
     public string DisplayName
     {
         get
@@ -119,10 +126,9 @@ public class Grabbable : MonoBehaviour
         }
     }
 
-    // True while the object is gliding somewhere, home or into a placement zone
     public bool IsGliding => glideRoutine != null;
 
-    // Resolved lazily so a glide requested before Awake (e.g. on an inactive object) still works
+    // Lazy, so a glide requested before Awake still works
     private Rigidbody Body
     {
         get
@@ -134,7 +140,7 @@ public class Grabbable : MonoBehaviour
 
     private void Awake() => body = GetComponent<Rigidbody>();
 
-    // Runs when the component is first added: sensible Rigidbody settings, and a collider if there isn't one
+    // Sensible Rigidbody settings, and a collider if there isn't one
     private void Reset()
     {
         if (TryGetComponent(out Rigidbody rb))
@@ -151,18 +157,24 @@ public class Grabbable : MonoBehaviour
             gameObject.AddComponent<BoxCollider>();
     }
 
-    // Finish a glide instantly if the object is switched off, so it's never left stuck kinematic
+    private void OnEnable() => active.Add(this);
+
+    // So it's never left stuck kinematic
     private void OnDisable()
     {
+        active.Remove(this);
         if (glideRoutine == null) return;
 
         StopCoroutine(glideRoutine);
         CompleteGlide();
     }
 
-    private void Start() => SetHomeHere();
+    private void Start()
+    {
+        SetHomeHere();
+        ItemGlow.Get();
+    }
 
-    // For UnityEvents, e.g. letting an item be picked up once a scene is over
     public void SetCanGrab(bool value) => canGrab = value;
 
     public void SetHomeHere() => SetHome(transform.position, transform.rotation);
@@ -173,8 +185,7 @@ public class Grabbable : MonoBehaviour
         homeRotation = rotation;
     }
 
-    // Handy from UnityEvents, e.g. a dialogue choice where an NPC hands over something they took.
-    // The spot becomes the object's new home, so Return When Dropped sends it back there and not to where it started
+    // The spot becomes the object's new home, so Return When Dropped sends it back there
     public void MoveTo(Transform spot)
     {
         if (spot == null) return;
@@ -197,7 +208,7 @@ public class Grabbable : MonoBehaviour
     public void ReturnHome() =>
         GlideTo(homePosition, homeRotation, returnDuration, false, () => onReturned?.Invoke(), returnDelay);
 
-    // Moves the object smoothly to a pose. With stayKinematic it stays frozen there afterwards
+    // With stayKinematic it stays frozen there afterwards
     public void GlideTo(Vector3 position, Quaternion rotation, float duration,
                         bool stayKinematic = false, Action onArrived = null, float delay = 0f)
     {
@@ -219,7 +230,7 @@ public class Grabbable : MonoBehaviour
         CompleteGlide();
     }
 
-    // Stops a glide part way and gives the Rigidbody back, e.g. when the player catches the object
+    // Gives the Rigidbody back, e.g. when the player catches the object
     public void CancelGlide()
     {
         if (glideRoutine == null) return;
@@ -234,10 +245,11 @@ public class Grabbable : MonoBehaviour
     {
         CancelGlide();
         IsHeld = true;
+        WasPickedUp = true;
         onGrabbed?.Invoke();
     }
 
-    // Put in the inventory rather than dropped, so nothing that listens for a drop reacts
+    // Not a drop, so nothing that listens for one reacts
     internal void NotifyPutAway() => IsHeld = false;
 
     internal void NotifyDropped()
@@ -247,7 +259,7 @@ public class Grabbable : MonoBehaviour
         int glidesBefore = glideCount;
         onDropped?.Invoke();
 
-        // A listener such as a PlacementZone may have moved the object already, so don't send it home over the top
+        // A listener such as a PlacementZone may have moved it already
         if (returnOnDrop && glideCount == glidesBefore) ReturnHome();
     }
 
@@ -277,7 +289,6 @@ public class Grabbable : MonoBehaviour
         CompleteGlide();
     }
 
-    // Kinematic while gliding so the object doesn't fight physics or shove other props around
     private void BeginKinematic()
     {
         if (kinematicSetByGlide) return;
