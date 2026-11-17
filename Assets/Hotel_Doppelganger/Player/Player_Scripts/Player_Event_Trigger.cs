@@ -10,6 +10,7 @@ public class GameTrigger : MonoBehaviour
         [InspectorName("Player Comes Close")] PlayerComesClose,
         [InspectorName("Player Looks At This")] PlayerLooksAt,
         [InspectorName("Player Looks Away From This")] PlayerLooksAway,
+        [InspectorName("Player Moves Away")] PlayerMovesAway,
         [InspectorName("After A Delay")] AfterDelay,
         [InspectorName("Only When Fire Is Called")] Manually
     }
@@ -107,6 +108,7 @@ public class GameTrigger : MonoBehaviour
             case When.PlayerComesClose: return close;
             case When.PlayerLooksAt: return close && IsLookedAt(toThis);
             case When.PlayerLooksAway: return !IsLookedAt(toThis);
+            case When.PlayerMovesAway: return !close;
             default: return false;
         }
     }

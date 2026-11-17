@@ -540,5 +540,16 @@ public class NPCDialogue : MonoBehaviour
         Version++;
         UnityEditor.EditorUtility.SetDirty(this);
     }
+
+    [ContextMenu("Add Sardine Tin Lines")]
+    private void AddSardineTinLines()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Sardine Tin Lines");
+        if (!SardineTinLines.AddTo(this)) return;
+
+        nodeLookup = null;
+        Version++;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
 #endif
 }

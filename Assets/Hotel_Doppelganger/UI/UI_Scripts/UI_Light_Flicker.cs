@@ -5,7 +5,7 @@ using UnityEngine.Events;
 using Random = UnityEngine.Random;
 
 // The lights stutter, then go out for a moment. On Dark is where to move things around, so the room has changed
-// when they come back. A black overlay covers the ambient light that switching lights off leaves behind
+// when they come back. With Stay Dim, they stay low until Restore is called, e.g. from a light switch
 [AddComponentMenu("Game/Puzzle/Light Flicker")]
 public class LightFlicker : MonoBehaviour
 {
@@ -21,6 +21,16 @@ public class LightFlicker : MonoBehaviour
 
     [DisplayAs("Only Flicker Once")]
     [SerializeField] private bool onlyOnce = true;
+
+    [DisplayAs("Stay Dim Until Restored")]
+    [SerializeField] private bool stayDim;
+
+    // How dark the screen stays, from 0 (normal) to 1 (black)
+    [DisplayAs("Dimness", ShowIf = nameof(stayDim), Min = 0f, Max = 1f)]
+    [SerializeField] private float dimness = 0.75f;
+
+    [DisplayAs("Salem Thinks When Restored", ShowIf = nameof(stayDim), Lines = 2)]
+    [SerializeField] private string restoredThought = "";
 
     [Foldout("Timing")]
     [DisplayAs("Flickers Before Going Out", Min = 0f)]
@@ -40,11 +50,21 @@ public class LightFlicker : MonoBehaviour
 
     public UnityEvent onFinished;
 
+    [DisplayAs("On Restored")]
+    public UnityEvent onRestored;
+
     private readonly List<Light> switchedOff = new List<Light>();
     private Canvas canvas;
     private UnityEngine.UI.Image overlay;
     private bool running;
     private bool done;
+
+    private static int dimCount;
+
+    // For things that behave differently in the dark, like eavesdropping
+    public static bool AnyDim => dimCount > 0;
+
+    public bool IsDim { get; private set; }
 
     private void Awake()
     {
@@ -56,7 +76,8 @@ public class LightFlicker : MonoBehaviour
 
     private void OnDisable()
     {
-        if (running) SetLightsOn(true);
+        if (running || IsDim) SetLightsOn(true);
+        SetDimFlag(false);
         running = false;
         if (canvas != null) canvas.gameObject.SetActive(false);
     }
@@ -69,8 +90,21 @@ public class LightFlicker : MonoBehaviour
     // For UnityEvents, e.g. a Game Trigger set to After A Delay
     public void Flicker()
     {
-        if (running || (onlyOnce && done)) return;
+        if (running || IsDim || (onlyOnce && done)) return;
         StartCoroutine(FlickerRoutine());
+    }
+
+    // Brings the lights back after Stay Dim, e.g. from a light switch's On Used
+    public void Restore()
+    {
+        if (!IsDim) return;
+
+        SetDark(0f);
+        canvas.gameObject.SetActive(false);
+        SetDimFlag(false);
+
+        if (!string.IsNullOrWhiteSpace(restoredThought)) DetectiveThoughts.Get().Say(restoredThought);
+        onRestored?.Invoke();
     }
 
     private IEnumerator FlickerRoutine()
@@ -91,12 +125,28 @@ public class LightFlicker : MonoBehaviour
         onDark?.Invoke();
         yield return new WaitForSeconds(darkTime);
 
-        SetDark(0f);
-        canvas.gameObject.SetActive(false);
+        if (stayDim)
+        {
+            // Lights stay off, with the overlay easing off to the dim level
+            overlay.color = new Color(0f, 0f, 0f, dimness);
+            SetDimFlag(true);
+        }
+        else
+        {
+            SetDark(0f);
+            canvas.gameObject.SetActive(false);
+        }
         running = false;
 
         if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Say(thought);
         onFinished?.Invoke();
+    }
+
+    private void SetDimFlag(bool dim)
+    {
+        if (IsDim == dim) return;
+        IsDim = dim;
+        dimCount += dim ? 1 : -1;
     }
 
     private void SetDark(float amount)

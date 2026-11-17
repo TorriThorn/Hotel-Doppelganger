@@ -75,7 +75,7 @@ public sealed class ItemInspector
 
         foreach (MeshFilter part in item.GetComponentsInChildren<MeshFilter>(true))
         {
-            if (part.sharedMesh != null && part.GetComponent<MeshRenderer>() != null) return true;
+            if (part.sharedMesh != null && part.GetComponent<MeshRenderer>() != null && ShownOn(part.transform, item.transform)) return true;
         }
         return false;
     }
@@ -199,6 +199,7 @@ public sealed class ItemInspector
         foreach (MeshFilter part in item.GetComponentsInChildren<MeshFilter>(true))
         {
             if (part.sharedMesh == null || !part.TryGetComponent(out MeshRenderer partRenderer)) continue;
+            if (!partRenderer.enabled || !ShownOn(part.transform, source)) continue;
 
             Transform copy = new GameObject(part.name).transform;
             copy.SetParent(model, false);
@@ -257,6 +258,17 @@ public sealed class ItemInspector
         model.position += pivot.position - bounds.center;
         radius = Mathf.Max(0.01f, bounds.extents.magnitude);
         fitDistance = radius / Mathf.Sin(FieldOfView * 0.5f * Mathf.Deg2Rad) * FitPadding;
+    }
+
+    // The item itself is put away while inspected, so only switched-off pieces below it count as hidden,
+    // e.g. a closed lid after a tin is opened
+    private static bool ShownOn(Transform part, Transform item)
+    {
+        for (Transform step = part; step != null && step != item; step = step.parent)
+        {
+            if (!step.gameObject.activeSelf) return false;
+        }
+        return true;
     }
 
     private static Vector3 Divide(Vector3 a, Vector3 b) => new Vector3(

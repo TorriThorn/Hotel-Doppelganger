@@ -55,6 +55,11 @@ public class OverheardConversation : MonoBehaviour
     [DisplayAs("Hearing Distance (meters)", Min = 0f)]
     [SerializeField] private float hearingRange = 6f;
 
+    // They stop talking while the player is this close and in plain sight. Hiding behind something, or the
+    // lights being dim, lets the player creep closer
+    [DisplayAs("Go Quiet If Player Within (meters, 0 = never)", Min = 0f)]
+    [SerializeField] private float quietDistance;
+
     [DisplayAs("Loop")]
     [SerializeField] private bool loop;
 
@@ -99,6 +104,7 @@ public class OverheardConversation : MonoBehaviour
     [SerializeField] private float heightAboveHead = 0.6f;
 
     private Transform viewer;
+    private Transform playerRoot;
     private PlayerDialogue dialogue;
     private Canvas bubble;
     private Text bubbleText;
@@ -110,6 +116,7 @@ public class OverheardConversation : MonoBehaviour
     private bool heardAny;
     private Transform hopping;
     private Vector3 hopRest;
+    private bool noticed;
 
     public bool IsPlaying => playing != null;
 
@@ -129,7 +136,11 @@ public class OverheardConversation : MonoBehaviour
     private void Start()
     {
         var player = FindAnyObjectByType<FirstPersonController>();
-        if (player != null) viewer = player.CameraTransform != null ? player.CameraTransform : player.transform;
+        if (player != null)
+        {
+            viewer = player.CameraTransform != null ? player.CameraTransform : player.transform;
+            playerRoot = player.transform;
+        }
         dialogue = FindAnyObjectByType<PlayerDialogue>();
 
         BuildBubble();
@@ -145,7 +156,8 @@ public class OverheardConversation : MonoBehaviour
     {
         if (hopping != null) hopping.localPosition = hopRest + Vector3.up * (Mathf.Abs(Mathf.Sin(Time.time * HopSpeed)) * hopHeight);
 
-        bool show = currentSpeaker != null && viewer != null && (dialogue == null || !dialogue.IsTalking);
+        noticed = IsPlaying && PlayerNoticed();
+        bool show = currentSpeaker != null && viewer != null && !noticed && (dialogue == null || !dialogue.IsTalking);
         if (bubble.gameObject.activeSelf != show) bubble.gameObject.SetActive(show);
         if (!show) return;
 
@@ -177,10 +189,16 @@ public class OverheardConversation : MonoBehaviour
         playing = StartCoroutine(PlayRoutine());
     }
 
+    // Stopped partway, it still counts as heard if the player caught any of it
     public void Stop()
     {
-        if (playing != null) StopCoroutine(playing);
+        if (playing != null)
+        {
+            StopCoroutine(playing);
+            if (heardAny) onHeard?.Invoke();
+        }
         playing = null;
+        heardAny = false;
         HoldSpeakers(false);
         SetHopping(null);
         currentSpeaker = null;
@@ -232,9 +250,33 @@ public class OverheardConversation : MonoBehaviour
     {
         for (float time = 0f; time < seconds;)
         {
-            if (dialogue == null || !dialogue.IsTalking) time += Time.deltaTime;
+            if (!noticed && (dialogue == null || !dialogue.IsTalking)) time += Time.deltaTime;
             yield return null;
         }
+    }
+
+    // Close, lights up, and nothing in the way
+    private bool PlayerNoticed()
+    {
+        if (quietDistance <= 0f || viewer == null || LightFlicker.AnyDim) return false;
+
+        foreach (Line line in lines)
+        {
+            if (line == null || line.speaker == null) continue;
+
+            Vector3 eyes = line.speaker.HeadPosition(FindBody(line.speaker), FallbackHeight);
+            if ((eyes - viewer.position).sqrMagnitude > quietDistance * quietDistance) continue;
+            if (CanSee(eyes, line.speaker)) return true;
+        }
+        return false;
+    }
+
+    private bool CanSee(Vector3 eyes, NPCDialogue speaker)
+    {
+        if (!Physics.Linecast(eyes, viewer.position, out RaycastHit hit, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) return true;
+
+        Transform blocker = hit.transform;
+        return (playerRoot != null && blocker.IsChildOf(playerRoot)) || blocker.IsChildOf(NpcRoot(speaker));
     }
 
     // Moving the NPC object itself would fight its walking
@@ -308,10 +350,16 @@ public class OverheardConversation : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.6f);
         foreach (Line line in lines)
         {
-            if (line != null && line.speaker != null) Gizmos.DrawWireSphere(line.speaker.transform.position, hearingRange);
+            if (line == null || line.speaker == null) continue;
+
+            Gizmos.color = new Color(0.5f, 0.8f, 1f, 0.6f);
+            Gizmos.DrawWireSphere(line.speaker.transform.position, hearingRange);
+            if (quietDistance <= 0f) continue;
+
+            Gizmos.color = new Color(1f, 0.4f, 0.3f, 0.6f);
+            Gizmos.DrawWireSphere(line.speaker.transform.position, quietDistance);
         }
     }
 
@@ -335,6 +383,42 @@ public class OverheardConversation : MonoBehaviour
         loop = true;
         loopPause = 2f;
         hop = true;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    [ContextMenu("Add James Blocks Zain Whispering")]
+    private void AddJamesBlocksZain()
+    {
+        NPCDialogue zain = FindNpc("Zain");
+        NPCDialogue james = FindNpc("James");
+
+        UnityEditor.Undo.RecordObject(this, "Add James Blocks Zain Whispering");
+        lines.Add(new Line { speaker = zain, text = "Move! Let me through, please!" });
+        lines.Add(new Line { speaker = james, text = "You think I'll let one of my prized employees go?" });
+        lines.Add(new Line { speaker = zain, text = "Prized? I was dying in there, bro!" });
+        lines.Add(new Line { speaker = james, text = "Stop exaggerating. And I'm not your bro. Stop shoving past!" });
+        lines.Add(new Line { speaker = zain, text = "Listen! I'll come back, I swear, but I can't right now!" });
+        lines.Add(new Line { speaker = james, text = "Are you that scared of them? Just use your-" });
+        lines.Add(new Line { speaker = zain, text = "No, never again! And it doesn't matter anyway: He'll send goon after goon!" });
+        lines.Add(new Line { speaker = james, text = "They wouldn't dare touch my property." });
+        lines.Add(new Line { speaker = zain, text = "Then you don't know them well enough!" });
+
+        loop = true;
+        loopPause = 2f;
+        hop = false;
+        hearingRange = 6f;
+        quietDistance = 3f;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    [ContextMenu("Add Zain Yells")]
+    private void AddZainYells()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Zain Yells");
+        lines.Add(new Line { speaker = FindNpc("Zain"), text = "AH!", seconds = 1.5f });
+
+        loop = false;
+        hearingRange = 30f;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 

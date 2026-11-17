@@ -299,7 +299,11 @@ public class ObjectGrabber : MonoBehaviour
         SetHighlight(target);
         SetCrosshair(target != null ? FirstPersonController.CrosshairState.OpenHand : FirstPersonController.CrosshairState.Dot);
 
-        if (target != null && mouse.leftButton.wasPressedThisFrame) Grab(target);
+        if (target == null || !mouse.leftButton.wasPressedThisFrame) return;
+
+        // Something to open or switch gets used first, and only picked up once it's done
+        if (target.TryGetComponent(out Usable usable) && usable.WantsClick) usable.Use();
+        else Grab(target);
     }
 
     private void UpdateHolding(Mouse mouse)
@@ -427,6 +431,12 @@ public class ObjectGrabber : MonoBehaviour
     private bool CanGrab(Rigidbody rb)
     {
         if (rb == null || rb.transform.IsChildOf(transform)) return false;
+
+        if (rb.TryGetComponent(out Usable usable))
+        {
+            if (usable.WantsClick) return true;
+            if (!usable.CanPickUp) return false;
+        }
 
         bool hasGrabbable = rb.TryGetComponent(out Grabbable grabbable);
 
