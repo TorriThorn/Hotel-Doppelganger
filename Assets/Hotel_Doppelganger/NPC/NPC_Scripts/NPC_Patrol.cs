@@ -140,7 +140,17 @@ public class NPCPatrol : MonoBehaviour
     // Holds the NPC in place, e.g. during a conversation
     public bool Paused { get; set; }
 
-    public float WalkSpeed { get => walkSpeed; set => walkSpeed = Mathf.Max(0f, value); }
+    // Passed on to the NavMeshAgent too, so a speed change from an event applies straight away
+    public float WalkSpeed
+    {
+        get => walkSpeed;
+        set
+        {
+            walkSpeed = Mathf.Max(0f, value);
+            if (agent != null) agent.speed = walkSpeed;
+        }
+    }
+
     public bool UseRandomWait { get => randomWait; set => randomWait = value; }
     public float WaitTime { get => defaultWaitTime; set => defaultWaitTime = Mathf.Max(0f, value); }
     public float ShortestWait { get => minRandomWait; set => minRandomWait = Mathf.Max(0f, value); }

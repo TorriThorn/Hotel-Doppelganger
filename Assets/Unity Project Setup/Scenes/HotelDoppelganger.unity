@@ -144,11 +144,11 @@ Transform:
   m_GameObject: {fileID: 8533731}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 8, y: 0.5, z: -24}
+  m_LocalPosition: {x: 14.4977, y: -1.84133, z: -8.37444}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &28092031
 PrefabInstance:
@@ -2300,11 +2300,11 @@ Transform:
   m_GameObject: {fileID: 71713017}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9.83069, y: 2.34133, z: -33.86156}
+  m_LocalPosition: {x: -3.3329902, y: 0, z: -18.236}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &71713019
 MonoBehaviour:
@@ -2320,11 +2320,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LightFlicker
   lights:
   - {fileID: 203844588}
-  thought: It's going to be an interesting night.
+  thought: 
   onlyOnce: 1
   stayDim: 1
   dimness: 0.75
   restoredThought: That's better.
+  startDelay: 0
   flickers: 3
   shortestBlink: 0.05
   longestBlink: 0.2
@@ -2339,6 +2340,30 @@ MonoBehaviour:
         m_Arguments:
           m_ObjectArgument: {fileID: 826980100}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 991917488}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 1
+        m_CallState: 2
+      - m_Target: {fileID: 580266468}
+        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
+        m_MethodName: SetActive
+        m_Mode: 6
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
           m_StringArgument: 
@@ -2384,6 +2409,7 @@ GameObject:
   m_Component:
   - component: {fileID: 75275408}
   - component: {fileID: 75275411}
+  - component: {fileID: 75275413}
   - component: {fileID: 75275410}
   - component: {fileID: 75275409}
   - component: {fileID: 75275412}
@@ -2403,7 +2429,7 @@ Transform:
   m_GameObject: {fileID: 75275407}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.65999, y: -2.46, z: 5.9087915}
+  m_LocalPosition: {x: 20.65999, y: -2.363, z: 5.9087915}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -3043,32 +3069,6 @@ MonoBehaviour:
     timeLimit: 0
     timeoutNode: 
   eventDialogue:
-  - unlockId: ToolStolen
-    showInNode: 
-    text: What did you take from Murray?
-    requiredItem: {fileID: 101083546}
-    npcReply: Take? Me? Nothing at all, dearie. An old woman doesn't take things.
-    choices:
-    - text: Empty your pockets.
-      nextNode: handover
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: 
-    greyAfterChosen: 0
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
   - unlockId: 
     showInNode: 
     text: Do you know what this is?
@@ -3107,22 +3107,6 @@ MonoBehaviour:
             m_StringArgument: Yaroslava
             m_BoolArgument: 0
           m_CallState: 2
-  - unlockId: l1_tricky
-    showInNode: 
-    text: Carmela says you're the one with secrets.
-    requiredItem: {fileID: 0}
-    npcReply: She thinks she's real tricky, that one. HMPF! What does she know about the real meaning of business...
-    choices: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: I had other questions.
-    greyAfterChosen: 1
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
   - unlockId: 
     showInNode: 
     text: Do you recognize this powder?
@@ -3134,6 +3118,22 @@ MonoBehaviour:
     backText: 
     greyAfterChosen: 1
     nextNode: tin_grab
+    endConversation: 0
+    salemThinks: 
+    onChosen:
+      m_PersistentCalls:
+        m_Calls: []
+  - unlockId: l1_tricky
+    showInNode: 
+    text: Carmela says you're the one with secrets.
+    requiredItem: {fileID: 0}
+    npcReply: She thinks she's real tricky, that one. HMPF! What does she know about the real meaning of business...
+    choices: []
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
+    backText: I had other questions.
+    greyAfterChosen: 1
+    nextNode: 
     endConversation: 0
     salemThinks: 
     onChosen:
@@ -3194,6 +3194,28 @@ MonoBehaviour:
   giveUpTime: 4
   addColliderIfMissing: 1
   player: {fileID: 0}
+--- !u!195 &75275413
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 75275407}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: -0.52
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1001 &88489683
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4000,6 +4022,7 @@ MonoBehaviour:
   stayDim: 0
   dimness: 0.75
   restoredThought: 
+  startDelay: 3
   flickers: 3
   shortestBlink: 0.05
   longestBlink: 0.2
@@ -4135,7 +4158,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
   when: 3
   distance: 3
-  delay: 4
+  delay: 10
   startArmed: 0
   thought: 
   lookAngle: 15
@@ -4708,6 +4731,7 @@ GameObject:
   m_Component:
   - component: {fileID: 204179136}
   - component: {fileID: 204179139}
+  - component: {fileID: 204179142}
   - component: {fileID: 204179138}
   - component: {fileID: 204179137}
   - component: {fileID: 204179141}
@@ -5240,6 +5264,71 @@ MonoBehaviour:
   patrol: {fileID: 0}
   npc: {fileID: 0}
   player: {fileID: 0}
+--- !u!195 &204179142
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 204179135}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: -0.38
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
+--- !u!1 &240727326
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 240727327}
+  m_Layer: 0
+  m_Name: Level 1 Part 2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &240727327
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 240727326}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6.4977, y: 2.34133, z: -15.62556}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 933341416}
+  - {fileID: 826980100}
+  - {fileID: 2063145163}
+  - {fileID: 421549901}
+  - {fileID: 8533732}
+  - {fileID: 358763453}
+  - {fileID: 71713018}
+  - {fileID: 1158951369}
+  - {fileID: 459926237}
+  - {fileID: 2076738381}
+  - {fileID: 257660430}
+  - {fileID: 991917492}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &257660429
 GameObject:
   m_ObjectHideFlags: 0
@@ -5264,12 +5353,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 257660429}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.4977, y: 2.34133, z: -15.62556}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &273939248
 GameObject:
@@ -6114,11 +6203,11 @@ Transform:
   m_GameObject: {fileID: 358763452}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -9.83069, y: 2.34133, z: -33.86156}
+  m_LocalPosition: {x: -3.3329902, y: 0, z: -18.236}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &358763454
 MonoBehaviour:
@@ -6136,7 +6225,7 @@ MonoBehaviour:
   distance: 3
   delay: 4
   startArmed: 0
-  thought: Great. I can barely tell who's who.
+  thought: Can't see a thing. I think the breaker is upstairs.
   lookAngle: 15
   holdTime: 0.5
   onlyOnce: 1
@@ -6147,30 +6236,6 @@ MonoBehaviour:
         m_TargetAssemblyTypeName: LightFlicker, Assembly-CSharp
         m_MethodName: Flicker
         m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 991917488}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 1
-        m_CallState: 2
-      - m_Target: {fileID: 580266468}
-        m_TargetAssemblyTypeName: UnityEngine.GameObject, UnityEngine
-        m_MethodName: SetActive
-        m_Mode: 6
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
@@ -6271,37 +6336,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
---- !u!1 &380384993
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 380384994}
-  m_Layer: 0
-  m_Name: James_Blocks_Zain
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &380384994
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 380384993}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.4977, y: 2.34133, z: -15.62556}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &383530444
 GameObject:
   m_ObjectHideFlags: 0
@@ -9285,7 +9319,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 406963826}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7a5ac11cc976e418e8d13136b07e1f52, type: 3}
   m_Name: 
@@ -9309,7 +9343,7 @@ MonoBehaviour:
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 2
   m_NavMeshData: {fileID: 23800000, guid: 589598e6ad9c9e94994408a817a09b6d, type: 2}
-  m_BuildHeightMesh: 0
+  m_BuildHeightMesh: 1
 --- !u!43 &413212619
 Mesh:
   m_ObjectHideFlags: 0
@@ -9499,9 +9533,11 @@ GameObject:
   m_Component:
   - component: {fileID: 413268093}
   - component: {fileID: 413268096}
+  - component: {fileID: 413268099}
   - component: {fileID: 413268095}
   - component: {fileID: 413268094}
   - component: {fileID: 413268097}
+  - component: {fileID: 413268098}
   m_Layer: 0
   m_Name: Zain
   m_TagString: Untagged
@@ -10114,7 +10150,7 @@ MonoBehaviour:
   - point: {fileID: 933341416}
     active: 0
   mode: 2
-  walkSpeed: 5
+  walkSpeed: 7
   defaultWaitTime: 2
   randomWait: 0
   minRandomWait: 1
@@ -10134,6 +10170,75 @@ MonoBehaviour:
   giveUpTime: 4
   addColliderIfMissing: 1
   player: {fileID: 0}
+--- !u!114 &413268098
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 413268092}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7e8a4f69e8289b419bd77fe2fc19fe2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameTrigger
+  when: 3
+  distance: 12
+  delay: 10
+  startArmed: 0
+  thought: This should be far enough.
+  lookAngle: 15
+  holdTime: 0.5
+  onlyOnce: 1
+  onTriggered:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1983400531}
+        m_TargetAssemblyTypeName: NPCFollowPlayer, Assembly-CSharp
+        m_MethodName: StopFollowing
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+      - m_Target: {fileID: 2076738382}
+        m_TargetAssemblyTypeName: GameCondition, Assembly-CSharp
+        m_MethodName: Check
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!195 &413268099
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 413268092}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: -0.43
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &419652940
 GameObject:
   m_ObjectHideFlags: 0
@@ -10219,11 +10324,11 @@ Transform:
   m_GameObject: {fileID: 421549900}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 5.5, y: 2.406, z: -29}
+  m_LocalPosition: {x: 11.9977, y: 0.06466985, z: -13.37444}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &421584548
 GameObject:
@@ -10805,6 +10910,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 459926237}
+  - component: {fileID: 459926238}
   m_Layer: 0
   m_Name: Zain_Yells
   m_TagString: Untagged
@@ -10820,13 +10926,52 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 459926236}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.4977, y: 2.34133, z: -15.62556}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &459926238
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 459926236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d099e361135bd94caaa7475faf1a9b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OverheardConversation
+  lines:
+  - text: AH!
+    speaker: {fileID: 413268095}
+    seconds: 1.5
+    sound: {fileID: 0}
+  startMode: 0
+  startDelay: 0
+  hearingRange: 30
+  quietDistance: 0
+  loop: 0
+  loopPause: 8
+  holdSpeakers: 1
+  hop: 0
+  hopHeight: 0.12
+  soundVolume: 1
+  eventsOnce: 0
+  onHeard:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissed:
+    m_PersistentCalls:
+      m_Calls: []
+  textColor: {r: 0.95, g: 0.93, b: 0.88, a: 1}
+  shadowColor: {r: 0, g: 0, b: 0, a: 0.9}
+  textSize: 36
+  worldSize: 0.6
+  heightAboveHead: 0.6
 --- !u!1 &467496549
 GameObject:
   m_ObjectHideFlags: 0
@@ -11282,6 +11427,7 @@ MonoBehaviour:
   stayDim: 0
   dimness: 0.75
   restoredThought: 
+  startDelay: 0
   flickers: 3
   shortestBlink: 0.05
   longestBlink: 0.2
@@ -18361,6 +18507,7 @@ MonoBehaviour:
   hop: 1
   hopHeight: 0.12
   soundVolume: 1
+  eventsOnce: 1
   onHeard:
     m_PersistentCalls:
       m_Calls:
@@ -18601,6 +18748,7 @@ GameObject:
   - component: {fileID: 755174532}
   - component: {fileID: 755174533}
   - component: {fileID: 755174534}
+  - component: {fileID: 755174535}
   m_Layer: 0
   m_Name: Salem_Player
   m_TagString: Untagged
@@ -18823,6 +18971,31 @@ MonoBehaviour:
   groundedParameter: Grounded
   animationDamping: 0.1
   cameraNearClip: 0.05
+--- !u!114 &755174535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 755174528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 576eb4eaec36dc94dbeed6e476f27b41, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ItemGlow
+  showGlow: 1
+  glowColor: {r: 1, g: 0.8, b: 0.35, a: 1}
+  fill: 0.12
+  rimSharpness: 2
+  pulse: 0.5
+  showMarker: 1
+  markerColor: {r: 1, g: 0.85, b: 0.4, a: 1}
+  markerSize: 0.12
+  markerHeight: 0.12
+  markerRange: 100
+  markerSprite: {fileID: 0}
+  glowShader: {fileID: 0}
+  viewCamera: {fileID: 0}
 --- !u!43 &760070290
 Mesh:
   m_ObjectHideFlags: 0
@@ -19690,11 +19863,11 @@ Transform:
   m_GameObject: {fileID: 826980099}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5.5, y: 2.34133, z: -15.622999}
+  m_LocalPosition: {x: 0.9977002, y: 0, z: 0.0025606155}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &839339325
 PrefabInstance:
@@ -35239,11 +35412,11 @@ Transform:
   m_GameObject: {fileID: 933341415}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -2.5, y: 2.34133, z: -15.622999}
+  m_LocalPosition: {x: 3.9977002, y: 0, z: 0.0025606155}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &991917487
 PrefabInstance:
@@ -35251,7 +35424,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 240727327}
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       propertyPath: m_LocalScale.x
@@ -35267,15 +35440,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 30.499998
+      value: 36.9977
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 10.613846
+      value: 8.272516
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -33.73
+      value: -18.104439
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       propertyPath: m_LocalRotation.w
@@ -35321,6 +35494,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 991917495}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
       insertIndex: -1
       addedObject: {fileID: 991917491}
@@ -35396,6 +35572,32 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!4 &991917492 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d6f8573de8c478c4d8d6522b003c3d04, type: 3}
+  m_PrefabInstance: {fileID: 991917487}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &991917495
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 991917488}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.01611404, y: 0.0932344, z: 0.096137196}
+  m_Center: {x: -0.0011060201, y: 0.0013699145, z: -0.00021203012}
 --- !u!1001 &1006642941
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -35936,7 +36138,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b32ba76b57938354a9463458081220e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Grabbable
-  canGrab: 0
+  canGrab: 1
   canRotate: 1
   highlight: 1
   glowUntilFound: 1
@@ -36032,7 +36234,19 @@ MonoBehaviour:
   journalTitle: Sardine tin of powder
   onFound:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 739034828}
+        m_TargetAssemblyTypeName: OverheardConversation, Assembly-CSharp
+        m_MethodName: Stop
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &1019168680
 GameObject:
   m_ObjectHideFlags: 0
@@ -39122,7 +39336,7 @@ GameObject:
   - component: {fileID: 1158951369}
   - component: {fileID: 1158951368}
   m_Layer: 0
-  m_Name: Zain_James_Overheard_Convo
+  m_Name: James_Blocks_Zain_Convo
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -39180,26 +39394,27 @@ MonoBehaviour:
   startMode: 0
   startDelay: 0
   hearingRange: 6
-  quietDistance: 3
+  quietDistance: 6
   loop: 1
   loopPause: 2
   holdSpeakers: 1
   hop: 0
   hopHeight: 0.12
   soundVolume: 1
+  eventsOnce: 1
   onHeard:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1158951367}
-        m_TargetAssemblyTypeName: 
-        m_MethodName: 
-        m_Mode: 1
+      - m_Target: {fileID: 2076738382}
+        m_TargetAssemblyTypeName: GameCondition, Assembly-CSharp
+        m_MethodName: Done
+        m_Mode: 5
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: 
+          m_StringArgument: heard
           m_BoolArgument: 0
         m_CallState: 2
   onMissed:
@@ -39218,12 +39433,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1158951367}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 29.98966, y: 10.61389, z: -33.75}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 36.487362, y: 8.27256, z: -18.12444}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1161237526
 GameObject:
@@ -40988,6 +41203,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1299698500}
   - component: {fileID: 1299698501}
+  - component: {fileID: 1299698506}
   - component: {fileID: 1299698502}
   - component: {fileID: 1299698503}
   - component: {fileID: 1299698504}
@@ -41783,84 +41999,6 @@ MonoBehaviour:
     timeLimit: 0
     timeoutNode: 
   eventDialogue:
-  - unlockId: DistractMurray
-    showInNode: 
-    text: Got a minute? I want to talk caviar.
-    requiredItem: {fileID: 0}
-    npcReply: 
-    choices: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: 
-    greyAfterChosen: 1
-    nextNode: distract1
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
-  - unlockId: AccuseMurray
-    showInNode: 
-    text: This came out of Geno's tool. Out of your scale.
-    requiredItem: {fileID: 1333084727}
-    npcReply: That's... put that away. Do you have any idea what you're holding?
-    choices:
-    - text: You're the Fishman.
-      nextNode: revealed
-      endConversation: 0
-      greyAfterChosen: 0
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls:
-          - m_Target: {fileID: 1299698504}
-            m_TargetAssemblyTypeName: NPCSpriteSwap, Assembly-CSharp
-            m_MethodName: SetSprite
-            m_Mode: 2
-            m_Arguments:
-              m_ObjectArgument: {fileID: 165242647914706678, guid: fc9a3b1440aa3784dba65de1d5815d49, type: 3}
-              m_ObjectArgumentAssemblyTypeName: UnityEngine.Sprite, UnityEngine
-              m_IntArgument: 0
-              m_FloatArgument: 0
-              m_StringArgument: 
-              m_BoolArgument: 0
-            m_CallState: 2
-          - m_Target: {fileID: 1299698505}
-            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
-            m_MethodName: StopPatrol
-            m_Mode: 1
-            m_Arguments:
-              m_ObjectArgument: {fileID: 0}
-              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-              m_IntArgument: 0
-              m_FloatArgument: 0
-              m_StringArgument: 
-              m_BoolArgument: 0
-            m_CallState: 2
-          - m_Target: {fileID: 1299698502}
-            m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
-            m_MethodName: UnlockChoice
-            m_Mode: 5
-            m_Arguments:
-              m_ObjectArgument: {fileID: 0}
-              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-              m_IntArgument: 0
-              m_FloatArgument: 0
-              m_StringArgument: caught
-              m_BoolArgument: 0
-            m_CallState: 2
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: 
-    greyAfterChosen: 0
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
   - unlockId: 
     showInNode: 
     text: Do you know what this is?
@@ -41988,6 +42126,28 @@ MonoBehaviour:
   giveUpTime: 4
   addColliderIfMissing: 1
   player: {fileID: 0}
+--- !u!195 &1299698506
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1299698499}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &1305394965
 GameObject:
   m_ObjectHideFlags: 0
@@ -60023,9 +60183,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1983400526}
   - component: {fileID: 1983400529}
+  - component: {fileID: 1983400532}
   - component: {fileID: 1983400528}
   - component: {fileID: 1983400527}
   - component: {fileID: 1983400530}
+  - component: {fileID: 1983400531}
   m_Layer: 0
   m_Name: James
   m_TagString: Untagged
@@ -60462,15 +60624,63 @@ MonoBehaviour:
       onChosen:
         m_PersistentCalls:
           m_Calls:
-          - m_Target: {fileID: 0}
-            m_TargetAssemblyTypeName: 
-            m_MethodName: 
+          - m_Target: {fileID: 1158951368}
+            m_TargetAssemblyTypeName: OverheardConversation, Assembly-CSharp
+            m_MethodName: Stop
             m_Mode: 1
             m_Arguments:
               m_ObjectArgument: {fileID: 0}
-              m_ObjectArgumentAssemblyTypeName: 
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
               m_IntArgument: 0
               m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1983400531}
+            m_TargetAssemblyTypeName: NPCFollowPlayer, Assembly-CSharp
+            m_MethodName: StartFollowing
+            m_Mode: 1
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 413268098}
+            m_TargetAssemblyTypeName: GameTrigger, Assembly-CSharp
+            m_MethodName: Arm
+            m_Mode: 1
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1299698505}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: StopAtWaypoint
+            m_Mode: 2
+            m_Arguments:
+              m_ObjectArgument: {fileID: 2063145163}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1299698505}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: set_WalkSpeed
+            m_Mode: 4
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 6
               m_StringArgument: 
               m_BoolArgument: 0
             m_CallState: 2
@@ -60713,7 +60923,91 @@ MonoBehaviour:
       salemThinks: 
       onChosen:
         m_PersistentCalls:
-          m_Calls: []
+          m_Calls:
+          - m_Target: {fileID: 459926238}
+            m_TargetAssemblyTypeName: OverheardConversation, Assembly-CSharp
+            m_MethodName: Play
+            m_Mode: 1
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 413268097}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: set_WalkSpeed
+            m_Mode: 4
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 6
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 413268097}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: StopAtWaypoint
+            m_Mode: 2
+            m_Arguments:
+              m_ObjectArgument: {fileID: 421549901}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1299698505}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: set_WalkSpeed
+            m_Mode: 4
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 2
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1299698505}
+            m_TargetAssemblyTypeName: NPCPatrol, Assembly-CSharp
+            m_MethodName: StopAtWaypoint
+            m_Mode: 2
+            m_Arguments:
+              m_ObjectArgument: {fileID: 8533732}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Transform, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: 
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 413268095}
+            m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+            m_MethodName: SetStartNode
+            m_Mode: 5
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: after_chase
+              m_BoolArgument: 0
+            m_CallState: 2
+          - m_Target: {fileID: 1299698502}
+            m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+            m_MethodName: SetStartNode
+            m_Mode: 5
+            m_Arguments:
+              m_ObjectArgument: {fileID: 0}
+              m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+              m_IntArgument: 0
+              m_FloatArgument: 0
+              m_StringArgument: after_chase
+              m_BoolArgument: 0
+            m_CallState: 2
     thenNode: 
     speaker: 
     expression: {fileID: 0}
@@ -60721,58 +61015,6 @@ MonoBehaviour:
     timeLimit: 0
     timeoutNode: 
   eventDialogue:
-  - unlockId: GenoNotes
-    showInNode: 
-    text: Geno's notes mention you.
-    requiredItem: {fileID: 0}
-    npcReply: Of course they do. Small men love writing about big ones. Did he at least spell my name right?
-    choices:
-    - text: He mentions his daughter.
-      nextNode: daughter
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: 
-    greyAfterChosen: 1
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
-  - unlockId: 
-    showInNode: 
-    text: Ever seen one of these?
-    requiredItem: {fileID: 101083546}
-    npcReply: A scale? How quaint. I carry one myself, a marked one. A protection charm. It wards off... certain people.
-    choices:
-    - text: Protection from who?
-      nextNode: charm
-      endConversation: 0
-      greyAfterChosen: 1
-      appearAfter: 0
-      unlockId: 
-      salemThinks: 
-      onChosen:
-        m_PersistentCalls:
-          m_Calls: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: 
-    greyAfterChosen: 1
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
   - unlockId: 
     showInNode: 
     text: Geno had notes about you. What's this about?
@@ -60902,6 +61144,52 @@ MonoBehaviour:
   giveUpTime: 4
   addColliderIfMissing: 1
   player: {fileID: 0}
+--- !u!114 &1983400531
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983400525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1956a55aaa2aedb42aa95abe46c76581, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCFollowPlayer
+  style: 1
+  distance: 2
+  duration: 0
+  conversationNode: 
+  walkSpeed: 0
+  startOnSceneStart: 0
+  onFinished:
+    m_PersistentCalls:
+      m_Calls: []
+  patrol: {fileID: 0}
+  npc: {fileID: 0}
+  player: {fileID: 0}
+--- !u!195 &1983400532
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1983400525}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: 0
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!43 &1992040570
 Mesh:
   m_ObjectHideFlags: 0
@@ -61718,6 +62006,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2061500258}
   - component: {fileID: 2061500261}
+  - component: {fileID: 2061500264}
   - component: {fileID: 2061500260}
   - component: {fileID: 2061500259}
   - component: {fileID: 2061500262}
@@ -62203,6 +62492,22 @@ MonoBehaviour:
             m_StringArgument: Carmela
             m_BoolArgument: 0
           m_CallState: 2
+  - unlockId: 
+    showInNode: 
+    text: Do you recognize this powder?
+    requiredItem: {fileID: 1012264499}
+    npcReply: Ugh. Get that stuff away from me.
+    choices: []
+    expression: {fileID: 0}
+    portraitExpression: {fileID: 0}
+    backText: I had other questions.
+    greyAfterChosen: 1
+    nextNode: 
+    endConversation: 0
+    salemThinks: 
+    onChosen:
+      m_PersistentCalls:
+        m_Calls: []
   - unlockId: l1_hiding
     showInNode: 
     text: Are you hiding something?
@@ -62241,22 +62546,6 @@ MonoBehaviour:
             m_StringArgument: 
             m_BoolArgument: 0
           m_CallState: 2
-  - unlockId: 
-    showInNode: 
-    text: Do you recognize this powder?
-    requiredItem: {fileID: 1012264499}
-    npcReply: Ugh. Get that stuff away from me.
-    choices: []
-    expression: {fileID: 0}
-    portraitExpression: {fileID: 0}
-    backText: I had other questions.
-    greyAfterChosen: 1
-    nextNode: 
-    endConversation: 0
-    salemThinks: 
-    onChosen:
-      m_PersistentCalls:
-        m_Calls: []
 --- !u!65 &2061500261
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -62292,7 +62581,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCFollowPlayer
   style: 0
   distance: 5
-  duration: 15
+  duration: 5
   conversationNode: 
   walkSpeed: 0
   startOnSceneStart: 0
@@ -62350,6 +62639,28 @@ MonoBehaviour:
   giveUpTime: 4
   addColliderIfMissing: 1
   player: {fileID: 0}
+--- !u!195 &2061500264
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2061500257}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.5
+  m_Speed: 3.5
+  m_Acceleration: 8
+  avoidancePriority: 50
+  m_AngularSpeed: 120
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 1
+  m_AutoRepath: 1
+  m_Height: 2
+  m_BaseOffset: -0.29
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4
 --- !u!1 &2063145162
 GameObject:
   m_ObjectHideFlags: 0
@@ -62375,11 +62686,11 @@ Transform:
   m_GameObject: {fileID: 2063145162}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -1.5, y: 2.34133, z: -20}
+  m_LocalPosition: {x: 5.4977, y: 0, z: -3.37444}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2063572669
 GameObject:
@@ -62482,6 +62793,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2076738381}
+  - component: {fileID: 2076738382}
   m_Layer: 0
   m_Name: Heard_James_And_Zain
   m_TagString: Untagged
@@ -62497,13 +62809,58 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2076738380}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.4977, y: 2.34133, z: -15.62556}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 240727327}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2076738382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2076738380}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d23515136411ec44bb95019198c3af66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameCondition
+  steps:
+  - heard
+  fireWhenDone: 0
+  onAllDone:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1983400528}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: confront_heard
+          m_BoolArgument: 0
+        m_CallState: 2
+  onNotDone:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1983400528}
+        m_TargetAssemblyTypeName: NPCDialogue, Assembly-CSharp
+        m_MethodName: SetStartNode
+        m_Mode: 5
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: confront_missed
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &2079292872
 GameObject:
   m_ObjectHideFlags: 0
@@ -62959,16 +63316,4 @@ SceneRoots:
   - {fileID: 609882616}
   - {fileID: 1928903803}
   - {fileID: 64407326}
-  - {fileID: 933341416}
-  - {fileID: 826980100}
-  - {fileID: 2063145163}
-  - {fileID: 421549901}
-  - {fileID: 8533732}
-  - {fileID: 358763453}
-  - {fileID: 71713018}
-  - {fileID: 1158951369}
-  - {fileID: 380384994}
-  - {fileID: 459926237}
-  - {fileID: 2076738381}
-  - {fileID: 257660430}
-  - {fileID: 991917487}
+  - {fileID: 240727327}

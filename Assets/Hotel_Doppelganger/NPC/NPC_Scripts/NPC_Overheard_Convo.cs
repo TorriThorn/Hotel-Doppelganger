@@ -37,6 +37,7 @@ public class OverheardConversation : MonoBehaviour
     private const float AutoBaseTime = 1.5f;
     private const float AutoTimePerLetter = 0.06f;
     private const float FallbackHeight = 2f;
+    private const float EyeDrop = 0.2f;
     private const string OutOfEarshot = "...";
     private const float HopSpeed = 9f;
 
@@ -80,7 +81,11 @@ public class OverheardConversation : MonoBehaviour
     [DisplayAs("Sound Volume", Min = 0f, Max = 1f)]
     [SerializeField] private float soundVolume = 1f;
 
+    // For a looping conversation, so things like showing an item don't happen again every loop
     [Foldout("Events")]
+    [DisplayAs("Events Only Fire Once")]
+    [SerializeField] private bool eventsOnce;
+
     [DisplayAs("On Finished, Player Heard It")]
     public UnityEvent onHeard;
 
@@ -117,6 +122,9 @@ public class OverheardConversation : MonoBehaviour
     private Transform hopping;
     private Vector3 hopRest;
     private bool noticed;
+    private bool heardFired;
+    private bool missedFired;
+    private readonly RaycastHit[] sightHits = new RaycastHit[16];
 
     public bool IsPlaying => playing != null;
 
@@ -195,7 +203,7 @@ public class OverheardConversation : MonoBehaviour
         if (playing != null)
         {
             StopCoroutine(playing);
-            if (heardAny) onHeard?.Invoke();
+            if (heardAny) FireHeard();
         }
         playing = null;
         heardAny = false;
@@ -235,8 +243,8 @@ public class OverheardConversation : MonoBehaviour
             bubble.gameObject.SetActive(false);
             HoldSpeakers(false);
 
-            if (heardAny) onHeard?.Invoke();
-            else onMissed?.Invoke();
+            if (heardAny) FireHeard();
+            else FireMissed();
 
             if (loop) yield return Wait(loopPause);
         }
@@ -255,6 +263,20 @@ public class OverheardConversation : MonoBehaviour
         }
     }
 
+    private void FireHeard()
+    {
+        if (eventsOnce && heardFired) return;
+        heardFired = true;
+        onHeard?.Invoke();
+    }
+
+    private void FireMissed()
+    {
+        if (eventsOnce && missedFired) return;
+        missedFired = true;
+        onMissed?.Invoke();
+    }
+
     // Close, lights up, and nothing in the way
     private bool PlayerNoticed()
     {
@@ -264,19 +286,42 @@ public class OverheardConversation : MonoBehaviour
         {
             if (line == null || line.speaker == null) continue;
 
-            Vector3 eyes = line.speaker.HeadPosition(FindBody(line.speaker), FallbackHeight);
-            if ((eyes - viewer.position).sqrMagnitude > quietDistance * quietDistance) continue;
-            if (CanSee(eyes, line.speaker)) return true;
+            // Measured along the floor, so height differences don't matter
+            Transform root = NpcRoot(line.speaker);
+            Vector3 offset = viewer.position - root.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude > quietDistance * quietDistance) continue;
+
+            Vector3 eyes = line.speaker.HeadPosition(FindBody(line.speaker), FallbackHeight) + Vector3.down * EyeDrop;
+            if (CanSee(eyes)) return true;
         }
         return false;
     }
 
-    private bool CanSee(Vector3 eyes, NPCDialogue speaker)
+    // Only walls and furniture count as cover: the speakers themselves and the player don't
+    private bool CanSee(Vector3 eyes)
     {
-        if (!Physics.Linecast(eyes, viewer.position, out RaycastHit hit, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore)) return true;
+        Vector3 toViewer = viewer.position - eyes;
+        int count = Physics.RaycastNonAlloc(eyes, toViewer.normalized, sightHits, toViewer.magnitude,
+            Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
 
-        Transform blocker = hit.transform;
-        return (playerRoot != null && blocker.IsChildOf(playerRoot)) || blocker.IsChildOf(NpcRoot(speaker));
+        for (int i = 0; i < count; i++)
+        {
+            Transform blocker = sightHits[i].transform;
+            if (playerRoot != null && blocker.IsChildOf(playerRoot)) continue;
+            if (IsSpeakerPart(blocker)) continue;
+            return false;
+        }
+        return true;
+    }
+
+    private bool IsSpeakerPart(Transform part)
+    {
+        foreach (Line line in lines)
+        {
+            if (line != null && line.speaker != null && part.IsChildOf(NpcRoot(line.speaker))) return true;
+        }
+        return false;
     }
 
     // Moving the NPC object itself would fight its walking
@@ -407,7 +452,7 @@ public class OverheardConversation : MonoBehaviour
         loopPause = 2f;
         hop = false;
         hearingRange = 6f;
-        quietDistance = 3f;
+        quietDistance = 4f;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 

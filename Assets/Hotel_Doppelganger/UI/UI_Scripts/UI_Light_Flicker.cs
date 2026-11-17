@@ -33,6 +33,9 @@ public class LightFlicker : MonoBehaviour
     [SerializeField] private string restoredThought = "";
 
     [Foldout("Timing")]
+    [DisplayAs("Wait Before Flickering (seconds)", Min = 0f)]
+    [SerializeField] private float startDelay;
+
     [DisplayAs("Flickers Before Going Out", Min = 0f)]
     [SerializeField] private int flickers = 3;
 
@@ -111,6 +114,8 @@ public class LightFlicker : MonoBehaviour
     {
         running = true;
         done = true;
+        if (startDelay > 0f) yield return new WaitForSeconds(startDelay);
+
         canvas.gameObject.SetActive(true);
 
         for (int i = 0; i < flickers; i++)
