@@ -153,6 +153,8 @@ public static class SardineTinLines
     {
         npc.eventDialogue.Add(new NPCDialogue.EventDialogue
         {
+            // Zain's panic is the one that matters, so after it no one else asks for the tin
+            mainReaction = string.Equals(npc.npcName?.Trim(), "Zain", StringComparison.OrdinalIgnoreCase),
             text = TinQuestion,
             requiredItem = tin,
             npcReply = reply,

@@ -9,7 +9,15 @@ using Random = UnityEngine.Random;
 [AddComponentMenu("Game/Puzzle/Light Flicker")]
 public class LightFlicker : MonoBehaviour
 {
-    private const int SortingOrder = 95;
+    // Below Salem's thoughts (90) and dialogue (100), so they stay readable while the room is dark
+    private const int SortingOrder = 85;
+
+    // Gentle flickering eases in and out and never blinks faster than about twice a second, which keeps it
+    // well clear of the rapid full-contrast flashing that can cause discomfort or seizures
+    private const float GentleFade = 0.15f;
+    private const float GentleShortestGap = 0.35f;
+    private const float GoingOutFade = 0.45f;
+    private const float ComingBackFade = 0.6f;
 
     [Header("Lights")]
     [DisplayAs("Lights (empty = every light in the scene)")]
@@ -18,6 +26,10 @@ public class LightFlicker : MonoBehaviour
     [Header("Afterwards")]
     [DisplayAs("Salem Thinks (optional)", Lines = 2)]
     [SerializeField] private string thought = "It's going to be an interesting night.";
+
+    // Counted from once the lights have finished flickering and settled, so the line isn't lost in the flashing
+    [DisplayAs("Wait Before Salem Thinks (seconds)", Min = 0f)]
+    [SerializeField] private float thoughtDelay = 1f;
 
     [DisplayAs("Only Flicker Once")]
     [SerializeField] private bool onlyOnce = true;
@@ -33,6 +45,13 @@ public class LightFlicker : MonoBehaviour
     [SerializeField] private string restoredThought = "";
 
     [Foldout("Timing")]
+    [DisplayAs("Gentle Flicker (easier on the eyes)")]
+    [SerializeField] private bool gentle = true;
+
+    // From 0 (no change) to 1 (black)
+    [DisplayAs("How Dark Each Flicker Gets", ShowIf = nameof(gentle), Min = 0f, Max = 1f)]
+    [SerializeField] private float flickerDepth = 0.55f;
+
     [DisplayAs("Wait Before Flickering (seconds)", Min = 0f)]
     [SerializeField] private float startDelay;
 
@@ -102,9 +121,9 @@ public class LightFlicker : MonoBehaviour
     {
         if (!IsDim) return;
 
-        SetDark(0f);
-        canvas.gameObject.SetActive(false);
         SetDimFlag(false);
+        SetLightsOn(true);
+        StartCoroutine(FadeAway());
 
         if (!string.IsNullOrWhiteSpace(restoredThought)) DetectiveThoughts.Get().Say(restoredThought);
         onRestored?.Invoke();
@@ -118,6 +137,64 @@ public class LightFlicker : MonoBehaviour
 
         canvas.gameObject.SetActive(true);
 
+        if (gentle) yield return GentleFlickers();
+        else yield return HardFlickers();
+
+        onDark?.Invoke();
+        yield return new WaitForSeconds(darkTime);
+
+        if (stayDim)
+        {
+            // Lights stay off, with the overlay easing off to the dim level
+            yield return Fade(1f, dimness, gentle ? ComingBackFade : 0f);
+            SetDimFlag(true);
+        }
+        else
+        {
+            SetLightsOn(true);
+            yield return Fade(1f, 0f, gentle ? ComingBackFade : 0f);
+            canvas.gameObject.SetActive(false);
+        }
+        running = false;
+        onFinished?.Invoke();
+
+        if (string.IsNullOrWhiteSpace(thought)) yield break;
+        if (thoughtDelay > 0f) yield return new WaitForSeconds(thoughtDelay);
+        DetectiveThoughts.Get().Say(thought);
+    }
+
+    private void SetDimFlag(bool dim)
+    {
+        if (IsDim == dim) return;
+        IsDim = dim;
+        dimCount += dim ? 1 : -1;
+    }
+
+    private IEnumerator FadeAway()
+    {
+        yield return Fade(overlay.color.a, 0f, ComingBackFade);
+        canvas.gameObject.SetActive(false);
+    }
+
+    // Soft dips that don't go fully black, then an eased fade out
+    private IEnumerator GentleFlickers()
+    {
+        for (int i = 0; i < flickers; i++)
+        {
+            float depth = flickerDepth * Random.Range(0.7f, 1f);
+            yield return Fade(0f, depth, GentleFade);
+            yield return new WaitForSeconds(Random.Range(shortestBlink, longestBlink));
+            yield return Fade(depth, 0f, GentleFade);
+            yield return new WaitForSeconds(Mathf.Max(GentleShortestGap, Random.Range(shortestBlink, longestBlink) * 1.5f));
+        }
+
+        yield return Fade(0f, 1f, GoingOutFade);
+        SetLightsOn(false);
+    }
+
+    // The original instant on/off blinks
+    private IEnumerator HardFlickers()
+    {
         for (int i = 0; i < flickers; i++)
         {
             SetDark(1f);
@@ -127,31 +204,16 @@ public class LightFlicker : MonoBehaviour
         }
 
         SetDark(1f);
-        onDark?.Invoke();
-        yield return new WaitForSeconds(darkTime);
-
-        if (stayDim)
-        {
-            // Lights stay off, with the overlay easing off to the dim level
-            overlay.color = new Color(0f, 0f, 0f, dimness);
-            SetDimFlag(true);
-        }
-        else
-        {
-            SetDark(0f);
-            canvas.gameObject.SetActive(false);
-        }
-        running = false;
-
-        if (!string.IsNullOrWhiteSpace(thought)) DetectiveThoughts.Get().Say(thought);
-        onFinished?.Invoke();
     }
 
-    private void SetDimFlag(bool dim)
+    private IEnumerator Fade(float from, float to, float duration)
     {
-        if (IsDim == dim) return;
-        IsDim = dim;
-        dimCount += dim ? 1 : -1;
+        for (float t = 0f; t < duration; t += Time.deltaTime)
+        {
+            overlay.color = new Color(0f, 0f, 0f, Mathf.Lerp(from, to, Mathf.SmoothStep(0f, 1f, t / duration)));
+            yield return null;
+        }
+        overlay.color = new Color(0f, 0f, 0f, to);
     }
 
     private void SetDark(float amount)

@@ -127,6 +127,12 @@ public class NPCDialogue : MonoBehaviour
         [DisplayAs("Ends Conversation")]
         public bool endConversation;
 
+        // Once the player has shown the item to every NPC with this ticked for it, the ? over everyone else's
+        // head goes away. They can still be shown it
+        [MoreOptions]
+        [DisplayAs("Main Reaction (once all of these are seen, others stop asking)")]
+        public bool mainReaction;
+
         [MoreOptions]
         [DisplayAs("Salem Thinks Afterwards (optional)", Lines = 2)]
         public string salemThinks = "";
@@ -193,6 +199,9 @@ public class NPCDialogue : MonoBehaviour
 
     // Top of each sprite's drawn pixels, worked out once per sprite
     private static readonly Dictionary<Sprite, float> spriteTops = new Dictionary<Sprite, float>();
+
+    // Items whose main reaction has been seen, per Event Id, so a later version (e.g. the dried scale) can ask again
+    private static readonly Dictionary<Grabbable, HashSet<string>> settledItems = new Dictionary<Grabbable, HashSet<string>>();
 
     // Ids ignore capitals and stray spaces
     private readonly HashSet<string> unlockedIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -299,23 +308,29 @@ public class NPCDialogue : MonoBehaviour
     public void MarkVisited(EventDialogue entry)
     {
         if (visited.Add(entry)) Version++;
+        if (entry != null && entry.mainReaction && entry.requiredItem != null && AllMainReactionsSeen(entry)) Settle(entry);
     }
 
-    // -1 if there's no line for this item, or its event hasn't happened
+    // -1 if there's no line for this item, or its event hasn't happened. A line whose Event Id has been
+    // unlocked wins over a plain one, so an item can get new reactions later, e.g. once it's changed
     public int FindItemEntry(Grabbable item)
     {
         if (item == null) return -1;
 
+        int plain = -1;
         for (int i = 0; i < eventDialogue.Count; i++)
         {
             EventDialogue entry = eventDialogue[i];
             if (entry == null || entry.requiredItem != item) continue;
 
-            bool needsId = !string.IsNullOrWhiteSpace(entry.unlockId);
-            if (!needsId || unlockedIds.Contains(entry.unlockId.Trim())) return i;
+            if (string.IsNullOrWhiteSpace(entry.unlockId))
+            {
+                if (plain < 0) plain = i;
+            }
+            else if (unlockedIds.Contains(entry.unlockId.Trim())) return i;
         }
 
-        return -1;
+        return plain;
     }
 
     // For the marker that says "show me that"
@@ -326,6 +341,7 @@ public class NPCDialogue : MonoBehaviour
         foreach (EventDialogue entry in eventDialogue)
         {
             if (entry == null || entry.requiredItem != item || string.IsNullOrWhiteSpace(entry.text) || visited.Contains(entry)) continue;
+            if (IsSettled(entry)) continue;
 
             bool needsId = !string.IsNullOrWhiteSpace(entry.unlockId);
             if (!needsId || unlockedIds.Contains(entry.unlockId.Trim())) return true;
@@ -370,6 +386,14 @@ public class NPCDialogue : MonoBehaviour
         if (!string.IsNullOrWhiteSpace(unlockId) && unlockedIds.Add(unlockId.Trim())) Version++;
     }
 
+    // Unlocks the Event Id on every NPC at once, so one event can open up lines across the cast
+    public void UnlockForEveryone(string unlockId) => UnlockEverywhere(unlockId);
+
+    public static void UnlockEverywhere(string unlockId)
+    {
+        foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>(FindObjectsInactive.Include)) npc.UnlockChoice(unlockId);
+    }
+
     public void LockChoice(string unlockId)
     {
         if (!string.IsNullOrWhiteSpace(unlockId) && unlockedIds.Remove(unlockId.Trim())) Version++;
@@ -386,6 +410,14 @@ public class NPCDialogue : MonoBehaviour
         allAskedDone = true;
         if (!string.IsNullOrWhiteSpace(allAskedThought)) DetectiveThoughts.Get().Say(allAskedThought);
         onAllAsked?.Invoke();
+    }
+
+    // Opens a conversation with the player straight away at this node, without changing First Node,
+    // e.g. right after a Contradiction is solved
+    public void TalkToPlayerAt(string nodeId)
+    {
+        if (playerDialogue == null) playerDialogue = FindAnyObjectByType<PlayerDialogue>();
+        if (playerDialogue != null) playerDialogue.StartConversation(this, nodeId);
     }
 
     public void SetStartNode(string nodeId)
@@ -421,6 +453,39 @@ public class NPCDialogue : MonoBehaviour
     }
 
     private static bool IsUnheard(bool greysOut, bool picked) => greysOut && !picked;
+
+    private static void Settle(EventDialogue entry)
+    {
+        if (!settledItems.TryGetValue(entry.requiredItem, out HashSet<string> ids))
+        {
+            ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            settledItems.Add(entry.requiredItem, ids);
+        }
+        ids.Add((entry.unlockId ?? string.Empty).Trim());
+    }
+
+    // Every NPC's main reaction to this item (at this stage) has been shown
+    private static bool AllMainReactionsSeen(EventDialogue shown)
+    {
+        string stage = (shown.unlockId ?? string.Empty).Trim();
+        foreach (NPCDialogue npc in FindObjectsByType<NPCDialogue>(FindObjectsInactive.Include))
+        {
+            foreach (EventDialogue entry in npc.eventDialogue)
+            {
+                if (entry == null || !entry.mainReaction || entry.requiredItem != shown.requiredItem) continue;
+                if (!string.Equals((entry.unlockId ?? string.Empty).Trim(), stage, StringComparison.OrdinalIgnoreCase)) continue;
+                if (!npc.visited.Contains(entry)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsSettled(EventDialogue entry) =>
+        settledItems.TryGetValue(entry.requiredItem, out HashSet<string> ids) && ids.Contains((entry.unlockId ?? string.Empty).Trim());
+
+    // Statics outlive play sessions in the editor
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetSettled() => settledItems.Clear();
 
     private void QueueScan(Node node)
     {
@@ -535,6 +600,28 @@ public class NPCDialogue : MonoBehaviour
     {
         UnityEditor.Undo.RecordObject(this, "Add Level 1 Lines");
         if (!LevelOneLines.AddTo(this)) return;
+
+        nodeLookup = null;
+        Version++;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    [ContextMenu("Add Fish Scale Return Lines")]
+    private void AddFishScaleReturnLines()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Fish Scale Return Lines");
+        if (!FishScaleReturnLines.AddTo(this)) return;
+
+        nodeLookup = null;
+        Version++;
+        UnityEditor.EditorUtility.SetDirty(this);
+    }
+
+    [ContextMenu("Add Carmela Medicine Confront")]
+    private void AddCarmelaConfront()
+    {
+        UnityEditor.Undo.RecordObject(this, "Add Carmela Medicine Confront");
+        if (!FishScaleReturnLines.AddCarmelaConfront(this)) return;
 
         nodeLookup = null;
         Version++;

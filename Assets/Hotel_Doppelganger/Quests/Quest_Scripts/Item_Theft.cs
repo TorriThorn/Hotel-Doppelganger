@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 // Quietly takes an item out of Salem's inventory, e.g. Carmela lifting the fish scale. He notices the next time
-// the journal opens; if it stays shut too long, On Not Noticed fires instead
+// the journal opens, or by himself after a while if set; if neither happens in time, On Not Noticed fires instead
 [AddComponentMenu("Game/Puzzle/Item Theft")]
 public class ItemTheft : MonoBehaviour
 {
@@ -12,6 +12,10 @@ public class ItemTheft : MonoBehaviour
 
     [DisplayAs("Salem Notices", Lines = 2)]
     [SerializeField] private string noticeThought = "What the...? Where did it go?";
+
+    // Counts play time only, like the setting below
+    [DisplayAs("Salem Notices By Himself After (seconds, 0 = only when the journal opens)", Min = 0f)]
+    [SerializeField] private float selfNoticeTime;
 
     // Counts play time only
     [DisplayAs("If Not Noticed Within (seconds, 0 = never)", Min = 0f)]
@@ -48,20 +52,30 @@ public class ItemTheft : MonoBehaviour
 
         if (Journal.Get().IsOpen)
         {
-            noticed = true;
-            if (!string.IsNullOrWhiteSpace(noticeThought)) DetectiveThoughts.Get().Say(noticeThought);
-            onNoticed?.Invoke();
+            Notice();
             return;
         }
 
-        if (noticeTimeout <= 0f || timedOut) return;
         if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsTalking)) return;
-
         missingFor += Time.deltaTime;
-        if (missingFor < noticeTimeout) return;
+
+        if (selfNoticeTime > 0f && missingFor >= selfNoticeTime)
+        {
+            Notice();
+            return;
+        }
+
+        if (noticeTimeout <= 0f || timedOut || missingFor < noticeTimeout) return;
 
         timedOut = true;
         onNotNoticed?.Invoke();
+    }
+
+    private void Notice()
+    {
+        noticed = true;
+        if (!string.IsNullOrWhiteSpace(noticeThought)) DetectiveThoughts.Get().Say(noticeThought);
+        onNoticed?.Invoke();
     }
 
     // For UnityEvents, e.g. NPC Follow Player's On Finished
@@ -91,5 +105,8 @@ public class ItemTheft : MonoBehaviour
         item.transform.SetPositionAndRotation(point.position, point.rotation);
         item.gameObject.SetActive(true);
         IsStolen = false;
+
+        // A dropped fish scale starts reacting to the fire from here on
+        if (item.TryGetComponent(out HeatReaction heat)) heat.StartReacting();
     }
 }

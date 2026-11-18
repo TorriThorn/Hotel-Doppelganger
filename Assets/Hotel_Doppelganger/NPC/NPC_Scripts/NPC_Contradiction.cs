@@ -80,6 +80,7 @@ public class Contradiction : MonoBehaviour
     private const float WordsWidth = SideWidth - 60f;
     private const float LineSpacing = 1.3f;
     private const float UnderlineThickness = 2f;
+    private const float LineMatchTolerance = 6f;
     private const float LitUnderlineThickness = 3f;
 
     private const int StringSegments = 24;
@@ -240,6 +241,8 @@ public class Contradiction : MonoBehaviour
     private int targetDetail = -1;
     private Vector2 dropStart;
     private Vector2 dropEnd;
+    private Vector2 solvedFrom;
+    private Vector2 solvedTo;
     private Vector2 dropVelocity;
     private float phaseTime;
     private float openTime;
@@ -294,6 +297,14 @@ public class Contradiction : MonoBehaviour
                 UpdatePicking(Mouse.current);
                 break;
         }
+    }
+
+    // For editor menus that build a Contradiction from code
+    public void SetUp(Statement first, Statement second, string realises)
+    {
+        left = first;
+        right = second;
+        realisation = realises;
     }
 
     // Hook it to Intro Cutscene > On Waiting, or any other event
@@ -417,6 +428,9 @@ public class Contradiction : MonoBehaviour
 
         if (IsAnswer(side, detail) && IsAnswer(pinnedSide, pinnedDetail))
         {
+            // Fixed now, so Salem's line changing the layout under the stamp can't pull the string loose
+            solvedFrom = DetailPoint(pinnedSide, pinnedDetail);
+            solvedTo = DetailPoint(side, detail);
             phase = Phase.Solved;
             stampLanded = false;
             Recolor();
@@ -441,9 +455,7 @@ public class Contradiction : MonoBehaviour
 
     private void UpdateSolved()
     {
-        Vector2 from = DetailPoint(pinnedSide, pinnedDetail);
-        Vector2 to = DetailPoint(targetSide, targetDetail);
-        DrawString(from, to, Vector2.Distance(from, to) * Slack, 1f);
+        DrawString(solvedFrom, solvedTo, Vector2.Distance(solvedFrom, solvedTo) * Slack, 1f);
 
         float stampProgress = (phaseTime - StampDelay) / StampTime;
         if (stampProgress >= 0f)
@@ -785,27 +797,48 @@ public class Contradiction : MonoBehaviour
     }
 
     // Under the middle of a detail, which may run over two lines
+    // Under the middle of the detail. One that wraps onto a second line uses its last line, so the pin sits
+    // on the words rather than in the gap between the two halves
     private Vector2 DetailPoint(Side side, int detail)
     {
+        float bottom = float.MaxValue;
+        foreach (Token token in side.Tokens)
+        {
+            if (token.Detail != detail) continue;
+            Corners(token, out _, out _, out float tokenBottom);
+            bottom = Mathf.Min(bottom, tokenBottom);
+        }
+
         float minX = float.MaxValue;
         float maxX = float.MinValue;
-        float bottom = float.MaxValue;
-
         foreach (Token token in side.Tokens)
         {
             if (token.Detail != detail) continue;
 
-            token.Text.rectTransform.GetWorldCorners(corners);
-            foreach (Vector3 corner in corners)
-            {
-                Vector2 local = stringLayer.InverseTransformPoint(corner);
-                minX = Mathf.Min(minX, local.x);
-                maxX = Mathf.Max(maxX, local.x);
-                bottom = Mathf.Min(bottom, local.y);
-            }
+            Corners(token, out float left, out float right, out float tokenBottom);
+            if (tokenBottom > bottom + LineMatchTolerance) continue;
+
+            minX = Mathf.Min(minX, left);
+            maxX = Mathf.Max(maxX, right);
         }
 
         return minX > maxX ? Vector2.zero : new Vector2((minX + maxX) * 0.5f, bottom + 2f);
+    }
+
+    private void Corners(Token token, out float left, out float right, out float bottom)
+    {
+        left = float.MaxValue;
+        right = float.MinValue;
+        bottom = float.MaxValue;
+
+        token.Text.rectTransform.GetWorldCorners(corners);
+        foreach (Vector3 corner in corners)
+        {
+            Vector2 local = stringLayer.InverseTransformPoint(corner);
+            left = Mathf.Min(left, local.x);
+            right = Mathf.Max(right, local.x);
+            bottom = Mathf.Min(bottom, local.y);
+        }
     }
 
     // The canvas covers the screen, so screen points are its world points

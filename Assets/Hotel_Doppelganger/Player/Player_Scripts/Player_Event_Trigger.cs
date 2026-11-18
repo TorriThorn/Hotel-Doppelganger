@@ -1,18 +1,20 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-// Fires when the player comes close, looks at or away from this spot, or after a delay
+// Fires when the player (or an NPC) comes close, the player looks at or away from this spot, or after a delay
 [AddComponentMenu("Game/Puzzle/Game Trigger")]
 public class GameTrigger : MonoBehaviour
 {
+    // Saved as these numbers, so new options always go on the end with the next number
     public enum When
     {
-        [InspectorName("Player Comes Close")] PlayerComesClose,
-        [InspectorName("Player Looks At This")] PlayerLooksAt,
-        [InspectorName("Player Looks Away From This")] PlayerLooksAway,
-        [InspectorName("Player Moves Away")] PlayerMovesAway,
-        [InspectorName("After A Delay")] AfterDelay,
-        [InspectorName("Only When Fire Is Called")] Manually
+        [InspectorName("Player Comes Close")] PlayerComesClose = 0,
+        [InspectorName("Player Looks At This")] PlayerLooksAt = 1,
+        [InspectorName("Player Looks Away From This")] PlayerLooksAway = 2,
+        [InspectorName("Player Moves Away")] PlayerMovesAway = 3,
+        [InspectorName("After A Delay")] AfterDelay = 4,
+        [InspectorName("Only When Fire Is Called")] Manually = 5,
+        [InspectorName("Someone Else Comes Close")] SomeoneComesClose = 6
     }
 
     [Header("When")]
@@ -21,6 +23,10 @@ public class GameTrigger : MonoBehaviour
 
     [DisplayAs("Distance (meters)", Min = 0f)]
     [SerializeField] private float distance = 3f;
+
+    // Only for Someone Else Comes Close, e.g. an NPC walking past the fire
+    [DisplayAs("Who (for Someone Else Comes Close)")]
+    [SerializeField] private Transform who;
 
     [DisplayAs("Delay (seconds)", Min = 0f)]
     [SerializeField] private float delay = 10f;
@@ -64,8 +70,9 @@ public class GameTrigger : MonoBehaviour
     {
         if (!armed || when == When.Manually) return;
 
-        // Nothing fires mid-conversation or during a cutscene
-        if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsTalking)) return;
+        // Nothing counts mid-conversation, during a cutscene, or while the camera is still easing back,
+        // so a delay starts once the player can actually see the scene
+        if (IntroCutscene.IsPlaying || (dialogue != null && dialogue.IsBusy)) return;
 
         bool condition = when == When.AfterDelay || ConditionMet();
         timer = condition ? timer + Time.deltaTime : 0f;
@@ -84,6 +91,7 @@ public class GameTrigger : MonoBehaviour
 
     public void Disarm() => armed = false;
 
+    [ContextMenu("Fire Now")]
     public void Fire()
     {
         if (onlyOnce && fired) return;
@@ -98,6 +106,14 @@ public class GameTrigger : MonoBehaviour
 
     private bool ConditionMet()
     {
+        // Measured along the floor, so an NPC's pivot height doesn't matter
+        if (when == When.SomeoneComesClose)
+        {
+            if (who == null || !who.gameObject.activeInHierarchy) return false;
+            Vector3 offset = transform.position - who.position;
+            offset.y = 0f;
+            return offset.sqrMagnitude <= distance * distance;
+        }
         if (viewer == null) return false;
 
         Vector3 toThis = transform.position - viewer.position;

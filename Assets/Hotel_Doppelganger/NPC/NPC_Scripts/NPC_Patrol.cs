@@ -151,6 +151,17 @@ public class NPCPatrol : MonoBehaviour
         }
     }
 
+    // Higher turns corners tightly instead of drifting wide, e.g. for running
+    public float Acceleration
+    {
+        get => acceleration;
+        set
+        {
+            acceleration = Mathf.Max(0f, value);
+            if (agent != null) agent.acceleration = acceleration;
+        }
+    }
+
     public bool UseRandomWait { get => randomWait; set => randomWait = value; }
     public float WaitTime { get => defaultWaitTime; set => defaultWaitTime = Mathf.Max(0f, value); }
     public float ShortestWait { get => minRandomWait; set => minRandomWait = Mathf.Max(0f, value); }

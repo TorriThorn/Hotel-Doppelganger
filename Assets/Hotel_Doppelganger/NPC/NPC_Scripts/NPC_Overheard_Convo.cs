@@ -86,6 +86,10 @@ public class OverheardConversation : MonoBehaviour
     [DisplayAs("Events Only Fire Once")]
     [SerializeField] private bool eventsOnce;
 
+    // Off, catching any line counts. On, the player has to have heard every line, over as many loops as it takes
+    [DisplayAs("Player Must Hear Every Line")]
+    [SerializeField] private bool needEveryLine;
+
     [DisplayAs("On Finished, Player Heard It")]
     public UnityEvent onHeard;
 
@@ -119,6 +123,8 @@ public class OverheardConversation : MonoBehaviour
     private Renderer currentBody;
     private string currentLine;
     private bool heardAny;
+    private Line currentEntry;
+    private readonly HashSet<Line> heardLines = new HashSet<Line>();
     private Transform hopping;
     private Vector3 hopRest;
     private bool noticed;
@@ -171,7 +177,11 @@ public class OverheardConversation : MonoBehaviour
 
         Vector3 top = HeadPosition();
         bool inEarshot = (top - viewer.position).sqrMagnitude <= hearingRange * hearingRange;
-        if (inEarshot) heardAny = true;
+        if (inEarshot)
+        {
+            heardAny = true;
+            if (currentEntry != null) heardLines.Add(currentEntry);
+        }
 
         string shown = inEarshot ? currentLine : OutOfEarshot;
         if (bubbleText.text != shown) bubbleText.text = shown;
@@ -203,7 +213,7 @@ public class OverheardConversation : MonoBehaviour
         if (playing != null)
         {
             StopCoroutine(playing);
-            if (heardAny) FireHeard();
+            if (CountsAsHeard()) FireHeard();
         }
         playing = null;
         heardAny = false;
@@ -227,6 +237,7 @@ public class OverheardConversation : MonoBehaviour
                 if (line == null || line.speaker == null || string.IsNullOrWhiteSpace(line.text)) continue;
 
                 currentSpeaker = line.speaker;
+                currentEntry = line;
                 currentBody = FindBody(line.speaker);
                 SetHopping(hop ? HopTarget(line.speaker, currentBody) : null);
                 if (line.sound != null) AudioSource.PlayClipAtPoint(line.sound, line.speaker.transform.position, soundVolume);
@@ -243,7 +254,7 @@ public class OverheardConversation : MonoBehaviour
             bubble.gameObject.SetActive(false);
             HoldSpeakers(false);
 
-            if (heardAny) FireHeard();
+            if (CountsAsHeard()) FireHeard();
             else FireMissed();
 
             if (loop) yield return Wait(loopPause);
@@ -261,6 +272,18 @@ public class OverheardConversation : MonoBehaviour
             if (!noticed && (dialogue == null || !dialogue.IsTalking)) time += Time.deltaTime;
             yield return null;
         }
+    }
+
+    private bool CountsAsHeard()
+    {
+        if (!needEveryLine) return heardAny;
+
+        foreach (Line line in lines)
+        {
+            if (line == null || line.speaker == null || string.IsNullOrWhiteSpace(line.text)) continue;
+            if (!heardLines.Contains(line)) return false;
+        }
+        return true;
     }
 
     private void FireHeard()
@@ -453,6 +476,7 @@ public class OverheardConversation : MonoBehaviour
         hop = false;
         hearingRange = 6f;
         quietDistance = 4f;
+        needEveryLine = true;
         UnityEditor.EditorUtility.SetDirty(this);
     }
 

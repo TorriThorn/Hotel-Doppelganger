@@ -380,6 +380,9 @@ public class PlayerDialogue : MonoBehaviour
 
     public bool IsTalking => npc != null;
 
+    // Also true while the camera is still easing back out after a conversation
+    public bool IsBusy => npc != null || returning;
+
     // So other text boxes can match the dialogue box
     public Font BoxFont => font;
     public Color BoxColor => boxColor;
